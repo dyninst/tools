@@ -1,0 +1,179 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BIN_FILE	unstrip.C	/^char * BIN_FILE = NULL;$/;"	v
+CXX	Makefile	/^CXX = g++$/;"	m
+CXXFLAGS	Makefile	/^CXXFLAGS = -g -Wall$/;"	m
+DYNINST_INCLUDE	Makefile	/^DYNINST_INCLUDE = $(DYNINST_ROOT)\/include$/;"	m
+DYNINST_LIB	Makefile	/^DYNINST_LIB =  $(DYNINST_ROOT)\/$(PLATFORM)\/lib$/;"	m
+Database	database.h	/^        Database() {};$/;"	f	class:Database
+Database	database.h	/^class Database {$/;"	c
+DescriptorDatabase	database.h	/^        DescriptorDatabase() {}$/;"	f	class:DescriptorDatabase
+DescriptorDatabase	database.h	/^        DescriptorDatabase(SyscallParamDatabase * sp) : spDB(sp) {}$/;"	f	class:DescriptorDatabase
+DescriptorDatabase	database.h	/^class DescriptorDatabase {$/;"	c
+Fingerprint	fingerprint.h	/^        Fingerprint(Database _db, Mode m, string _relPath, bool _oneSymbol, bool _verbose) : $/;"	f	class:Fingerprint
+Fingerprint	fingerprint.h	/^class Fingerprint {$/;"	c
+ID_Predicates	predicates.h	/^        ID_Predicates(stack<ParseAPI::Function *> _callstack) : callstack(_callstack) {}$/;"	f	class:ID_Predicates
+ID_Predicates	predicates.h	/^class ID_Predicates: public Slicer::Predicates {$/;"	c
+InstrCallback	callback.C	/^InstrCallback::InstrCallback(Address _s, Fingerprint * _f) : $/;"	f	class:InstrCallback
+InstrCallback	callback.h	/^class InstrCallback : public ParseAPI::ParseCallback {$/;"	c
+LOCAL_INC_DIR	Makefile	/^LOCAL_INC_DIR = \/usr\/local\/include$/;"	m
+LOCAL_LIBS_DIR	Makefile	/^LOCAL_LIBS_DIR = \/usr\/local\/lib$/;"	m
+MAXLEN	unstrip.C	/^int MAXLEN = 1024;$/;"	v
+Matches	types.h	/^class Matches {$/;"	c
+Mode	types.h	/^enum Mode {$/;"	g
+OUT_FILE	unstrip.C	/^char * OUT_FILE = NULL;$/;"	v
+ParamType	types.h	/^enum ParamType {$/;"	g
+SemanticDescriptor	semanticDescriptor.h	/^        SemanticDescriptor() {}$/;"	f	class:SemanticDescriptor
+SemanticDescriptor	semanticDescriptor.h	/^class SemanticDescriptor {$/;"	c
+SemanticDescriptorElem	semanticDescriptor.h	/^        SemanticDescriptorElem() {}$/;"	f	class:SemanticDescriptorElem
+SemanticDescriptorElem	semanticDescriptor.h	/^class SemanticDescriptorElem {$/;"	c
+SyscallNumbersDatabase	database.h	/^        SyscallNumbersDatabase() {}$/;"	f	class:SyscallNumbersDatabase
+SyscallNumbersDatabase	database.h	/^class SyscallNumbersDatabase {$/;"	c
+SyscallParamDatabase	database.h	/^        SyscallParamDatabase() {}$/;"	f	class:SyscallParamDatabase
+SyscallParamDatabase	database.h	/^class SyscallParamDatabase {$/;"	c
+_Unwind_Backtrace	foo.c	/^void _Unwind_Backtrace() {}$/;"	f
+_Unwind_GetCFA	foo.c	/^void _Unwind_GetCFA(){}$/;"	f
+_Unwind_GetGR	foo.c	/^void _Unwind_GetGR(){}$/;"	f
+_Unwind_GetIP	foo.c	/^void _Unwind_GetIP() {}$/;"	f
+_Unwind_Resume	foo.c	/^void _Unwind_Resume() {}$/;"	f
+__CALLBACK_H__	callback.h	33;"	d
+__DATABASE_H__	database.h	33;"	d
+__FINGERPRINT_H__	fingerprint.h	34;"	d
+__PREDICATES_H__	predicates.h	33;"	d
+__SEMANTIC_DESCRIPTOR_H__	semanticDescriptor.h	34;"	d
+__TYPES_H__	types.h	34;"	d
+__UTIL_H__	util.h	34;"	d
+__divdi3	foo.c	/^void __divdi3() {}$/;"	f
+__gcc_personality_v0	foo.c	/^void __gcc_personality_v0() {}$/;"	f
+__moddi3	foo.c	/^void __moddi3() {}$/;"	f
+__rel_iplt_end	foo.c	/^void __rel_iplt_end(){}$/;"	f
+__rel_iplt_start	foo.c	/^void __rel_iplt_start(){}$/;"	f
+__udivdi3	foo.c	/^void __udivdi3(){}$/;"	f
+__umoddi3	foo.c	/^void __umoddi3() {}$/;"	f
+__validuser2_sa	foo.c	/^void __validuser2_sa(){}$/;"	f
+_dl_num_cache_relocations	foo.c	/^void _dl_num_cache_relocations() {}$/;"	f
+_dl_num_relocations	foo.c	/^void _dl_num_relocations(){}$/;"	f
+_dl_rtld_map	foo.c	/^void _dl_rtld_map() {}$/;"	f
+_fini	foo.c	/^void _fini() {}$/;"	f
+_i	types.h	/^    _i, \/\/ int$/;"	e	enum:ParamType
+_identify	types.h	/^    _identify,$/;"	e	enum:Mode
+_init	foo.c	/^void _init() {}$/;"	f
+_learn	types.h	/^    _learn = 1,$/;"	e	enum:Mode
+_o	types.h	/^    _o, \/\/ other pointers$/;"	e	enum:ParamType
+_p	types.h	/^    _p, \/\/ int *$/;"	e	enum:ParamType
+_package	package.bash	/^function _package$/;"	f
+_s	types.h	/^    _s, \/\/ string$/;"	e	enum:ParamType
+_sd	semanticDescriptor.h	/^        vector<SemanticDescriptorElem> _sd;$/;"	m	class:SemanticDescriptor
+_start	foo.c	/^void _start() {}$/;"	f
+_u	types.h	/^    _u, \/\/ unknown -- won't track$/;"	e	enum:ParamType
+a	types.h	/^        Address a;$/;"	m	class:trapLoc
+addPredecessor	predicates.h	/^        bool addPredecessor(AbsRegion reg) $/;"	f	class:ID_Predicates
+addTrapInfo	fingerprint.h	/^        void addTrapInfo(ParseAPI::Function * f, trapLoc & t) {$/;"	f	class:Fingerprint
+addr	types.h	/^        Address addr() { return a; }$/;"	f	class:trapLoc
+b	types.h	/^        ParseAPI::Block * b;$/;"	m	class:trapLoc
+begin	database.h	/^        iterator begin() { return db.begin(); }$/;"	f	class:DescriptorDatabase
+begin	database.h	/^        iterator begin() { return db.begin(); }$/;"	f	class:SyscallNumbersDatabase
+begin	database.h	/^        iterator begin() { return db.begin(); }$/;"	f	class:SyscallParamDatabase
+begin	semanticDescriptor.h	/^        iterator begin() { return _sd.begin(); }$/;"	f	class:SemanticDescriptor
+begin	types.h	/^        iterator begin() { return m.begin(); }$/;"	f	class:Matches
+block	types.h	/^        ParseAPI::Block * block() { return b; }$/;"	f	class:trapLoc
+build	database.C	/^bool DescriptorDatabase::build()$/;"	f	class:DescriptorDatabase
+build	database.C	/^bool SyscallNumbersDatabase::build()$/;"	f	class:SyscallNumbersDatabase
+build	database.C	/^bool SyscallParamDatabase::build()$/;"	f	class:SyscallParamDatabase
+buildMappings	fingerprint.C	/^void Fingerprint::buildMappings()$/;"	f	class:Fingerprint
+callstack	predicates.h	/^        stack<ParseAPI::Function *> callstack;$/;"	m	class:ID_Predicates
+clear	semanticDescriptor.h	/^        void clear() { elem.clear(); }$/;"	f	class:SemanticDescriptorElem
+clear	types.C	/^void Matches::clear()$/;"	f	class:Matches
+closerMatch	semanticDescriptor.C	/^int SemanticDescriptor::closerMatch(SemanticDescriptor & a, $/;"	f	class:SemanticDescriptor
+count	semanticDescriptor.C	/^int SemanticDescriptor::count(SemanticDescriptorElem & elem, Database & db) $/;"	f	class:SemanticDescriptor
+coverage	semanticDescriptor.C	/^double SemanticDescriptor::coverage(SemanticDescriptor & sd2, Database & db) $/;"	f	class:SemanticDescriptor
+dDB	database.h	/^        DescriptorDatabase dDB; \/\/ descriptor database$/;"	m	class:Database
+db	database.h	/^        map<SemanticDescriptor, string> db;$/;"	m	class:DescriptorDatabase
+db	database.h	/^        map<int, string> db;$/;"	m	class:SyscallNumbersDatabase
+db	database.h	/^        map<string, vector<ParamType> > db;$/;"	m	class:SyscallParamDatabase
+db	fingerprint.h	/^        Database db;$/;"	m	class:Fingerprint
+elem	semanticDescriptor.h	/^        vector<void *> elem;$/;"	m	class:SemanticDescriptorElem
+end	database.h	/^        iterator end() { return db.end(); }$/;"	f	class:DescriptorDatabase
+end	database.h	/^        iterator end() { return db.end(); }$/;"	f	class:SyscallNumbersDatabase
+end	database.h	/^        iterator end() { return db.end(); }$/;"	f	class:SyscallParamDatabase
+end	semanticDescriptor.h	/^        iterator end() { return _sd.end(); }$/;"	f	class:SemanticDescriptor
+end	types.h	/^        iterator end() { return m.end(); }$/;"	f	class:Matches
+endAtPoint	predicates.h	/^        bool endAtPoint(AssignmentPtr assign) $/;"	f	class:ID_Predicates
+equals	semanticDescriptor.C	/^bool SemanticDescriptor::equals(SemanticDescriptor & sd2, Database & db)$/;"	f	class:SemanticDescriptor
+equals	semanticDescriptor.C	/^bool SemanticDescriptorElem::equals(SemanticDescriptorElem & e2, Database & db) {$/;"	f	class:SemanticDescriptorElem
+find	database.h	/^        iterator find(int val) { return db.find(val); }$/;"	f	class:SyscallNumbersDatabase
+find	database.h	/^        iterator find(string val) { return db.find(val); }$/;"	f	class:SyscallParamDatabase
+find	semanticDescriptor.C	/^Matches SemanticDescriptor::find(Database & db)$/;"	f	class:SemanticDescriptor
+findClosestMatch	semanticDescriptor.C	/^void SemanticDescriptor::findClosestMatch(Database & db, Matches & matches) $/;"	f	class:SemanticDescriptor
+findExactMatches	semanticDescriptor.C	/^bool SemanticDescriptor::findExactMatches(Database & db, Matches & matches)$/;"	f	class:SemanticDescriptor
+findMain	fingerprint.C	/^void Fingerprint::findMain(SymtabAPI::Symtab * symtab, $/;"	f	class:Fingerprint
+fingerprint	callback.h	/^        Fingerprint * fingerprint;$/;"	m	class:InstrCallback
+followCallBackward	predicates.h	/^        vector<ParseAPI::Function *> followCallBackward(ParseAPI::Block * callerBlock,$/;"	f	class:ID_Predicates
+foo	test.c	/^void foo()$/;"	f
+format	semanticDescriptor.C	/^string SemanticDescriptor::format(Database & db)$/;"	f	class:SemanticDescriptor
+format	types.C	/^string Matches::format()$/;"	f	class:Matches
+getInsnInstances	util.C	/^void getInsnInstances(ParseAPI::Block *block,$/;"	f
+getParamType	types.C	/^ParamType getParamType(char * type)$/;"	f
+getSyscallTrampStore	util.C	/^Address getSyscallTrampStore(SymtabAPI::Symtab * symtab)$/;"	f
+i	types.h	/^        InstructionAPI::Instruction::Ptr i;$/;"	m	class:trapLoc
+identify	fingerprint.C	/^void Fingerprint::identify(ParseAPI::Function * f, SemanticDescriptor & sd, SymtabAPI::Function * symFunc) $/;"	f	class:Fingerprint
+insert	database.h	/^        void insert(pair<SemanticDescriptor, string> val) { db.insert(val); }$/;"	f	class:DescriptorDatabase
+insert	semanticDescriptor.h	/^        void insert(SemanticDescriptorElem vec) { _sd.push_back(vec); }$/;"	f	class:SemanticDescriptor
+insert	types.h	/^        void insert(string str) { m.insert(str); }$/;"	f	class:Matches
+instr	types.h	/^        InstructionAPI::Instruction::Ptr instr() { return i; }$/;"	f	class:trapLoc
+instruction_cb	callback.C	/^void InstrCallback::instruction_cb(ParseAPI::Function * f,$/;"	f	class:InstrCallback
+isCallToSyscallTrampStore	util.C	/^bool isCallToSyscallTrampStore(Instruction::Ptr & insn, Address & _syscallTramp) $/;"	f
+isSyscall	util.C	/^bool isSyscall(Instruction::Ptr & insn, Address & syscallTrampStore)$/;"	f
+iterator	database.h	/^        typedef map<SemanticDescriptor, string>::iterator iterator;$/;"	t	class:DescriptorDatabase
+iterator	database.h	/^        typedef map<int, string>::iterator iterator;$/;"	t	class:SyscallNumbersDatabase
+iterator	database.h	/^        typedef map<string, vector<ParamType> >::iterator iterator;$/;"	t	class:SyscallParamDatabase
+iterator	semanticDescriptor.h	/^        typedef vector<SemanticDescriptorElem>::iterator iterator;$/;"	t	class:SemanticDescriptor
+iterator	types.h	/^        typedef set<string>::iterator iterator;$/;"	t	class:Matches
+learn	fingerprint.C	/^void Fingerprint::learn(ParseAPI::Function * f, SemanticDescriptor & sd)$/;"	f	class:Fingerprint
+m	types.h	/^        set<string> m;$/;"	m	class:Matches
+main	foo.c	/^int main(int argc, char**argv)$/;"	f
+main	test.c	/^int main()$/;"	f
+main	unstrip.C	/^int main(int argc, char **argv)$/;"	f
+mode	fingerprint.h	/^        Mode mode;$/;"	m	class:Fingerprint
+oneSymbol	fingerprint.h	/^        bool oneSymbol;$/;"	m	class:Fingerprint
+oneSymbol	unstrip.C	/^bool oneSymbol = false;$/;"	v
+operator <	semanticDescriptor.h	/^        bool operator<(const SemanticDescriptor & sd2) const {$/;"	f	class:SemanticDescriptor
+operator <	semanticDescriptor.h	/^        bool operator<(const SemanticDescriptorElem & e2) const {$/;"	f	class:SemanticDescriptorElem
+operator <	types.h	/^        bool operator<(const trapLoc & t2) const {$/;"	f	class:trapLoc
+operator []	semanticDescriptor.h	/^        void * operator[](const int i) const {$/;"	f	class:SemanticDescriptorElem
+operator []	types.C	/^string Matches::operator[](const int pos) const$/;"	f	class:Matches
+paramsFileName	database.C	/^string paramsFileName = "params.db";$/;"	v
+parse	fingerprint.C	/^bool Fingerprint::parse(ParseAPI::Function * f,$/;"	f	class:Fingerprint
+parse_options	unstrip.C	/^void parse_options(int argc, char** argv)$/;"	f
+prefix	unstrip.C	/^char * prefix = NULL;$/;"	v
+process	database.C	/^SemanticDescriptorElem DescriptorDatabase::process(char * _trapVector)$/;"	f	class:DescriptorDatabase
+processFunc	fingerprint.C	/^void Fingerprint::processFunc(ParseAPI::Function * f,$/;"	f	class:Fingerprint
+push_back	semanticDescriptor.h	/^        void push_back(void * v) { elem.push_back(v); }$/;"	f	class:SemanticDescriptorElem
+relPath	fingerprint.h	/^        string relPath; $/;"	m	class:Fingerprint
+relPath	unstrip.C	/^string relPath;$/;"	v
+retrieveValue	fingerprint.C	/^bool Fingerprint::retrieveValue(ParseAPI::Function * f,$/;"	f	class:Fingerprint
+retrieveValues	fingerprint.C	/^bool Fingerprint::retrieveValues(ParseAPI::Function * f,$/;"	f	class:Fingerprint
+run	fingerprint.C	/^void Fingerprint::run(SymtabAPI::Symtab * symtab)$/;"	f	class:Fingerprint
+searchForSyscallTrampStore	util.C	/^Address searchForSyscallTrampStore(CodeObject::funclist & procedures) $/;"	f
+setup	database.C	/^bool Database::setup(SymtabAPI::Symtab * symtab,$/;"	f	class:Database
+size	semanticDescriptor.h	/^        int size() { return _sd.size(); }$/;"	f	class:SemanticDescriptor
+size	semanticDescriptor.h	/^        int size() { return elem.size(); }$/;"	f	class:SemanticDescriptorElem
+size	types.h	/^        int size() { return m.size(); }$/;"	f	class:Matches
+snDB	database.h	/^        SyscallNumbersDatabase snDB; \/\/ syscall numbers database$/;"	m	class:Database
+sort	semanticDescriptor.h	/^        void sort() { stable_sort(_sd.begin(), _sd.end()); }$/;"	f	class:SemanticDescriptor
+spDB	database.h	/^        SyscallParamDatabase * spDB;$/;"	m	class:DescriptorDatabase
+spDB	database.h	/^        SyscallParamDatabase spDB; \/\/ syscall param database$/;"	m	class:Database
+syscallTrampStore	callback.h	/^        Address syscallTrampStore;$/;"	m	class:InstrCallback
+syscallTrampStore	database.h	/^        Address syscallTrampStore;$/;"	m	class:Database
+trapAddresses	fingerprint.h	/^        map<ParseAPI::Function *, vector<trapLoc> > trapAddresses;$/;"	m	class:Fingerprint
+trapInfo	fingerprint.h	/^        set<pair<ParseAPI::Function *, trapLoc> > trapInfo;$/;"	m	class:Fingerprint
+trapLoc	types.h	/^        trapLoc(Address _a, InstructionAPI::Instruction::Ptr _i, ParseAPI::Block * _b) : $/;"	f	class:trapLoc
+trapLoc	types.h	/^class trapLoc {$/;"	c
+unistdFileName	database.C	/^string unistdFileName = "unistd.db";$/;"	v
+usage	unstrip.C	/^void usage(char* s) {$/;"	f
+verbose	fingerprint.h	/^        bool verbose;$/;"	m	class:Fingerprint
+verbose	unstrip.C	/^bool verbose = false;$/;"	v
