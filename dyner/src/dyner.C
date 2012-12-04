@@ -43,6 +43,10 @@
 #include <signal.h>
 #endif
 
+#if !defined(TCLCONST)
+#define TCLCONST const
+#endif
+
 #include "dynerList.h"
 #include "dynC.h"
 #include "BPatch.h"
