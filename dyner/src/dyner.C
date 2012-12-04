@@ -55,10 +55,6 @@
 #include "breakpoint.h"
 #include <vector>
 
-#if !defined(TCLCONST)
-#define TCLCONST const
-#endif
-
 extern "C" {
 #if !defined(i386_unknown_nt4_0)
 #if !defined(i386_unknown_linux2_0)
