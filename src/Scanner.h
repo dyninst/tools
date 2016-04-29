@@ -14,6 +14,8 @@
     )
 #endif
 
+#include "y.tab.h"
+
 namespace Dyninst_aarch64 {
     class Scanner : public yyFlexLexer {
         virtual ~Scanner();
