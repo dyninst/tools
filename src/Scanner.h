@@ -14,10 +14,15 @@
     )
 #endif
 
+#ifndef __FLEX_LEXER_H
+#include "FlexLexer.h"
+#endif
+
 #include "y.tab.h"
 
 namespace Dyninst_aarch64 {
     class Scanner : public yyFlexLexer {
+    public:
         virtual ~Scanner();
 
         virtual Parser::token_type lex(Parser::semantic_type *yylval, Parser::location_type *yylloc);

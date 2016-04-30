@@ -29,7 +29,7 @@ yylloc->step();
 #undef  yylex
 #endif
 
-int yyFlexLexer::yylex() {
+int yyFkexLexer::yylex() {
     return 0;
 }
 
