@@ -1,17 +1,12 @@
-// $Id$
-/** \file driver.cc Implementation of the example::Driver class. */
-
 #include <fstream>
 #include <sstream>
 
 #include "driver.h"
 #include "scanner.h"
 
-namespace example {
+namespace Dyninst_aarch64 {
 
 Driver::Driver()
-    : trace_scanning(false),
-      trace_parsing(false)
 {
 }
 
@@ -20,11 +15,9 @@ bool Driver::parse_stream(std::istream& in, const std::string& sname)
     streamname = sname;
 
     Scanner scanner(&in);
-    scanner.set_debug(trace_scanning);
     this->lexer = &scanner;
 
     Parser parser(*this);
-    parser.set_debug_level(trace_parsing);
     return (parser.parse() == 0);
 }
 
@@ -52,4 +45,4 @@ void Driver::error(const std::string& m)
     std::cerr << m << std::endl;
 }
 
-} // namespace example
+}
