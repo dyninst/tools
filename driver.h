@@ -6,28 +6,17 @@
 
 namespace Dyninst_aarch64 {
 
-class Driver
-{
-public:
-    Driver();
+    class Driver {
+    public:
+        bool pcode_parse(const std::string &filename);
 
-    std::string streamname;
+        void error(const class location &l, const std::string &m);
 
-    bool parse_stream(std::istream& in,
-		      const std::string& sname = "stream input");
+        void error(const std::string &m);
 
-    bool parse_string(const std::string& input,
-		      const std::string& sname = "string stream");
+        class Scanner *scanner;
 
-    bool parse_file(const std::string& filename);
-
-    void error(const class location& l, const std::string& m);
-
-    void error(const std::string& m);
-
-    class Scanner* lexer;
-
-};
+    };
 
 } // namespace example
 

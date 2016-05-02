@@ -19,7 +19,7 @@
 %locations
 %initial-action
 {
-    @$.begin.filename = @$.end.filename = &driver.streamname;
+    @$.begin.filename = @$.end.filename;
 };
 
 %parse-param { class Driver& driver }
@@ -37,7 +37,7 @@
 #include "scanner.h"
 
 #undef yylex
-#define yylex driver.lexer->lex
+#define yylex driver.scanner->lex
 
 %}
 

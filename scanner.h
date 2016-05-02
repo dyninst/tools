@@ -3,37 +3,38 @@
 
 #ifndef YY_DECL
 
-#define	YY_DECL						\
-    Dyninst_aarch64::Parser::token_type				\
-    Dyninst_aarch64::Scanner::lex(				\
-	Dyninst_aarch64::Parser::semantic_type* yylval,		\
-	Dyninst_aarch64::Parser::location_type* yylloc		\
+#define    YY_DECL                        \
+    Dyninst_aarch64::Parser::token_type                \
+    Dyninst_aarch64::Scanner::lex(                \
+    Dyninst_aarch64::Parser::semantic_type* yylval,        \
+    Dyninst_aarch64::Parser::location_type* yylloc        \
     )
 #endif
 
 #ifndef __FLEX_LEXER_H
+
 #include "FlexLexer.h"
+
 #endif
 
 #include "y.tab.h"
 
 namespace Dyninst_aarch64 {
 
-class Scanner : public yyFlexLexer
-{
-public:
+    class Scanner : public yyFlexLexer {
+    public:
 
-    Scanner(std::istream* arg_yyin = 0,
-	    std::ostream* arg_yyout = 0);
+        Scanner(std::istream *instream = 0,
+                std::ostream *oustream = 0);
 
-    virtual ~Scanner();
+        virtual ~Scanner();
 
-    virtual Parser::token_type lex(
-	Parser::semantic_type* yylval,
-	Parser::location_type* yylloc
-	);
+        virtual Parser::token_type lex(
+                Parser::semantic_type *yylval,
+                Parser::location_type *yylloc
+        );
 
-};
+    };
 
 }
 

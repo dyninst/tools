@@ -28,9 +28,9 @@ typedef Dyninst_aarch64::Parser::token_type token_type;
 
 namespace Dyninst_aarch64 {
 
-Scanner::Scanner(std::istream* in,
-		 std::ostream* out)
-    : yyFlexLexer(in, out)
+Scanner::Scanner(std::istream* instream,
+		 std::ostream* outstream)
+    : yyFlexLexer(instream, outstream)
 {
 }
 
