@@ -24,6 +24,9 @@ typedef Dyninst_aarch64::Parser::token_type token_type;
     yylloc->step();
 %}
 
+##[a-z_]+   {   std::cout<<"case "<<(yytext+2)<<":";    }
+@@          {   std::cout<<"break;";    }
+
 %%
 
 namespace Dyninst_aarch64 {
