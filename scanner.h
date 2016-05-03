@@ -17,6 +17,7 @@
 
 #endif
 
+#include <map>
 #include "y.tab.h"
 
 namespace Dyninst_aarch64 {
@@ -33,6 +34,9 @@ namespace Dyninst_aarch64 {
                 Parser::semantic_type *yylval,
                 Parser::location_type *yylloc
         );
+
+        static void initOperandExtractorMap();
+        static std::map<std::string, std::string> operandExtractorMap;
 
     };
 
