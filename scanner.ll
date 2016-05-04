@@ -26,18 +26,27 @@ typedef Dyninst_aarch64::Parser::token_type token_type;
     yylloc->step();
 %}
 
-##[a-z_]+   {   std::cout<<"case "<<(yytext+2)<<":\n{\n";    }
+##[a-z_]+   {
+                yylval->strVal = new std::string(yytext+2);
+                return token::INSN_START;
+            }
 
-@@          {   std::cout<<"\n}\nbreak;";    }
+@@          {   return token::INSN_END;    }
 
 bits\(datasize\)\ (result|(operand[1|2]))[^\n]+\n    {
                                                int operandIdx;
                                                std::stringstream val;
+
                                                if(std::string(yytext).find(std::string("result")) != std::string::npos)
                                                    operandIdx = 0;
-                                               else
+
+                                               val<<"uint32_t "<<std::string(yytext).substr(15, operandIdx == 0?6:8);
+                                               if(operandIdx != 0)
+                                               {
                                                    operandIdx = (*(yytext + 22)) == '1'?1:2;
-                                               val<<"uint32_t "<<std::string(yytext).substr(15, operandIdx == 0?6:8)<<" = policy.readGPR(operands["<<operandIdx<<"]);\n";
+                                                   val<<" = policy.readGPR(operands["<<operandIdx<<"])";
+                                               }
+                                               val<<";";
                                                yylval->strVal = new std::string(val.str());
                                                return token::OPERAND;
                                            }
@@ -46,17 +55,27 @@ bit(s\([0-9]\))?     {   return token::DTYPE_BITS;   }
 
 NOT         {   return token::FUNC_NOT;  }
 
+AddWithCarry    {   return token::FUNC_AWC; }
+
 if          {   return token::COND_IF;   }
 
 then        {   return token::COND_THEN; }
 
 else        {   return token::COND_ELSE; }
 
-case        {   return token::COND_CASE;  }
+end         {   return token::COND_END; }
 
-of          {   return token::COND_OF;  }
+!           {   return token::OPER_NOT; }
 
-when        {   return token::COND_WHEN;    }
+==          {   return token::OPER_DBLEQUAL;    }
+
+&&          {   return token::OPER_AND; }
+
+(SP|W|X)\[[a-z]?\]      {  return token::REG;  }
+
+PSTATE[^<]C    {   return token::FLAG_CARRY;   }
+
+PSTATE\.<[^\n]+  {   return token::SET_NZCV;     }
 
 [0-9]+      {
                 yylval->intVal = atoi(yytext);
@@ -91,6 +110,7 @@ Scanner::Scanner(std::istream* instream,
 		 std::ostream* outstream)
     : yyFlexLexer(instream, outstream)
 {
+    initOperandExtractorMap();
 }
 
 Scanner::~Scanner()
@@ -98,11 +118,9 @@ Scanner::~Scanner()
 }
 
 void Scanner::initOperandExtractorMap() {
-    operandExtractorMap["sf"] = "field<31, 31>(insn)";
-    operandExtractorMap["Rd"] = "field<0, 4>(insn)";
-    operandExtractorMap["Rn"] = "field<5, 9>(insn)";
-    operandExtractorMap["imm12"] = "field<10, 21>(insn)";
-    operandExtractorMap["shift"] = "field<22, 23>(insn)";
+    operandExtractorMap[std::string("sub_op")] = std::string("(field<30, 30>(insn) == 1)");
+    operandExtractorMap[std::string("setflags")] = std::string("(field<29, 29>(insn) == 1)");
+    operandExtractorMap[std::string("d")] = std::string("(field<0, 4>(insn))");
 }
 
 }
