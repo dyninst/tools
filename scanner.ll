@@ -51,11 +51,20 @@ bits\(datasize\)\ (result|(operand[1|2]))[^\n]+\n    {
                                                return token::OPERAND;
                                            }
 
+bits\(64\)\ base\ =\ PC\[\] {   return token::READ_PC;  }
+
+imm                 {
+                        yylval->strVal = new std::string("policy.readOperand(1)");
+                        return token::OPERAND;
+                    }
+
 bit(s\([0-9]\))?     {   return token::DTYPE_BITS;   }
 
 NOT         {   return token::FUNC_NOT;  }
 
 AddWithCarry    {   return token::FUNC_AWC; }
+
+Zeros       {   return token::FUNC_ZEROS;   }
 
 if          {   return token::COND_IF;   }
 
@@ -65,7 +74,15 @@ else        {   return token::COND_ELSE; }
 
 end         {   return token::COND_END; }
 
+\<			{	return token::OPER_LT;	}
+
+>			{	return token::OPER_GT;	}
+
+:			{	return token::SYMBOL_COLON;	}
+
 !           {   return token::OPER_NOT; }
+
+\+           {   return token::OPER_ADD; }
 
 ==          {   return token::OPER_DBLEQUAL;    }
 
@@ -121,6 +138,7 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap[std::string("sub_op")] = std::string("(field<30, 30>(insn) == 1)");
     operandExtractorMap[std::string("setflags")] = std::string("(field<29, 29>(insn) == 1)");
     operandExtractorMap[std::string("d")] = std::string("(field<0, 4>(insn))");
+    operandExtractorMap[std::string("page")] = std::string("(field<31, 31>(insn) == 1)");
 }
 
 }

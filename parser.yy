@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <stdint.h>
 
 %}
 
@@ -40,10 +41,14 @@
 %token          COND_ELSE
 %token          COND_END
 %token          OPER_NOT
+%token          OPER_ADD
 %token          OPER_DBLEQUAL
 %token          OPER_AND
+%token			OPER_LT
+%token			OPER_GT
 %token          FUNC_AWC
 %token          FUNC_NOT
+%token          FUNC_ZEROS
 %token          REG
 %token          <intVal>    NUM
 %token          <strVal>    IDENTIFIER
@@ -51,10 +56,12 @@
 %token          SYMBOL_CLOSEROUNDED
 %token          SYMBOL_EQUAL
 %token          SYMBOL_COMMA
+%token			SYMBOL_COLON
+%token          READ_PC
 %token          SET_NZCV
 %token          FLAG_CARRY
 
-%type           <strVal>  program datatype varname targ reg_name expr oper funccall funcname args condblock decl cond asnmt
+%type           <strVal>  program datatype varname targ reg_name expr oper funccall funcname args condblock decl cond asnmt bitmask
 
 %{
 
@@ -111,6 +118,7 @@ program:    program decl {
 decl:       OPERAND                     {
                                             $$ = $1;
                                         }   |
+            READ_PC                     {  $$ = new std::string("base = policy.readPC();\n");   } |
             datatype varname            {
                                             std::stringstream out;
                                             out<<*$1<<" "<<*$2<<";\n";
@@ -131,8 +139,7 @@ varname:    IDENTIFIER                  {
                                             else
                                                 $$ = new std::string(*$1);
                                             delete $1;
-                                        } |
-            FLAG_CARRY                  {   $$ = new std::string("policy.readFlags() & 0x2"); }
+                                        }
             ;
 
 asnmt:      targ SYMBOL_EQUAL expr      {
@@ -148,8 +155,30 @@ asnmt:      targ SYMBOL_EQUAL expr      {
 
                                             $$ = new std::string(out.str());
                                         } |
+			bitmask SYMBOL_EQUAL funccall   {
+												std::stringstream out;
+												out<<*$1<<" | "<<*$3<<";\n";
+												
+												delete $1;
+												delete $3;
+												
+												$$ = new std::string(out.str());
+											} |
             SET_NZCV                    {   $$ = new std::string("policy.writeFlags(nzcv);\n");   }
             ;
+
+bitmask:	varname OPER_LT NUM SYMBOL_COLON NUM OPER_GT	{
+																int hibit = $3, lobit = $5, range = hibit - lobit + 1;
+																uint64_t mask = (1<<range) - 1;
+																std::stringstream out;
+																
+																out<<*$1<<" = ("<<*$1<<" & 0x"<<std::hex<<mask<<")";
+																
+																delete $1;
+																
+																$$ = new std::string(out.str());
+															}
+			;
 
 expr:       NUM                         {
                                             std::stringstream out;
@@ -166,7 +195,8 @@ expr:       NUM                         {
                                             delete $2;
                                             delete $3;
                                         } |
-                                        {   $$ = new std::string("");   }
+                                        {   $$ = new std::string("");   } |
+            OPERAND                     {   $$ = $1;  }
             ;
 
 targ:       varname                     {   $$ = $1;    }  |
@@ -179,7 +209,8 @@ reg_name:   REG                         {}
 
 oper:       OPER_NOT                    {   $$ = new std::string("!");  } |
             OPER_DBLEQUAL               {   $$ = new std::string(" == "); } |
-            OPER_AND                    {   $$ = new std::string(" && "); }
+            OPER_AND                    {   $$ = new std::string(" && "); } |
+            OPER_ADD                    {   $$ = new std::string(" + "); }
             ;
 
 funccall:   funcname SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
@@ -194,7 +225,8 @@ funccall:   funcname SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
             ;
 
 funcname:   FUNC_NOT                    {   $$ = new std::string("Not");    } |
-            FUNC_AWC                    {   $$ = new std::string("AddWithCarry");   }
+            FUNC_AWC                    {   $$ = new std::string("AddWithCarry");   } |
+            FUNC_ZEROS                  {   $$ = new std::string("Zeros");  }
             ;
 
 args:       args SYMBOL_COMMA args      {
@@ -206,7 +238,14 @@ args:       args SYMBOL_COMMA args      {
 
                                             $$ = new std::string(out.str());
                                         } |
-            varname                     {   $$ = $1;    }
+            varname                     {   $$ = $1;    } |
+            NUM                         {
+                                            std::stringstream out;
+                                            out<<$1;
+
+                                            $$ = new std::string(out.str());
+                                        } |
+            FLAG_CARRY                  {   $$ = new std::string("policy.readFlags() & 0x2"); }
             ;
 
 cond:       COND_IF expr COND_THEN condblock COND_END {
