@@ -33,18 +33,28 @@ typedef Dyninst_aarch64::Parser::token_type token_type;
 
 @@          {   return token::INSN_END;    }
 
-bits\(datasize\)\ (result|(operand[1|2]))[^\n]+\n    {
+bits\((datasize|64)\)\ (target|result|(operand[1|2]?))[^\n]+\n    {
                                                int operandIdx;
                                                std::stringstream val;
+                                               std::string matched(yytext);
 
-                                               if(std::string(yytext).find(std::string("result")) != std::string::npos)
-                                                   operandIdx = 0;
-
-                                               val<<"uint32_t "<<std::string(yytext).substr(15, operandIdx == 0?6:8);
-                                               if(operandIdx != 0)
+                                               if(matched.find("target") == std::string::npos)
                                                {
-                                                   operandIdx = (*(yytext + 22)) == '1'?1:2;
-                                                   val<<" = policy.readGPR(operands["<<operandIdx<<"])";
+                                                   if(matched.find(std::string("result")) != std::string::npos)
+                                                       operandIdx = 0;
+
+                                                   val<<"uint64_t "<<matched.substr(15, operandIdx == 0?6:8);
+                                                   if(operandIdx != 0)
+                                                   {
+                                                       char idxChar = *(yytext + 22);
+                                                       operandIdx = (matched.find("X[t]") != std::string::npos)?0:(idxChar == '1')?1:2;
+                                                       val<<" = policy.readGPR(operands["<<operandIdx<<"])";
+                                                   }
+                                               }
+                                               else
+                                               {
+                                                    val<<"uint64_t "<<matched.substr(9, 6);
+                                                    val<<" = policy.readGPR(operands[0])";
                                                }
                                                val<<";";
                                                yylval->strVal = new std::string(val.str());
@@ -55,7 +65,7 @@ bits\(64\)\ base\ =\ PC\[\] {   return token::READ_PC;  }
 
 if\ branch_type[^_]+_CALL[^\n]+\n    {	return token::SET_LR;   }
 
-imm                 {
+imm|bit_pos                 {
                         yylval->strVal = new std::string("policy.readOperand(1)");
                         return token::OPERAND;
                     }
@@ -67,7 +77,7 @@ PC\[\]\ \+\ offset   {
 
 bit(s\([0-9]\))?     {   return token::DTYPE_BITS;   }
 
-AddWithCarry|Zeros|NOT|BranchTo	      {
+AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
 					yylval->strVal = new std::string(yytext);
 					return token::FUNCNAME; 
 				      }
@@ -141,7 +151,10 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap[std::string("sub_op")] = std::string("(field<30, 30>(insn) == 1)");
     operandExtractorMap[std::string("setflags")] = std::string("(field<29, 29>(insn) == 1)");
     operandExtractorMap[std::string("d")] = std::string("(field<0, 4>(insn))");
+    operandExtractorMap[std::string("condition")] = std::string("(field<0, 4>(insn))");
     operandExtractorMap[std::string("page")] = std::string("(field<31, 31>(insn) == 1)");
+    operandExtractorMap[std::string("iszero")] = std::string("(field<24, 24>(insn) == 0)");
+    operandExtractorMap[std::string("bit_val")] = std::string("field<24, 24>(insn)");
 }
 
 }

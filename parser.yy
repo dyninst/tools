@@ -47,17 +47,17 @@
 %token          <strVal>    IDENTIFIER
 %token          SYMBOL_OPENROUNDED
 %token          SYMBOL_CLOSEROUNDED
-%token		SYMBOL_LT
-%token		SYMBOL_GT
+%token		    SYMBOL_LT
+%token		    SYMBOL_GT
 %token          SYMBOL_EQUAL
 %token          SYMBOL_COMMA
 %token			SYMBOL_COLON
 %token          READ_PC
 %token          SET_NZCV
-%token		SET_LR
+%token		    SET_LR
 %token          FLAG_CARRY
 
-%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask
+%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos
 
 %{
 
@@ -195,6 +195,7 @@ expr:       NUM                         {
                                         } |
             funccall                    {   $$ = $1;    } |
             varname                     {   $$ = $1;    } |
+            bitpos                      {   $$ = $1;    } |
             expr OPER expr              {
                                             $$ = new std::string(std::string(*$1) + std::string(*$2) + std::string(*$3));
 
@@ -209,6 +210,17 @@ expr:       NUM                         {
 targ:       varname                     {   $$ = $1;    }  |
             SYMBOL_OPENROUNDED varname SYMBOL_COMMA varname SYMBOL_CLOSEROUNDED {   $$ = $2;    }  |
             reg_name                    {   $$ = NULL;  }
+            ;
+
+bitpos:     varname SYMBOL_LT OPERAND SYMBOL_GT {
+                                                    std::stringstream out;
+                                                    out<<"("<<*$1<<" & (1 << "<<*$3<<"))";
+
+                                                    delete $1;
+                                                    delete $3;
+
+                                                    $$ = new std::string(out.str());
+                                                }
             ;
 
 reg_name:   REG                         {}
@@ -228,8 +240,8 @@ funccall:   FUNCNAME SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
 args:       args SYMBOL_COMMA args      {
                                             std::stringstream out;
                                             out<<*$1;
-					    if(*$3 != "branch_type")
-						out<<", "<<*$3;
+                                            if(*$3 != "branch_type" && (*$3).find("BranchType") == std::string::npos)
+                                                out<<", "<<*$3;
 
                                             delete $1;
                                             delete $3;
@@ -269,7 +281,7 @@ cond:       COND_IF expr COND_THEN condblock COND_END {
                                                                   }
             ;
 
-condblock:  condblock asnmt {
+condblock:  condblock blockdata {
                                 std::stringstream out;
                                 out<<*$1<<"\n"<<*$2<<"\n";
 
@@ -278,7 +290,18 @@ condblock:  condblock asnmt {
 
                                 $$ = new std::string(out.str());
                             } |
-            asnmt           {   $$ = $1;    }
+            blockdata       {   $$ = $1;    }
+            ;
+
+blockdata:  asnmt   {   $$ = $1;    } |
+            funccall    {
+                            std::stringstream out;
+                            out<<*$1<<";\n";
+
+                            delete $1;
+
+                            $$ = new std::string(out.str());
+                        }
             ;
 
 %%

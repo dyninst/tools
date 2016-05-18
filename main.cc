@@ -7,7 +7,7 @@ int main() {
     const char *fnames[] = {"add_addsub_imm", "adds_addsub_imm", "sub_addsub_imm", "subs_addsub_imm",
                             "add_addsub_ext", "adds_addsub_ext", "sub_addsub_ext", "subs_addsub_ext",
                             "add_addsub_shift", "adds_addsub_shift", "sub_addsub_shift", "subs_addsub_shift",
-                            "adc", "adcs", "adr", "adrp", "b_uncond"};
+                            "adc", "adcs", "adr", "adrp", "b_uncond", "b_cond", "br", "blr", "bl", "cbz", "cbnz", "tbz", "tbnz"};
     std::string pcode_files_dir("/u/s/s/ssunny/dev-home/dyninst/dyninst-code/instructionAPI/ISA_ps/");
 
     Dyninst_aarch64::Driver driver;
