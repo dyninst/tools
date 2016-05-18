@@ -53,18 +53,24 @@ bits\(datasize\)\ (result|(operand[1|2]))[^\n]+\n    {
 
 bits\(64\)\ base\ =\ PC\[\] {   return token::READ_PC;  }
 
+if\ branch_type[^_]+_CALL[^\n]+\n    {	return token::SET_LR;   }
+
 imm                 {
                         yylval->strVal = new std::string("policy.readOperand(1)");
                         return token::OPERAND;
                     }
 
+PC\[\]\ \+\ offset   {
+			yylval->strVal = new std::string("policy.readOperand(0)");
+			return token::OPERAND;
+		     }
+
 bit(s\([0-9]\))?     {   return token::DTYPE_BITS;   }
 
-NOT         {   return token::FUNC_NOT;  }
-
-AddWithCarry    {   return token::FUNC_AWC; }
-
-Zeros       {   return token::FUNC_ZEROS;   }
+AddWithCarry|Zeros|NOT|BranchTo	      {
+					yylval->strVal = new std::string(yytext);
+					return token::FUNCNAME; 
+				      }
 
 if          {   return token::COND_IF;   }
 
@@ -74,19 +80,16 @@ else        {   return token::COND_ELSE; }
 
 end         {   return token::COND_END; }
 
-\<			{	return token::OPER_LT;	}
+\<	    {	return token::SYMBOL_LT;    }
 
->			{	return token::OPER_GT;	}
+>	    {	return token::SYMBOL_GT;    }
 
-:			{	return token::SYMBOL_COLON;	}
+:	    {	return token::SYMBOL_COLON;	}
 
-!           {   return token::OPER_NOT; }
-
-\+           {   return token::OPER_ADD; }
-
-==          {   return token::OPER_DBLEQUAL;    }
-
-&&          {   return token::OPER_AND; }
+!|\+|==|&&		{
+			    yylval->strVal = new std::string(yytext);    
+			    return token::OPER;	
+			}
 
 (SP|W|X)\[[a-z]?\]      {  return token::REG;  }
 
