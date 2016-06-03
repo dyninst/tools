@@ -1,0 +1,7 @@
+Copyright 2016 Nathan H. Jay
+
+Peach was written and developed for the Paradyn research group at the 
+Unversity of Wisconsin at Madison.
+
+The tools required by Peach (Dyninst, LLVM, XED, etc.) are the work of their 
+respective owners and have their own copyrights.
