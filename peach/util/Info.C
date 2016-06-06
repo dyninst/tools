@@ -29,7 +29,7 @@ Peach is free software; you can redistribute it and/or modify it under the\n\
 terms of the GNU Lesser General Public License as published by the Free\n\
 Software Foundation; either version 3.0 of the License, or (at your option)\n\
 any later version.\n\n\
-This software is distributed in the hope that it will be useful, but WITHOUT\n\ 
+This software is distributed in the hope that it will be useful, but WITHOUT\n\
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS\n\
 FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more\n\
 details.\n\n\

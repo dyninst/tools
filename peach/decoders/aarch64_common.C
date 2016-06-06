@@ -1,4 +1,5 @@
 
+#include "Alias.h"
 #include "aarch64_common.h"
 
 void addSysregAliases() {
@@ -497,7 +498,7 @@ void addSysregAliases() {
    Alias::addAlias("s3_0_c0_c0_5", "mpidr_el1");
    Alias::addAlias("trccntctlr0", "s2_1_c0_c4_5");
    Alias::addAlias("trccntvr0", "s2_1_c0_c8_5");
-   Alias::addAlias("spsel, 0x2; msr s0_0_c4_c2_5");
+   Alias::addAlias("spsel, 0x2", "msr s0_0_c4_c2_5");
    Alias::addAlias("s3_0_c9_c9_5", "pmsevfr_el1");
    Alias::addAlias("icc_sre_el2", "s3_4_c12_c9_5");
    Alias::addAlias("icc_sgi1r_el1", "s3_0_c12_c11_5");

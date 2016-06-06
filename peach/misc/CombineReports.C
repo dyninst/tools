@@ -22,7 +22,7 @@
 #include "Options.h"
 #include "Mystring.h"
 #include "MappedInst.h"
-#include "Decoders.h"
+// #include "Decoders.h"
 #include "Hashcounter.h"
 #include "Info.h"
 #include "Alias.h"
@@ -40,8 +40,10 @@
 
 #define BUFFER_SIZE 1024
 
-int main(int argc, char** argv) {
+static void combineReports(char* filename);
 
+int main(int argc, char** argv) 
+{
    if (argc < 2) {
       std::cout << "Error: no input files\n";
       return 0;
@@ -52,6 +54,8 @@ int main(int argc, char** argv) {
       combineReports(*arg);
       arg++;
    }
+
+   return 0;
 }
 
 void combineReports(char* filename) {

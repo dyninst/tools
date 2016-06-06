@@ -1,1 +1,18 @@
+# Object files
 *.o
+
+# Library files
+*.a
+*.so
+*.dll
+
+# Linux temporary files
+*.swp
+*.swo
+*.swn
+
+# CMake cache files
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+Makefile
