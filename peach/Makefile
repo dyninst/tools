@@ -18,88 +18,106 @@
 # Call this file using "make peach" after configuring paths to the necessary 
 # tools below.
 
+# Build type: DEBUG or RELEASE
+BUILD_TYPE := DEBUG
+
 # This variable should contain a path (relative or absolute) to the install
 # location of Dyninst 9.x or later.
-dyn := /p/paradyn/development/holcomb/tools/dyninst/install
+# dyn := /p/paradyn/development/holcomb/tools/dyninst/install
 
 # Place the path (relative or absolute) to XED below.
-xed := /p/paradyn/development/holcomb/tools/xed
+# xed := /p/paradyn/development/holcomb/tools/xed
 
 # Path to LLVM
 llvm := /p/paradyn/development/holcomb/tools/LLVM/install
 
 # Path to Binutils
-binutils := /u/h/o/holcomb/private/binutils/install
+# binutils := /u/h/o/holcomb/private/binutils/install
 #binutils := /p/paradyn/development/holcomb/tools/binutils/install
 
-# Compiler to use.
-CXX_COMPILER := g++
+# Configuration
+CC := gcc
+CFLAGS := -Werror
+CXX := g++
+CXXFLAGS := -std=c++0x
 
-# Flags passed to the compiler
-CC_FLAGS := -g -std=c++0x
+DEBUGFLAGS := -ggdb
 
-# The objects that peach relies on.
-objects := util/MappedInst.o
-objects += util/Mystring.o
-objects += util/MapTable.o
-objects += util/BitTypes.o
-objects += util/BitTypeMap.o
-objects += util/Hashcounter.o
-objects += util/Options.o
-objects += util/Info.o
-objects += util/Alias.o
-objects += util/Mask.o
-objects += util/RegisterSet.o
-objects += util/Architecture.o
-objects += util/Bitfield.o
+ifeq ($(BUILD_TYPE), "DEBUG")
+	CXXFLAGS := $(CXXFLAGS) $(DEBUGFLAGS)
+	CFLAGS := $(CFLAGS) $(DEBUGFLAGS)
+endif
 
-objects += decoders/dyninst_aarch64.o
-objects += decoders/dyninst_x86_64.o
-objects += decoders/llvm_aarch64.o
-objects += decoders/llvm_x86_64.o
-objects += decoders/llvm_common.o
-objects += decoders/gnu_x86_64.o
-objects += decoders/gnu_aarch64.o
-objects += decoders/xed_x86_64.o
-objects += decoders/null_decoders.o
-objects += decoders/Decoder.o
+UTIL_OBJECTS := \
+	MappedInst \
+	Mystring \
+	MapTable \
+	BitTypes \
+	BitTypeMap \
+	Hashcounter \
+	Options \
+	Info \
+	Alias \
+	Mask \
+	RegisterSet \
+	Architecture \
+	Bitfield
+UTIL_OBJECTS := $(addprefix util/, $(UTIL_OBJECTS))
+UTIL_OBJECTS := $(addsuffix .o, $(UTIL_OBJECTS))
 
-objects += decoders/Normalization.o
+DECODER_OBJECTS := \
+	dyninst_aarch64 \
+	dyninst_x86_64 \
+	llvm_aarch64 \
+	llvm_x86_64 \
+	llvm_common \
+	gnu_x86_64 \
+	gnu_aarch64 \
+	xed_x86_64 \
+	null_decoders \
+	Decoder \
+	Normalization
+DECODER_OBJECTS := $(addprefix decoders/, $(DECODER_OBJECTS))
+DECODER_OBJECTS := $(addsuffix .o, $(DECODER_OBJECTS))
 
-objects += reporting/ReportingContext.o
+REPORTING_OBJECTS := \
+	ReportingContext
+REPORTING_OBJECTS := $(addprefix reporting/, $(REPORTING_OBJECTS))
+REPORTING_OBJECTS := $(addsuffix .o, $(REPORTING_OBJECTS))
 
-utilinc = -Iutil
-decoderinc = -Idecoders
-reportinginc = -Ireporting
+OBJECTS := \
+	$(UTIL_OBJECTS) \
+	$(DECODER_OBJECTS) \
+	$(REPORTING_OBJECTS)
 
-xedlib := -L$(xed)/lib
-xedinc := -I$(xed)/include
+INCLUDES := \
+		   -Iutil \
+		   -Idecoders \
+		   -Ireporting
+LIBS := \
+	z \
+	instructionAPI \
+	xed \
+	LLVM \
+	opcodes \
+	rt \
+	bfd \
+	iberty \
+	dl
+LIBS := $(addprefix -l, $(LIBS))
 
-dynlib := -L$(dyn)/lib
-dyninc := -I$(dyn)/include
 
-llvmlib := -L$(llvm)/lib
-llvminc := -I$(llvm)/include
-
-binutilslib := -L$(binutils)/lib
-binutilsinc := -I$(binutils)/include
-
-alllib := $(xedlib) $(dynlib) $(llvmlib) $(binutilslib)
-allinc := $(utilinc) $(decoderinc) $(xedinc) $(dyninc) $(llvminc) $(binutilsinc) $(reportinginc)
-
-all: clean peach CombineReports
-
-default: all
+.PHONY: all clean
+all: peach CombineReports
 
 clean:
-	rm -f peach peach.o CombineReports CombineReports.o $(objects)
+	rm -f peach CombineReports CombineReports.o $(OBJECTS)
 
-peach: $(objects)
-	$(CXX_COMPILER) $(CC_FLAGS) $(allinc) $(alllib) -o peach peach.C $(objects) -linstructionAPI -lxed -lLLVM -lopcodes -lrt -lbfd -liberty -ldl -lz
+peach: $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o peach peach.C $(OBJECTS) $(LIBS)
 
-CombineReports: $(objects)
-	$(CXX_COMPILER) $(CC_FLAGS) $(allinc) $(alllib) -std=c++0x -o CombineReports CombineReports.C $(objects) -linstructionAPI -lxed -lLLVM -lopcodes -lrt -lbfd -liberty -ldl
+CombineReports: $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -std=c++0x -o CombineReports CombineReports.C $(OBJECTS) $(LIBS)
 
 .C.o:
-	$(CXX_COMPILER) $(CC_FLAGS) -c -o $@ -c $< $(allinc)
-
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
