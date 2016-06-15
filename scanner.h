@@ -38,6 +38,9 @@ namespace Dyninst_aarch64 {
         static void initOperandExtractorMap();
         static std::map<std::string, std::string> operandExtractorMap;
 
+        static void initOperatorToFunctionMap();
+        static std::map<std::string, std::string> operatorToFunctionMap;
+
     };
 
 }

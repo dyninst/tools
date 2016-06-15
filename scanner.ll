@@ -10,6 +10,8 @@ typedef Dyninst_aarch64::Parser::token_type token_type;
 
 #define yyterminate() return token::END
 
+int labelPos;
+
 %}
 
 %option c++
@@ -28,59 +30,69 @@ typedef Dyninst_aarch64::Parser::token_type token_type;
 
 ##[a-z_]+   {
                 yylval->strVal = new std::string(yytext+2);
+                labelPos = 0;
                 return token::INSN_START;
             }
 
 @@          {   return token::INSN_END;    }
 
 bits\((datasize|64)\)\ (target|result|(operand[1|2]?))[^\n]+\n    {
-                                               int operandIdx;
-                                               std::stringstream val;
-                                               std::string matched(yytext);
+                                                                   int operandIdx;
+                                                                   std::stringstream val;
+                                                                   std::string matched(yytext);
 
-                                               if(matched.find("target") == std::string::npos)
-                                               {
-                                                   if(matched.find(std::string("result")) != std::string::npos)
-                                                       operandIdx = 0;
+                                                                   if(matched.find("target") == std::string::npos)
+                                                                   {
+                                                                       if(matched.find(std::string("result")) != std::string::npos)
+                                                                           operandIdx = 0;
 
-                                                   val<<"uint64_t "<<matched.substr(15, operandIdx == 0?6:8);
-                                                   if(operandIdx != 0)
-                                                   {
-                                                       char idxChar = *(yytext + 22);
-                                                       operandIdx = (matched.find("X[t]") != std::string::npos)?0:(idxChar == '1')?1:2;
-                                                       val<<" = policy.readGPR(operands["<<operandIdx<<"])";
-                                                   }
-                                               }
-                                               else
-                                               {
-                                                    val<<"uint64_t "<<matched.substr(9, 6);
-                                                    val<<" = policy.readGPR(operands[0])";
-                                               }
-                                               val<<";";
-                                               yylval->strVal = new std::string(val.str());
-                                               return token::OPERAND;
-                                           }
+                                                                       val<<"BaseSemantics::SValuePtr "<<matched.substr(15, operandIdx == 0?6:8);
+                                                                       if(operandIdx != 0)
+                                                                       {
+                                                                           char idxChar = *(yytext + 22);
+                                                                           operandIdx = (matched.find("X[t]") != std::string::npos)?0:(idxChar == '1')?1:2;
+                                                                           val<<" = d->read(args["<<operandIdx<<"])";
+                                                                       }
+                                                                   }
+                                                                   else
+                                                                   {
+                                                                        val<<"BaseSemantics::SValuePtr "<<matched.substr(9, 6);
+                                                                        val<<" = d->read(args[0])";
+                                                                   }
+                                                                   val<<";";
+                                                                   labelPos++;
+
+                                                                   yylval->strVal = new std::string(val.str());
+                                                                   return token::OPERAND;
+                                                               }
 
 bits\(64\)\ base\ =\ PC\[\] {   return token::READ_PC;  }
 
 if\ branch_type[^_]+_CALL[^\n]+\n    {	return token::SET_LR;   }
 
 imm|bit_pos                 {
-                        yylval->strVal = new std::string("policy.readOperand(1)");
-                        return token::OPERAND;
-                    }
+                                yylval->strVal = new std::string("d->read(args[0])");
+                                labelPos++;
+                                return token::OPERAND;
+                            }
 
 PC\[\]\ \+\ offset   {
-			yylval->strVal = new std::string("policy.readOperand(0)");
-			return token::OPERAND;
-		     }
+                        std::stringstream out;
+                        out<<"d->read(args["<<labelPos<<"])";
+
+                        yylval->strVal = new std::string(out.str());
+                        return token::OPERAND;
+                     }
 
 bit(s\([0-9]\))?     {   return token::DTYPE_BITS;   }
 
 AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
-					yylval->strVal = new std::string(yytext);
-					return token::FUNCNAME; 
-				      }
+                                                                if(std::string(yytext) == "NOT")
+                                                                    yylval->strVal = new std::string("ops->invert");
+                                                                else
+                                                                    yylval->strVal = new std::string(yytext);
+                                                                return token::FUNCNAME;
+                                                              }
 
 if          {   return token::COND_IF;   }
 
@@ -90,16 +102,16 @@ else        {   return token::COND_ELSE; }
 
 end         {   return token::COND_END; }
 
-\<	    {	return token::SYMBOL_LT;    }
+\<	        {	return token::SYMBOL_LT;    }
 
->	    {	return token::SYMBOL_GT;    }
+>	        {	return token::SYMBOL_GT;    }
 
-:	    {	return token::SYMBOL_COLON;	}
+:	        {	return token::SYMBOL_COLON;	}
 
 !|\+|==|&&		{
-			    yylval->strVal = new std::string(yytext);    
-			    return token::OPER;	
-			}
+                    yylval->strVal = new std::string(yytext);
+                    return token::OPER;
+			    }
 
 (SP|W|X)\[[a-z]?\]      {  return token::REG;  }
 
@@ -135,12 +147,14 @@ PSTATE\.<[^\n]+  {   return token::SET_NZCV;     }
 namespace Dyninst_aarch64 {
 
 std::map<std::string, std::string> Scanner::operandExtractorMap;
+std::map<std::string, std::string> Scanner::operatorToFunctionMap;
 
 Scanner::Scanner(std::istream* instream,
 		 std::ostream* outstream)
     : yyFlexLexer(instream, outstream)
 {
     initOperandExtractorMap();
+    initOperatorToFunctionMap();
 }
 
 Scanner::~Scanner()
@@ -148,13 +162,20 @@ Scanner::~Scanner()
 }
 
 void Scanner::initOperandExtractorMap() {
-    operandExtractorMap[std::string("sub_op")] = std::string("(field<30, 30>(insn) == 1)");
-    operandExtractorMap[std::string("setflags")] = std::string("(field<29, 29>(insn) == 1)");
-    operandExtractorMap[std::string("d")] = std::string("(field<0, 4>(insn))");
-    operandExtractorMap[std::string("condition")] = std::string("(field<0, 4>(insn))");
-    operandExtractorMap[std::string("page")] = std::string("(field<31, 31>(insn) == 1)");
-    operandExtractorMap[std::string("iszero")] = std::string("(field<24, 24>(insn) == 0)");
-    operandExtractorMap[std::string("bit_val")] = std::string("field<24, 24>(insn)");
+    operandExtractorMap[std::string("sub_op")] = std::string("ops->isEqual(EXTR(30, 30), ops->number_(1, 1))");
+    operandExtractorMap[std::string("setflags")] = std::string("ops->isEqual(EXTR(29, 29), ops->number_(1, 1))");
+    operandExtractorMap[std::string("d")] = std::string("EXTR(0, 4)");
+    operandExtractorMap[std::string("condition")] = std::string("EXTR(0, 4)");
+    operandExtractorMap[std::string("page")] = std::string("ops->isEqual(EXTR(31, 31), ops->number_(1, 1))");
+    operandExtractorMap[std::string("iszero")] = std::string("ops->isEqual(EXT(24, 24), ops->number_(1, 0))");
+    operandExtractorMap[std::string("bit_val")] = std::string("EXTR(24, 24)");
+}
+
+void Scanner::initOperatorToFunctionMap() {
+    operatorToFunctionMap[std::string("+")] = std::string("ops->add");
+    operatorToFunctionMap[std::string("==")] = std::string("ops->isEqual");
+    operatorToFunctionMap[std::string("&&")] = std::string("ops->null");
+    operatorToFunctionMap[std::string("!")] = std::string("ops->null");
 }
 
 }
