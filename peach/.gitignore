@@ -16,3 +16,6 @@ CMakeCache.txt
 CMakeFiles/
 *.cmake
 Makefile
+
+# Output files
+peach
