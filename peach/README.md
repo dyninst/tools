@@ -1,4 +1,4 @@
-See peach/COPYRIGHT for copyright information.
+See COPYRIGHT for copyright information.
 
 This file is a part of Peach.
 
@@ -15,26 +15,23 @@ details.
 You should have received a copy of the GNU Lesser General Public License
 along with this software; if not, see www.gnu.org/licenses
 
-This is the makefile for Peach, the disassembly fuzzer.
-
-Call this file using "make peach" after configuring paths to the necessary 
-tools below.
+# Peach
 
 Peach is a fuzzing tool used to compare assembly decoders. Currently LLVM, binutils (libopcodes) and dyninst are supported.
 
-# Building Dependancies
+## Building Dependancies
 
 Peach depends on the following libraries:
 
--libopcodes, libbfd (bintuils)
--libxed
--libz
--libinstructionAPI (dyninst)
--LLVM
--libiberty
--libdl
+- libopcodes, libbfd (bintuils)
+- libxed
+- libz
+- libinstructionAPI (dyninst)
+- LLVM
+- libiberty
+- libdl
 
-## Xed
+### Xed
 
 Xed can be downloaded from here: https://software.intel.com/en-us/articles/xed-x86-encoder-decoder-software-library
 
@@ -44,7 +41,7 @@ Once this is downloaded and unzipped, it can be installed with:
 sudo cp kits/<XED VERSION+PLATFORM>/lib/* $PREFIX/lib64
 ```
 
-## Binutils
+### Binutils
 
 Binutils can be obtained from a gnu mirror, such as ftp://ftp.gnu.org/gnu/binutils. You may also build the latest version via the git repo: 
 
@@ -52,7 +49,7 @@ Binutils can be obtained from a gnu mirror, such as ftp://ftp.gnu.org/gnu/binuti
 git clone git://sourceware.org/git/binutils-gdb.git
 ```
 
-To build binutils:
+We recommend that you build binutils from source. You MUST have a version of binutils that has been configured with `--enable-targets=all`. To build binutils from source:
 
 ```
 mkdir build
@@ -62,7 +59,7 @@ make
 make install
 ```
 
-## Dyninst
+### Dyninst
 
 Dyninst can be obtained from the github repository:
 
@@ -80,7 +77,7 @@ make
 make install
 ```
 
-# Building Peach
+## Building Peach
 
 Make sure your `LD_LIBRARY_PATH` is pointing at the dependancies before you attempt to compile peach. This doesn't need to be set if the dependancies are installed globally under `/usr/lib64`
 
