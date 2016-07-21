@@ -84,13 +84,10 @@ PC\[\]\ \+\ offset   {
                         return token::OPERAND;
                      }
 
-bit(s\([0-9]\))?     {   return token::DTYPE_BITS;   }
+bit(s\([0-9]\))?     {  return token::DTYPE_BITS;   }
 
 AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
-                                                                if(std::string(yytext) == "NOT")
-                                                                    yylval->strVal = new std::string("ops->invert");
-                                                                else
-                                                                    yylval->strVal = new std::string(yytext);
+                                                                yylval->strVal = new std::string(yytext);
                                                                 return token::FUNCNAME;
                                                               }
 
@@ -162,12 +159,12 @@ Scanner::~Scanner()
 }
 
 void Scanner::initOperandExtractorMap() {
-    operandExtractorMap[std::string("sub_op")] = std::string("ops->isEqual(EXTR(30, 30), ops->number_(1, 1))");
-    operandExtractorMap[std::string("setflags")] = std::string("ops->isEqual(EXTR(29, 29), ops->number_(1, 1))");
+    operandExtractorMap[std::string("sub_op")] = std::string("(EXTR(30, 30) == 1)");
+    operandExtractorMap[std::string("setflags")] = std::string("(EXTR(29, 29) == 1)");
     operandExtractorMap[std::string("d")] = std::string("EXTR(0, 4)");
     operandExtractorMap[std::string("condition")] = std::string("EXTR(0, 4)");
-    operandExtractorMap[std::string("page")] = std::string("ops->isEqual(EXTR(31, 31), ops->number_(1, 1))");
-    operandExtractorMap[std::string("iszero")] = std::string("ops->isEqual(EXT(24, 24), ops->number_(1, 0))");
+    operandExtractorMap[std::string("page")] = std::string("(EXTR(31, 31) == 1)");
+    operandExtractorMap[std::string("iszero")] = std::string("(EXTR(24, 24) == 0)");
     operandExtractorMap[std::string("bit_val")] = std::string("EXTR(24, 24)");
 }
 

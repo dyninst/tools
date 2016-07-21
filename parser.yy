@@ -68,7 +68,7 @@ void parseBitPos(std::string str, std::string &var, std::string &expr) {
 %token		    SET_LR
 %token          FLAG_CARRY
 
-%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos
+%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos declblock
 
 %{
 
@@ -83,7 +83,7 @@ void parseBitPos(std::string str, std::string &var, std::string &expr) {
 %%
 
 insn:       INSN_START program INSN_END {
-                                            std::cout<<"struct rose_"<<*$1<<": P {\nvoid p(D d, Ops ops, I insn, A args, B raw) {\n";
+                                            std::cout<<"struct IP_"<<*$1<<": P {\nvoid p(D d, Ops ops, I insn, A args, B raw) {\n";
                                             std::cout<<*$2;
                                             std::cout<<"}\n};\n";
 
@@ -135,10 +135,10 @@ decl:       OPERAND                     {
                                             $$ = $1;
                                         }   |
             READ_PC                     {  $$ = new std::string("base = d->readRegister(d->REG_PC);\n");   } |
-	        SET_LR			            {  $$ = new std::string("if(EXTR(31, 31) == ops->number_(32, 1))\nd->writeRegister(d->readRegister(findRegister(\"x30\", 64)), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
-            datatype varname            {
+	        SET_LR			            {  $$ = new std::string("if(EXTR(31, 31) == 1)\nd->writeRegister(d->readRegister(findRegister(\"x30\", 64)), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
+            datatype declblock          {
                                             std::stringstream out;
-                                            out<<((*$2) == "carry_in"?"bool":*$1)<<" "<<*$2<<";\n";
+                                            out<<((*$2).find("carry_in") != std::string::npos?"bool":*$1)<<" "<<*$2<<";\n";
 
                                             delete $1;
                                             delete $2;
@@ -148,6 +148,10 @@ decl:       OPERAND                     {
             ;
 
 datatype:   DTYPE_BITS                  {   $$ = new std::string("BaseSemantics::SValuePtr");   }
+            ;
+
+declblock:  varname                     {   $$ = $1;    } |
+            asnmt                       {   $$ = $1;    }
             ;
 
 varname:    IDENTIFIER                  {
@@ -165,9 +169,9 @@ asnmt:      targ SYMBOL_EQUAL expr           {
                                                 if($1 != NULL)
                                                 {
                                                     if((*$1) == "carry_in")
-                                                        out<<*$1<<" = "<<((*$3) == "ops->number_(32, 1)"?"true":"false")<<";\n";
+                                                        out<<*$1<<" = "<<((*$3) == "1"?"true":"false")<<";\n";
                                                     else
-                                                        out<<*$1<<" = "<<*$3<<";\n";
+                                                        out<<((*$1) != "null"?((*$1) + " = "):"")<<*$3<<";\n";
                                                     delete $1;
                                                 }
                                                 else
@@ -208,7 +212,8 @@ bitmask:	varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bi
 
 expr:       NUM                         {
                                             std::stringstream out;
-                                            out<<"ops->number_(32, "<<$1<<")";
+                                            //out<<"ops->number_(32, "<<$1<<")";
+                                            out<<$1;
 
                                             $$ = new std::string(out.str());
                                         } |
@@ -252,7 +257,7 @@ reg_name:   REG                         {}
 funccall:   FUNCNAME SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
                                                                         std::stringstream out;
                                                                         if((*$1) == "AddWithCarry")
-                                                                            out<<"d->doAddOperation"<<"("<<*$3<<", ops->boolean_(false))";
+                                                                            out<<"d->doAddOperation"<<"("<<*$3<<", ops->boolean_(false), nzcv)";
                                                                         else
                                                                             out<<"d->"<<*$1<<"("<<*$3<<")";
 
@@ -327,7 +332,8 @@ blockdata:  asnmt       {   $$ = $1;    } |
                             delete $1;
 
                             $$ = new std::string(out.str());
-                        }
+                        }   |
+            cond        {   $$ = $1;    }
             ;
 
 %%
