@@ -18,7 +18,7 @@
 #endif
 
 #include <map>
-#include "y.tab.h"
+#include "y.tab.hh"
 #include "utility.h"
 
 namespace Dyninst_aarch64 {
