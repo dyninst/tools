@@ -36,37 +36,49 @@ int labelPos;
 
 @@          {   return token::INSN_END;    }
 
-bits\((datasize|64)\)\ (target|result|(operand[1|2]?))[^\n]+\n    {
-                                                                   int operandIdx;
-                                                                   std::stringstream val;
-                                                                   std::string matched(yytext);
+TRUE|FALSE          {
+                        std::string matched(yytext);
+                        std::transform(matched.begin(), matched.end(), matched.begin(), ::tolower);
+                        yylval->strVal = new std::string(matched);
+                        return token::BOOLVAL;
+                    }
 
-                                                                   if(matched.find("target") == std::string::npos)
-                                                                   {
-                                                                       if(matched.find(std::string("result")) != std::string::npos)
-                                                                           operandIdx = 0;
+bits\(64\)\ base\ =\ PC\[\];\n {   return token::READ_PC;  }
 
-                                                                       val<<"BaseSemantics::SValuePtr "<<matched.substr(15, operandIdx == 0?6:8);
-                                                                       if(operandIdx != 0)
-                                                                       {
-                                                                           char idxChar = *(yytext + 22);
-                                                                           operandIdx = (matched.find("X[t]") != std::string::npos)?0:(idxChar == '1')?1:2;
-                                                                           val<<" = d->read(args["<<operandIdx<<"])";
-                                                                       }
-                                                                   }
-                                                                   else
-                                                                   {
-                                                                        val<<"BaseSemantics::SValuePtr "<<matched.substr(9, 6);
-                                                                        val<<" = d->read(args[0])";
-                                                                   }
-                                                                   val<<";";
-                                                                   labelPos++;
+bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
+                                                                               int operandIdx;
+                                                                               std::stringstream val;
+                                                                               std::string matched(yytext);
 
-                                                                   yylval->strVal = new std::string(val.str());
-                                                                   return token::OPERAND;
-                                                               }
+                                                                               if(matched.find("64") == std::string::npos)
+                                                                               {
+                                                                                   if(matched.find(std::string("result")) != std::string::npos)
+                                                                                       operandIdx = 0;
 
-bits\(64\)\ base\ =\ PC\[\] {   return token::READ_PC;  }
+                                                                                   val<<"BaseSemantics::SValuePtr "<<matched.substr(15, operandIdx == 0?6:8);
+                                                                                   if(operandIdx != 0)
+                                                                                   {
+                                                                                       char idxChar = *(yytext + 22);
+                                                                                       operandIdx = (matched.find("X[t]") != std::string::npos)?0:(idxChar == '1')?1:2;
+                                                                                       val<<" = d->read(args["<<operandIdx<<"])";
+                                                                                   }
+                                                                               }
+                                                                               else
+                                                                               {
+                                                                                    int idx = 9;
+                                                                                    while(matched[idx] >= 97 && matched[idx] <= 122)
+                                                                                        idx++;
+
+                                                                                    std::string operandName = matched.substr(9, idx - 9);
+                                                                                    val<<"BaseSemantics::SValuePtr "<<operandName;
+                                                                                    val<<" = d->read(args["<<operandPosMap[operandName]<<"])";
+                                                                               }
+                                                                               val<<";";
+                                                                               labelPos++;
+
+                                                                               yylval->strVal = new std::string(val.str());
+                                                                               return token::OPERAND;
+                                                                           }
 
 if\ branch_type[^_]+_CALL[^\n]+\n    {	return token::SET_LR;   }
 
@@ -84,7 +96,9 @@ PC\[\]\ \+\ offset   {
                         return token::OPERAND;
                      }
 
-bit(s\([0-9]\))?     {  return token::DTYPE_BITS;   }
+boolean              {  return token::DTYPE_BOOLEAN;    }
+
+bit(s\((datasize|[0-9])\))?     {  return token::DTYPE_BITS;   }
 
 AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
                                                                 yylval->strVal = new std::string(yytext);
@@ -122,7 +136,11 @@ PSTATE\.<[^\n]+  {   return token::SET_NZCV;     }
             }
 
 [A-Za-z_]+[0-9]* {
-                    yylval->strVal = new std::string(yytext);
+                    std::string *ret = new std::string(yytext);
+                    //FIXME should probably have a table of IDs seen so far and perform a join-like check
+                    if(*ret == "offset")
+                        *ret = "d->read(args[2])";
+                    yylval->strVal = ret;
                     return token::IDENTIFIER;
                  }
 
@@ -145,6 +163,8 @@ namespace Dyninst_aarch64 {
 
 std::map<std::string, std::string> Scanner::operandExtractorMap;
 std::map<std::string, std::string> Scanner::operatorToFunctionMap;
+std::vector<std::string> Scanner::ignoreOperands;
+std::map<std::string, int> Scanner::operandPosMap;
 
 Scanner::Scanner(std::istream* instream,
 		 std::ostream* outstream)
@@ -152,6 +172,8 @@ Scanner::Scanner(std::istream* instream,
 {
     initOperandExtractorMap();
     initOperatorToFunctionMap();
+    initIgnoreOperands();
+    initOperandPosMap();
 }
 
 Scanner::~Scanner()
@@ -164,6 +186,7 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap[std::string("d")] = std::string("EXTR(0, 4)");
     operandExtractorMap[std::string("condition")] = std::string("EXTR(0, 4)");
     operandExtractorMap[std::string("page")] = std::string("(EXTR(31, 31) == 1)");
+    operandExtractorMap[std::string("postindex")] = std::string("(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)");
     operandExtractorMap[std::string("iszero")] = std::string("(EXTR(24, 24) == 0)");
     operandExtractorMap[std::string("bit_val")] = std::string("EXTR(24, 24)");
 }
@@ -173,6 +196,16 @@ void Scanner::initOperatorToFunctionMap() {
     operatorToFunctionMap[std::string("==")] = std::string("ops->isEqual");
     operatorToFunctionMap[std::string("&&")] = std::string("ops->null");
     operatorToFunctionMap[std::string("!")] = std::string("ops->null");
+}
+
+void Scanner::initIgnoreOperands() {
+    ignoreOperands.push_back("wb_unknown");
+    ignoreOperands.push_back("rt_unknown");
+}
+
+void Scanner::initOperandPosMap() {
+    operandPosMap["target"] = 0;
+    operandPosMap["address"] = 1;
 }
 
 }

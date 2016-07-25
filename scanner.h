@@ -18,8 +18,8 @@
 #endif
 
 #include <map>
+#include <vector>
 #include "y.tab.hh"
-#include "utility.h"
 
 namespace Dyninst_aarch64 {
 
@@ -41,6 +41,12 @@ namespace Dyninst_aarch64 {
 
         static void initOperatorToFunctionMap();
         static std::map<std::string, std::string> operatorToFunctionMap;
+
+        static void initIgnoreOperands();
+        static std::vector<std::string> ignoreOperands;
+
+        static void initOperandPosMap();
+        static std::map<std::string, int> operandPosMap;
 
     };
 

@@ -44,6 +44,7 @@ void parseBitPos(std::string str, std::string &var, std::string &expr) {
 
 %token			END	     0	"end of file"
 %token          DTYPE_BITS
+%token          DTYPE_BOOLEAN
 %token          <strVal>    INSN_START
 %token          INSN_END
 %token          <strVal>    OPERAND
@@ -55,6 +56,7 @@ void parseBitPos(std::string str, std::string &var, std::string &expr) {
 %token          <strVal>    FUNCNAME
 %token          REG
 %token          <intVal>    NUM
+%token          <strVal>    BOOLVAL
 %token          <strVal>    IDENTIFIER
 %token          SYMBOL_OPENROUNDED
 %token          SYMBOL_CLOSEROUNDED
@@ -134,7 +136,7 @@ program:    program decl     {
 decl:       OPERAND                     {
                                             $$ = $1;
                                         }   |
-            READ_PC                     {  $$ = new std::string("base = d->readRegister(d->REG_PC);\n");   } |
+            READ_PC                     {  $$ = new std::string("BaseSemantics::SValuePtr base = d->readRegister(d->REG_PC);\n");   } |
 	        SET_LR			            {  $$ = new std::string("if(EXTR(31, 31) == 1)\nd->writeRegister(d->readRegister(findRegister(\"x30\", 64)), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
             datatype declblock          {
                                             std::stringstream out;
@@ -147,10 +149,11 @@ decl:       OPERAND                     {
                                         }
             ;
 
-datatype:   DTYPE_BITS                  {   $$ = new std::string("BaseSemantics::SValuePtr");   }
+datatype:   DTYPE_BITS                  {   $$ = new std::string("BaseSemantics::SValuePtr");   }   |
+            DTYPE_BOOLEAN               {   $$ = new std::string("bool");    }
             ;
 
-declblock:  varname                     {   $$ = $1;    } |
+declblock:  varname                     {  $$ = $1;    } |
             asnmt                       {   $$ = $1;    }
             ;
 
@@ -232,7 +235,8 @@ expr:       NUM                         {
                                             delete $3;
                                         } |
                                         {   $$ = new std::string("");   } |
-            OPERAND                     {   $$ = $1;  }
+            OPERAND                     {   $$ = $1;  } |
+            BOOLVAL                     {   $$ = $1;  }
             ;
 
 targ:       varname                                                             {   $$ = $1;    }  |
