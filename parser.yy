@@ -42,6 +42,14 @@ void delArgs(vector<string *> &del) {
         delete del[i];
 }
 
+string *makeProgramBlock(string *arg1, string *arg2) {
+    ARGS_VEC(*arg1, "\n", *arg2);
+    DEL_VEC(arg1, arg2);
+    delArgs(del);
+
+    return STR(makeStr(args));
+}
+
 %}
 
 %require "2.3"
@@ -119,35 +127,11 @@ insn:       INSN_START program INSN_END {
                                         }
             ;
 
-program:    program decl     {
-                                ARGS_VEC(*$1, "\n", *$2);
-                                DEL_VEC($1, $2);
-                                delArgs(del);
-
-                                $$ = STR(makeStr(args));
-                             } |
-            program asnmt    {
-                                ARGS_VEC(*$1, "\n", *$2);
-                                DEL_VEC($1, $2);
-                                delArgs(del);
-
-                                $$ = STR(makeStr(args));
-                             } |
-	        program funccall {
-                                ARGS_VEC(*$1, "\n", *$2);
-                                DEL_VEC($1, $2);
-                                delArgs(del);
-
-                                $$ = STR(makeStr(args));
-                             } |
-            program cond     {
-                                ARGS_VEC(*$1, "\n", *$2);
-                                DEL_VEC($1, $2);
-                                delArgs(del);
-
-                                $$ = STR(makeStr(args));
-                            }|
-                            {    $$ = STR("");    }
+program:    program decl     { $$ = makeProgramBlock($1, $2); } |
+            program asnmt    { $$ = makeProgramBlock($1, $2); } |
+	        program funccall { $$ = makeProgramBlock($1, $2); } |
+            program cond     { $$ = makeProgramBlock($1, $2); } |
+                             { $$ = STR("");                  }
             ;
 
 decl:       OPERAND                     {
