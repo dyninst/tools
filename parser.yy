@@ -10,7 +10,8 @@ using namespace std;
 
 #define STR(s)  new string(s)
 #define ARGS_VEC(arglist...)    vector<string> args = {arglist}
-#define DEL_VEC(arglist...)    vector<string *> del = {arglist}
+#define DEL_VEC(arglist...)     vector<string *> del = {arglist}
+#define DEL_VEC_ADD(arg)        del.push_back(arg)
 
 void parseBitPos(string str, string &var, string &expr) {
     string temp;
@@ -23,7 +24,12 @@ void parseBitPos(string str, string &var, string &expr) {
     expr = temp.substr(equalPos + 1);
 }
 
-string makeStr(vector<string> &args) {
+void delArgs(vector<string *> del) {
+    for(int i = 0; i < del.size(); i++)
+        delete del[i];
+}
+
+string makeStr(vector<string> &args, vector<string *> *del) {
     int len = 0;
     for(int i = 0; i < args.size(); i++)
         len += args[i].size();
@@ -34,20 +40,17 @@ string makeStr(vector<string> &args) {
     for(int i = 0; i < args.size(); i++)
         ret += args[i];
 
-    return ret;
-}
+    if(del != NULL)
+        delArgs(*del);
 
-void delArgs(vector<string *> &del) {
-    for(int i = 0; i < del.size(); i++)
-        delete del[i];
+    return ret;
 }
 
 string *makeProgramBlock(string *arg1, string *arg2) {
     ARGS_VEC(*arg1, "\n", *arg2);
     DEL_VEC(arg1, arg2);
-    delArgs(del);
 
-    return STR(makeStr(args));
+    return STR(makeStr(args, &del));
 }
 
 %}
@@ -134,28 +137,23 @@ program:    program decl     { $$ = makeProgramBlock($1, $2); } |
                              { $$ = STR("");                  }
             ;
 
-decl:       OPERAND                     {
-                                            $$ = $1;
-                                        }   |
+decl:       OPERAND                     {  $$ = $1; }   |
             READ_PC                     {  $$ = STR("BaseSemantics::SValuePtr base = d->readRegister(d->REG_PC);\n");   } |
 	        SET_LR			            {  $$ = STR("if(EXTR(31, 31) == 1)\nd->writeRegister(d->readRegister(findRegister(\"x30\", 64)), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
             datatype declblock          {
-                                            stringstream out;
-                                            out<<((*$2).find("carry_in") != string::npos?"bool":*$1)<<" "<<*$2<<";\n";
+                                            ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool ":*$1), *$2, ";\n");
+                                            DEL_VEC($1, $2);
 
-                                            delete $1;
-                                            delete $2;
-
-                                            $$ = STR(out.str());
+                                            $$ = STR(makeStr(args, &del));
                                         }
             ;
 
-datatype:   DTYPE_BITS                  {   $$ = STR("BaseSemantics::SValuePtr");   }   |
-            DTYPE_BOOLEAN               {   $$ = STR("bool");    }
+datatype:   DTYPE_BITS                  {  $$ = STR("BaseSemantics::SValuePtr ");   }   |
+            DTYPE_BOOLEAN               {  $$ = STR("bool ");    }
             ;
 
 declblock:  varname                     {  $$ = $1;    } |
-            asnmt                       {   $$ = $1;    }
+            asnmt                       {  $$ = $1;    }
             ;
 
 varname:    IDENTIFIER                  {
@@ -168,34 +166,36 @@ varname:    IDENTIFIER                  {
             ;
 
 asnmt:      targ SYMBOL_EQUAL expr           {
-                                                stringstream out;
+                                                DEL_VEC($3);
 
                                                 if($1 != NULL)
                                                 {
+                                                    DEL_VEC_ADD($1);
                                                     if((*$1) == "carry_in")
-                                                        out<<*$1<<" = "<<((*$3) == "1"?"true":"false")<<";\n";
+                                                    {
+                                                        ARGS_VEC(*$1, " = ", ((*$3) == "1"?"true":"false"), ";\n");
+                                                        $$ = STR(makeStr(args, &del));
+                                                    }
                                                     else
-                                                        out<<((*$1) != "null"?((*$1) + " = "):"")<<*$3<<";\n";
-                                                    delete $1;
+                                                    {
+                                                        ARGS_VEC(((*$1) != "null"?((*$1) + " = "):""), *$3, ";\n");
+                                                        $$ = STR(makeStr(args, &del));
+                                                    }
                                                 }
                                                 else
-                                                    out<<"d->write(args[0], "<<*$3<<");\n";
-                                                delete $3;
-
-                                                $$ = STR(out.str());
+                                                {
+                                                    ARGS_VEC("d->write(args[0], ", *$3, ");\n");
+                                                    $$ = STR(makeStr(args, &del));
+                                                }
                                             } |
 			bitmask SYMBOL_EQUAL funccall   {
-												stringstream out;
                                                 string var, expr;
 
                                                 parseBitPos(*$1, var, expr);
-
-												out<<var<<" = ops->or_("<<expr<<", "<<*$3<<");\n";
+												ARGS_VEC(var, " = ops->or_(", expr, ", ", *$3, ");\n");
+												DEL_VEC($1, $3);
 												
-												delete $1;
-												delete $3;
-												
-												$$ = STR(out.str());
+												$$ = STR(makeStr(args, &del));
 											} |
             SET_NZCV                        {   $$ = STR("d->writeRegister(REG_NZCV, nzcv);\n");   }
             ;
@@ -207,7 +207,6 @@ bitmask:	varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bi
                                                                     stringstream out;
 
                                                                     out<<*$1<<" = ops->and_("<<*$1<<", ops->number_("<<range<<", 0x"<<hex<<mask<<"))";
-
                                                                     delete $1;
 
                                                                     $$ = STR(out.str());
@@ -226,14 +225,18 @@ expr:       NUM                         {
             bitpos                      {   $$ = $1;    } |
             expr OPER expr              {   //FIXME
                                             //$$ = STR(Scanner::operatorToFunctionMap[*$2] + "(" + string(*$1) + ", " + string(*$3) + ")");
-                                            if((*$2) == "+")
-                                                $$ = STR("ops->add(" + string(*$1) + ", " + string(*$3) + ")");
-                                            else
-                                                $$ = STR(string(*$1) + string(*$2) + string(*$3));
+                                            DEL_VEC($1, $2, $3);
 
-                                            delete $1;
-                                            delete $2;
-                                            delete $3;
+                                            if((*$2) == "+")
+                                            {
+                                                ARGS_VEC("ops->add(", *$1, ", ", *$3, ")");
+                                                $$ = STR(makeStr(args, &del));
+                                            }
+                                            else
+                                            {
+                                                ARGS_VEC(*$1, " ", *$2, " ", *$3);
+                                                $$ = STR(makeStr(args, &del));
+                                            }
                                         } |
                                         {   $$ = STR("");   } |
             OPERAND                     {   $$ = $1;  } |
@@ -246,13 +249,10 @@ targ:       varname                                                             
             ;
 
 bitpos:     varname SYMBOL_LT OPERAND SYMBOL_GT {
-                                                    stringstream out;
-                                                    out<<"ops->and_(ops->shiftRight("<<*$1<<", "<<*$3<<"), ops->number(1, 1))";
+                                                    DEL_VEC($1, $3);
+                                                    ARGS_VEC("ops->and_(ops->shiftRight(", *$1, ", ", *$3, "), ops->number(1, 1))");
 
-                                                    delete $1;
-                                                    delete $3;
-
-                                                    $$ = STR(out.str());
+                                                    $$ = STR(makeStr(args, &del));
                                                 }
             ;
 
@@ -260,29 +260,27 @@ reg_name:   REG                         {}
             ;
 
 funccall:   FUNCNAME SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
-                                                                        stringstream out;
+                                                                        DEL_VEC($1, $3);
+
                                                                         if((*$1) == "AddWithCarry")
-                                                                            out<<"d->doAddOperation"<<"("<<*$3<<", ops->boolean_(false), nzcv)";
+                                                                        {
+                                                                            ARGS_VEC("d->doAddOperation(", *$3, ", ops->boolean_(false), nzcv)");
+                                                                            $$ = STR(makeStr(args, &del));
+                                                                        }
                                                                         else
-                                                                            out<<"d->"<<*$1<<"("<<*$3<<")";
-
-                                                                        delete $1;
-                                                                        delete $3;
-
-                                                                        $$ = STR(out.str());
+                                                                        {
+                                                                            ARGS_VEC("d->", *$1, "(", *$3, ")");
+                                                                            $$ = STR(makeStr(args, &del));
+                                                                        }
                                                                     }
             ;
 
 args:       args SYMBOL_COMMA args      {
-                                            stringstream out;
-                                            out<<*$1;
-                                            if(*$3 != "branch_type" && (*$3).find("BranchType") == string::npos)
-                                                out<<", "<<*$3;
+                                            bool otherArgs = (*$3 != "branch_type" && (*$3).find("BranchType") == string::npos);
+                                            DEL_VEC($1, $3);
+                                            ARGS_VEC(*$1, otherArgs?", ":"", otherArgs?*$3:"");
 
-                                            delete $1;
-                                            delete $3;
-
-                                            $$ = STR(out.str());
+                                            $$ = STR(makeStr(args, &del));
                                         } |
             varname                     {   $$ = $1;    } |
             NUM                         {
@@ -296,47 +294,34 @@ args:       args SYMBOL_COMMA args      {
             ;
 
 cond:       COND_IF expr COND_THEN condblock COND_END {
-                                                        stringstream out;
-                                                        out<<"if("<<*$2<<")\n{\n"<<*$4<<"}\n";
+                                                        DEL_VEC($2, $4);
+                                                        ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n");
 
-                                                        delete $2;
-                                                        delete $4;
-
-                                                        $$ = STR(out.str());
+                                                        $$ = STR(makeStr(args, &del));
                                                      } |
             COND_IF expr COND_THEN condblock COND_ELSE condblock COND_END {
-                                                                             stringstream out;
-                                                                             out<<"if("<<*$2<<")\n{\n"<<*$4<<"}\n";
-                                                                             out<<"else\n{\n"<<*$6<<"}\n";
+                                                                             DEL_VEC($2, $4, $6);
+                                                                             ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", "else\n{\n", *$6, "}\n");
 
-                                                                             delete $2;
-                                                                             delete $4;
-                                                                             delete $6;
-
-                                                                             $$ = STR(out.str());
+                                                                             $$ = STR(makeStr(args, &del));
                                                                           }
             ;
 
 condblock:  condblock blockdata {
-                                    stringstream out;
-                                    out<<*$1<<"\n"<<*$2<<"\n";
+                                    DEL_VEC($1, $2);
+                                    ARGS_VEC(*$1, "\n", *$2, "\n");
 
-                                    delete $1;
-                                    delete $2;
-
-                                    $$ = STR(out.str());
+                                    $$ = STR(makeStr(args, &del));
                                 } |
             blockdata           {   $$ = $1;    }
             ;
 
 blockdata:  asnmt       {   $$ = $1;    } |
             funccall    {
-                            stringstream out;
-                            out<<*$1<<";\n";
+                            DEL_VEC($1);
+                            ARGS_VEC(*$1, ";\n");
 
-                            delete $1;
-
-                            $$ = STR(out.str());
+                            $$ = STR(makeStr(args, &del));
                         }   |
             cond        {   $$ = $1;    }
             ;
