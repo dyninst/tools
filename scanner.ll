@@ -30,9 +30,9 @@ int labelPos;
     yylloc->step();
 %}
 
-//////////////////////////////////////////
-/ Instruction boundary recognition rules /
-//////////////////////////////////////////
+    /****************************************/
+    /*Instruction boundary recognition rules*/
+    /****************************************/
 
 ##[a-z_]+   {
                 yylval->strVal = new string(yytext+2);
@@ -43,9 +43,9 @@ int labelPos;
 @@          {   return token::INSN_END;    }
 
 
-//////////////////////////////////////////
-/            bool declarations           /
-//////////////////////////////////////////
+    /****************************************/
+    /*           bool declarations          */
+    /****************************************/
 
 boolean              {  return token::DTYPE_BOOLEAN;    }
 
@@ -57,16 +57,16 @@ TRUE|FALSE           {
                      }
 
 
-//////////////////////////////////////////
-/              Special Cases             /
-//////////////////////////////////////////
+    /****************************************/
+    /*             Special Cases            */
+    /****************************************/
 
-/* Setting the link register is identified by the presence of "branch_type" keyword.
-   This is not included in the generic rules because of the enum used for branch types
-   which was adding an unnecessary complexity even though its use is very limited.     */
+    /* Setting the link register is identified by the presence of "branch_type" keyword.
+       This is not included in the generic rules because of the enum used for branch types
+       which was adding an unnecessary complexity even though its use is very limited.     */
 if\ branch_type[^_]+_CALL[^\n]+\n    {	 return token::SET_LR;   }
 
-/* This can probably be merged with a generic declaration detection case. */
+    /* This can probably be merged with a generic declaration detection case. */
 bits\(64\)\ base\ =\ PC\[\];\n       {   return token::READ_PC;  }
 
 (SP|W|X)\[[a-z]?\]                   {   return token::REG;  }
@@ -76,9 +76,9 @@ PSTATE[^<]C                          {   return token::FLAG_CARRY;   }
 PSTATE\.<[^\n]+                      {   return token::SET_NZCV;     }
 
 
-//////////////////////////////////////////
-/         Instruction Operands           /
-//////////////////////////////////////////
+    /****************************************/
+    /*        Instruction Operands          */
+    /****************************************/
 
 bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
                                                                                int operandIdx;
@@ -130,9 +130,9 @@ PC\[\]\ \+\ offset   {
                      }
 
 
-//////////////////////////////////////////
-/      Pseudocode keywords/symbols       /
-//////////////////////////////////////////
+    /****************************************/
+    /*     Pseudocode keywords/symbols      */
+    /****************************************/
 
 if          {   return token::COND_IF;   }
 
@@ -173,9 +173,9 @@ AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
 bit(s\((datasize|[0-9])\))?     {  return token::DTYPE_BITS;   }
 
 
-//////////////////////////////////////////
-/        Variables and literals          /
-//////////////////////////////////////////
+    /****************************************/
+    /*        Variables and literals        */
+    /****************************************/
 
 [0-9]+           {
                     yylval->intVal = atoi(yytext);
