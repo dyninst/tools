@@ -30,6 +30,10 @@ int labelPos;
     yylloc->step();
 %}
 
+//////////////////////////////////////////
+/ Instruction boundary recognition rules /
+//////////////////////////////////////////
+
 ##[a-z_]+   {
                 yylval->strVal = new string(yytext+2);
                 labelPos = 0;
@@ -38,14 +42,43 @@ int labelPos;
 
 @@          {   return token::INSN_END;    }
 
-TRUE|FALSE          {
+
+//////////////////////////////////////////
+/            bool declarations           /
+//////////////////////////////////////////
+
+boolean              {  return token::DTYPE_BOOLEAN;    }
+
+TRUE|FALSE           {
                         string matched(yytext);
                         transform(matched.begin(), matched.end(), matched.begin(), ::tolower);
                         yylval->strVal = new string(matched);
                         return token::BOOLVAL;
-                    }
+                     }
 
-bits\(64\)\ base\ =\ PC\[\];\n {   return token::READ_PC;  }
+
+//////////////////////////////////////////
+/              Special Cases             /
+//////////////////////////////////////////
+
+/* Setting the link register is identified by the presence of "branch_type" keyword.
+   This is not included in the generic rules because of the enum used for branch types
+   which was adding an unnecessary complexity even though its use is very limited.     */
+if\ branch_type[^_]+_CALL[^\n]+\n    {	 return token::SET_LR;   }
+
+/* This can probably be merged with a generic declaration detection case. */
+bits\(64\)\ base\ =\ PC\[\];\n       {   return token::READ_PC;  }
+
+(SP|W|X)\[[a-z]?\]                   {   return token::REG;  }
+
+PSTATE[^<]C                          {   return token::FLAG_CARRY;   }
+
+PSTATE\.<[^\n]+                      {   return token::SET_NZCV;     }
+
+
+//////////////////////////////////////////
+/         Instruction Operands           /
+//////////////////////////////////////////
 
 bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
                                                                                int operandIdx;
@@ -82,8 +115,6 @@ bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
                                                                                return token::OPERAND;
                                                                            }
 
-if\ branch_type[^_]+_CALL[^\n]+\n    {	return token::SET_LR;   }
-
 imm|bit_pos                 {
                                 yylval->strVal = new string("d->read(args[0])");
                                 labelPos++;
@@ -98,14 +129,10 @@ PC\[\]\ \+\ offset   {
                         return token::OPERAND;
                      }
 
-boolean              {  return token::DTYPE_BOOLEAN;    }
 
-bit(s\((datasize|[0-9])\))?     {  return token::DTYPE_BITS;   }
-
-AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
-                                                                yylval->strVal = new string(yytext);
-                                                                return token::FUNCNAME;
-                                                              }
+//////////////////////////////////////////
+/      Pseudocode keywords/symbols       /
+//////////////////////////////////////////
 
 if          {   return token::COND_IF;   }
 
@@ -121,31 +148,6 @@ end         {   return token::COND_END; }
 
 :	        {	return token::SYMBOL_COLON;	}
 
-!|\+|==|&&		{
-                    yylval->strVal = new string(yytext);
-                    return token::OPER;
-			    }
-
-(SP|W|X)\[[a-z]?\]      {  return token::REG;  }
-
-PSTATE[^<]C    {   return token::FLAG_CARRY;   }
-
-PSTATE\.<[^\n]+  {   return token::SET_NZCV;     }
-
-[0-9]+      {
-                yylval->intVal = atoi(yytext);
-                return token::NUM;
-            }
-
-[A-Za-z_]+[0-9]* {
-                    string *ret = new string(yytext);
-                    //FIXME should probably have a table of IDs seen so far and perform a join-like check
-                    if(*ret == "offset")
-                        *ret = "d->read(args[2])";
-                    yylval->strVal = ret;
-                    return token::IDENTIFIER;
-                 }
-
 =           {   return token::SYMBOL_EQUAL;    }
 
 \(          {   return token::SYMBOL_OPENROUNDED;  }
@@ -158,6 +160,36 @@ PSTATE\.<[^\n]+  {   return token::SET_NZCV;     }
 
 .           ;
 
+!|\+|==|&&	{
+                yylval->strVal = new string(yytext);
+                return token::OPER;
+			}
+
+AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
+                                                                yylval->strVal = new string(yytext);
+                                                                return token::FUNCNAME;
+                                                              }
+
+bit(s\((datasize|[0-9])\))?     {  return token::DTYPE_BITS;   }
+
+
+//////////////////////////////////////////
+/        Variables and literals          /
+//////////////////////////////////////////
+
+[0-9]+           {
+                    yylval->intVal = atoi(yytext);
+                    return token::NUM;
+                 }
+
+[A-Za-z_]+[0-9]* {
+                    string *ret = new string(yytext);
+                    //FIXME should probably have a table of IDs seen so far and perform a join-like check
+                    if(*ret == "offset")
+                        *ret = "d->read(args[2])";
+                    yylval->strVal = ret;
+                    return token::IDENTIFIER;
+                 }
 
 %%
 
