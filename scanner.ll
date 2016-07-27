@@ -142,6 +142,12 @@ else        {   return token::COND_ELSE; }
 
 end         {   return token::COND_END; }
 
+case	    {	return token::SWITCH_CASE;  }
+
+when	    {	return token::SWITCH_WHEN;  }
+
+of	        {	return token::SWITCH_OF;    }
+
 \<	        {	return token::SYMBOL_LT;    }
 
 >	        {	return token::SYMBOL_GT;    }
@@ -157,8 +163,6 @@ end         {   return token::COND_END; }
 ,           {   return token::SYMBOL_COMMA;    }
 
 [ \t;\n]    ;
-
-.           ;
 
 !|\+|==|&&	{
                 yylval->strVal = new string(yytext);
@@ -191,6 +195,11 @@ bit(s\((datasize|[0-9])\))?     {  return token::DTYPE_BITS;   }
                     return token::IDENTIFIER;
                  }
 
+    
+    /****************************************/
+    /*        Ignore everything else        */
+    /****************************************/
+.           ;
 %%
 
 namespace Dyninst_aarch64 {

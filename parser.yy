@@ -88,6 +88,9 @@ string *makeProgramBlock(string *arg1, string *arg2) {
 %token          COND_THEN
 %token          COND_ELSE
 %token          COND_END
+%token		SWITCH_CASE
+%token		SWITCH_WHEN
+%token		SWITCH_OF
 %token          <strVal>    OPER
 %token          <strVal>    FUNCNAME
 %token          REG
@@ -106,7 +109,7 @@ string *makeProgramBlock(string *arg1, string *arg2) {
 %token		    SET_LR
 %token          FLAG_CARRY
 
-%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos declblock
+%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos declblock switch whenblocks whenblock
 
 %{
 
@@ -132,8 +135,9 @@ insn:       INSN_START program INSN_END {
 
 program:    program decl     { $$ = makeProgramBlock($1, $2); } |
             program asnmt    { $$ = makeProgramBlock($1, $2); } |
-	        program funccall { $$ = makeProgramBlock($1, $2); } |
+            program funccall { $$ = makeProgramBlock($1, $2); } |
             program cond     { $$ = makeProgramBlock($1, $2); } |
+	    program switch   { $$ = makeProgramBlock($1, $2); } |
                              { $$ = STR("");                  }
             ;
 
@@ -298,7 +302,7 @@ cond:       COND_IF expr COND_THEN condblock COND_END {
                                                         ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n");
 
                                                         $$ = STR(makeStr(args, &del));
-                                                     } |
+                                                      } |
             COND_IF expr COND_THEN condblock COND_ELSE condblock COND_END {
                                                                              DEL_VEC($2, $4, $6);
                                                                              ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", "else\n{\n", *$6, "}\n");
@@ -326,18 +330,31 @@ blockdata:  asnmt       {   $$ = $1;    } |
             cond        {   $$ = $1;    }
             ;
 
+switch:	    SWITCH_CASE	varname	SWITCH_OF whenblocks		      {
+                                                                     DEL_VEC($2, $4);
+                                                                     ARGS_VEC("switch(", *$2, ")\n{\n", *$4, "}\n");
+
+                                                                     $$ = STR(makeStr(args, &del));
+                                                                  }
+	        ;
+
+whenblocks: whenblocks whenblock    {
+                                        DEL_VEC($1, $2);
+                                        ARGS_VEC(*$1, *$2);
+
+                                        $$ = STR(makeStr(args, &del));
+                                    } |
+	        whenblock		        {	$$ = $1;    }
+	        ;
+
+whenblock:  SWITCH_WHEN	varname COND_THEN COND_END		     {
+                                                                            //DEL_VEC($4);
+                                                                            ARGS_VEC("case ", *$2, ":\n{\n", "", "\n}\nbreak;\n");
+
+                                                                            $$ = STR(makeStr(args, /*&del*/NULL));
+                                                                         }
+	    ;	 
 %%
-
-/*
-switch:     COND_CASE OPERAND COND_OF whenblock                       {   cout<<"switch("<<*$2<<")\n{\n";    }
-            ;
-
-whenblock:  whenstmt whenblock |
-            ;
-
-whenstmt:   COND_WHEN NUM IDENTIFIER SYMBOL_EQUAL FUNC_ZEROEXTEND SYMBOL_OPENROUNDED OPERAND SYMBOL_COMMA IDENTIFIER SYMBOL_CLOSEROUNDED  {   cout<<"case "<<$2<<": "<<*$3<<" = ZeroExtend("<<$7<<", "<<*$9<<");\nbreak;\n";   delete $3; delete $9;    }
-            ;
-*/
 
 void Dyninst_aarch64::Parser::error(const Parser::location_type& l,
 			    const string& m)
