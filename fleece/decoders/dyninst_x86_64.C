@@ -1,10 +1,10 @@
 
 /*
- * See peach/COPYRIGHT for copyright information.
+ * See fleece/COPYRIGHT for copyright information.
  *
- * This file is a part of Peach.
+ * This file is a part of Fleece.
  *
- * Peach is free software; you can redistribute it and/or modify it under the
+ * Fleece is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3.0 of the License, or (at your option)
  * any later version.
@@ -34,7 +34,7 @@ bool skipOperand(std::string& opcode, std::string& operand, int pos) {
 
    // Each operand has a 0-indexed position passed in with it. This list of
    // which opcodes and position are implicit was created by examining the
-   // fuzzed output of peach and seeing which opcodes has which positions
+   // fuzzed output of fleece and seeing which opcodes has which positions
    // written only explicitly by Dyninst and not in Intel syntax.
    if (opcode == "ret far" && pos == 0)
       return true;

@@ -1,10 +1,10 @@
 
 /*
- * See peach/COPYRIGHT for copyright information.
+ * See fleece/COPYRIGHT for copyright information.
  *
- * This file is a part of Peach.
+ * This file is a part of Fleece.
  *
- * Peach is free software; you can redistribute it and/or modify it under the
+ * Fleece is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3.0 of the License, or (at your option)
  * any later version.

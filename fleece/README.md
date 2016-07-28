@@ -1,8 +1,8 @@
 See COPYRIGHT for copyright information.
 
-This file is a part of Peach.
+This file is a part of Fleece.
 
-Peach is free software; you can redistribute it and/or modify it under the
+Fleece is free software; you can redistribute it and/or modify it under the
 terms of the GNU Lesser General Public License as published by the Free
 Software Foundation; either version 3.0 of the License, or (at your option)
 any later version.
@@ -15,13 +15,13 @@ details.
 You should have received a copy of the GNU Lesser General Public License
 along with this software; if not, see www.gnu.org/licenses
 
-# Peach
+# Fleece
 
-Peach is a fuzzing tool used to compare assembly decoders. Currently LLVM, binutils (libopcodes) and dyninst are supported.
+Fleece is a fuzzing tool used to compare assembly decoders. Currently LLVM, binutils (libopcodes) and dyninst are supported.
 
 ## Building Dependancies
 
-Peach depends on the following libraries:
+Fleece depends on the following libraries:
 
 - libopcodes, libbfd (bintuils)
 - libxed
@@ -77,11 +77,11 @@ make
 make install
 ```
 
-## Building Peach
+## Building Fleece
 
-Make sure your `LD_LIBRARY_PATH` is pointing at the dependancies before you attempt to compile peach. This doesn't need to be set if the dependancies are installed globally under `/usr/lib64`
+Make sure your `LD_LIBRARY_PATH` is pointing at the dependancies before you attempt to compile fleece. This doesn't need to be set if the dependancies are installed globally under `/usr/lib64`
 
-Peach can also be built using CMake:
+Fleece can also be built using CMake:
 
 ```
 ccmake .
@@ -89,6 +89,6 @@ make
 make install
 ```
 
-For help with peach, execute:
+For help with fleece, execute:
 
-./peach --help
+./fleece --help

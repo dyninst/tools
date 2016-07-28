@@ -1,10 +1,10 @@
 
 /*
- * See peach/COPYRIGHT for copyright information.
+ * See fleece/COPYRIGHT for copyright information.
  *
- * This file is a part of Peach.
+ * This file is a part of Fleece.
  *
- * Peach is free software; you can redistribute it and/or modify it under the
+ * Fleece is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 3.0 of the License, or (at your option)
  * any later version.
@@ -25,7 +25,7 @@ void Info::printOptions() {
    std::cout << "\
 \
 Copyright 2016 Nathan H. Jay\n\n\
-Peach is free software; you can redistribute it and/or modify it under the\n\
+Fleece is free software; you can redistribute it and/or modify it under the\n\
 terms of the GNU Lesser General Public License as published by the Free\n\
 Software Foundation; either version 3.0 of the License, or (at your option)\n\
 any later version.\n\n\
@@ -37,8 +37,8 @@ You should have received a copy of the GNU Lesser General Public License\n\
 along with this software; if not, see www.gnu.org/licenses\n\n";
 
    std::cout << "DATA:\n";
-   std::cout << "\n  byte_source | ./peach\n";
-   std::cout << "    To pipe bytes from a file or program into peach\n";
+   std::cout << "\n  byte_source | ./fleece\n";
+   std::cout << "    To pipe bytes from a file or program into fleece\n";
 
    std::cout << "\n  -n=#\n";
    std::cout << "    To generate a set number of random instructions\n";
