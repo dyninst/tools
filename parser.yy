@@ -109,7 +109,7 @@ string *makeProgramBlock(string *arg1, string *arg2) {
 %token		    SET_LR
 %token          FLAG_CARRY
 
-%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos declblock switch whenblocks whenblock
+%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos declblock switch whenblocks whenblock condifelse
 
 %{
 
@@ -297,19 +297,21 @@ args:       args SYMBOL_COMMA args      {
             FLAG_CARRY                  {   $$ = STR("ops->and_(d->readRegister(REG_NZCV), ops->number_(32, 0x2))"); }
             ;
 
-cond:       COND_IF expr COND_THEN condblock COND_END {
-                                                        DEL_VEC($2, $4);
-                                                        ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n");
-
-                                                        $$ = STR(makeStr(args, &del));
-                                                      } |
-            COND_IF expr COND_THEN condblock COND_ELSE condblock COND_END {
-                                                                             DEL_VEC($2, $4, $6);
-                                                                             ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", "else\n{\n", *$6, "}\n");
-
-                                                                             $$ = STR(makeStr(args, &del));
-                                                                          }
+cond:	    COND_IF expr COND_THEN condblock condifelse	    {
+								DEL_VEC($2, $4, $5);
+								ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", *$5);
+    
+								$$ = STR(makeStr(args, &del));
+							    }
             ;
+
+condifelse: COND_END			    {   $$ = new string("");    } |
+	    COND_ELSE condblock COND_END    {
+						DEL_VEC($2);
+						ARGS_VEC("else\n{\n", *$2, "}\n");
+    
+						$$ = STR(makeStr(args, &del));
+					    }
 
 condblock:  condblock blockdata {
                                     DEL_VEC($1, $2);
@@ -344,8 +346,9 @@ whenblocks: whenblocks whenblock    {
 
                                         $$ = STR(makeStr(args, &del));
                                     } |
-	        whenblock		        {	$$ = $1;    }
-	        ;
+	    whenblock		    {	$$ = $1; } |
+	    /* empty */		    {	$$ = STR("");	}
+	    ;
 
 whenblock:  SWITCH_WHEN	varname COND_THEN COND_END		     {
                                                                             //DEL_VEC($4);
@@ -356,6 +359,19 @@ whenblock:  SWITCH_WHEN	varname COND_THEN COND_END		     {
 	    ;	 
 %%
 
+/*cond:       COND_IF expr COND_THEN condblock COND_END {
+                                                        DEL_VEC($2, $4);
+                                                        ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n");
+
+                                                        $$ = STR(makeStr(args, &del));
+                                                      } |
+            COND_IF expr COND_THEN condblock COND_ELSE condblock COND_END {
+                                                                             DEL_VEC($2, $4, $6);
+                                                                             ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", "else\n{\n", *$6, "}\n");
+
+                                                                             $$ = STR(makeStr(args, &del));
+ 									 }
+*/
 void Dyninst_aarch64::Parser::error(const Parser::location_type& l,
 			    const string& m)
 {
