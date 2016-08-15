@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,7 +15,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
 
 #ifndef _MAP_TABLE_H_
 #define _MAP_TABLE_H_
@@ -46,4 +45,4 @@ private:
 
 std::ostream& operator<<(std::ostream& s, MapTable& m);
 
-#endif // _MAP_TABLE_H_
+#endif /* _MAP_TABLE_H_ */

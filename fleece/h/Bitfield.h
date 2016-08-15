@@ -36,4 +36,4 @@ private:
    int sz; // size in bits.
 };
 
-#endif // _BITFIELD_H_
+#endif /* _BITFIELD_H_ */

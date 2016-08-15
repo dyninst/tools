@@ -33,5 +33,4 @@ typedef int BitType;
 
 unsigned long hashBitTypes(BitType* bitTypes, unsigned int nBits);
 
-#endif // _BIT_TYPES_H_
-
+#endif /* _BIT_TYPES_H_ */

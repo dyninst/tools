@@ -68,4 +68,4 @@ private:
 
 std::ostream& operator<<(std::ostream& s, BitTypeMap& b);
 
-#endif // _BIT_TYPE_MAP_H_
+#endif /* _BIT_TYPE_MAP_H_ */

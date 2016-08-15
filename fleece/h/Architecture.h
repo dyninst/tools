@@ -1,3 +1,5 @@
+#ifndef _ARCHITECTURE_H_
+#define _ARCHITECTURE_H_
 
 #include <string>
 #include <iostream>
@@ -9,3 +11,5 @@ namespace Architecture {
    void replaceRegSets(char* buf, int bufLen);
    void destroy();
 }
+
+#endif /* _ARCHITECTURE_H_ */

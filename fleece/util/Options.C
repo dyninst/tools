@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,37 +15,48 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
+
+#include <assert.h>
 
 #include "Options.h"
 
-int    Options::argc = 0;
-char** Options::argv = NULL;
+/* Global definitions for argc and argv */
+namespace Options {
+    static int argc = 0;
+    static char** argv = NULL;
+}
 
 void Options::parse(int argc, char** argv) {
-   Options::argc = argc;
-   Options::argv = (char**)malloc(argc * sizeof(char*));
-   for (int i = 0; i < argc; i++) {
-      Options::argv[i] = (char*)malloc(strlen(argv[i]) + 1);
-      strcpy(Options::argv[i], argv[i]);
-   }
+    assert(!Options::argv);
+
+    /* Make a global copy of argc and argv */
+    Options::argc = argc;
+    Options::argv = new char*[argc + 1];
+
+    /* Copy all of the arguments */
+    for (int i = 0; i < argc; i++) {
+        size_t len = strlen(argv[i]);
+        Options::argv[i] = new char[len + 1];
+        Options::argv[i][len] = 0;
+        strncpy(Options::argv[i], argv[i], len);
+    }
 }
 
 char* Options::get(const char* str) {
+    assert(argv); /* parse must be called first */
 
-   for (int i = 0; i < argc; i++) {
-      char* arg = argv[i];
-      const char* tmp = str;
+    for (int i = 0; i < argc; i++) {
+        if(!strncmp(str, Options::argv[i], strlen(str)))
+            return Options::argv[i];
+    }
 
-      while (*tmp && *tmp == *arg) {
-         tmp++;
-         arg++;
-      }
+    return NULL;
+}
 
-      if (!*tmp) {
-         return arg;
-      }
-   }
-
-   return NULL;
+void Options::destroy()
+{
+    for(int i = 0;i < Options::argc;i++)
+        delete argv[i];
+    delete argv;
 }

@@ -1,3 +1,5 @@
+#ifndef _ALIAS_H_
+#define _ALIAS_H_
 
 #include "Hashcounter.h"
 
@@ -6,3 +8,5 @@ namespace Alias {
    int addAlias(const char* s1, const char* s2);
    void destroy();
 }
+
+#endif /* _ALIAS_H_ */

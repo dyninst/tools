@@ -106,4 +106,4 @@ extern Decoder dec_null_x86_64;
 extern Decoder dec_null_aarch64;
 
 
-#endif // _DECODER_H_
+#endif /* _DECODER_H_ */

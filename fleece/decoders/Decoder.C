@@ -142,59 +142,61 @@ unsigned long Decoder::getTotalDecodedInsns() {
 }
 
 std::vector<Decoder> Decoder::getDecoders(char* arch, char* decNames) {
-  
-   if (arch == NULL) { 
-      std::cout << "Error: No architecture specified. Exiting...\n";
-      exit(-1);
-   }
 
-   std::vector<Decoder> allDecoders = getAllDecoders();
-   std::vector<Decoder> curDecoders = allDecoders;
-   
+    if (arch == NULL) { 
+        std::cout << "Error: No architecture specified. Exiting...\n";
+        exit(1);
+    }
 
-   // Remove all decoders from different architectures.
-   for (int i = curDecoders.size() - 1; i >= 0; i--) {
-      if (strcmp(curDecoders[i].getArch(), arch)) {
-         curDecoders.erase(curDecoders.begin() + i);
-      }
-   }
+    std::vector<Decoder> allDecoders = getAllDecoders();
+    std::vector<Decoder> curDecoders = allDecoders;
 
-   if (decNames == NULL) {
-      return curDecoders;
-   }
+    // Remove all decoders from different architectures.
+    auto decode_iter = curDecoders.begin();
+    for (;decode_iter != curDecoders.end();++decode_iter) {
+        Decoder d = *decode_iter;
+        if (strcmp(d.getArch(), arch)) {
+            std::cout << "Removed decoder from " << d.getArch() << std::endl;
+            decode_iter = curDecoders.erase(decode_iter);
+        }
+    }
 
-   std::vector<Decoder> result;
-   std::vector<char*> names;
-   char* decCopyBase = (char*)malloc(strlen(decNames) + 1);;
+    if (decNames == NULL) {
+        return curDecoders;
+    }
 
-   // If the user specified decoders, we will make a copy and create an array
-   // of strings instead by placing '\0' where commas were.
-   
-   // First, fill the new copy with the base string.
-   char* decCopy = decCopyBase;
-   strcpy(decCopy, decNames);
-   names.push_back(decCopy);
+    std::vector<Decoder> result;
+    std::vector<char*> names;
+    char* decCopyBase = (char*)malloc(strlen(decNames) + 1);;
 
-   // Convert the single string into multiple with null delimiting.
-   while (*decCopy) {
-      if (*decCopy == ',') {
-         *decCopy = 0;
-         names.push_back(decCopy + 1);
-      }
-      decCopy++;
-   }
+    // If the user specified decoders, we will make a copy and create an array
+    // of strings instead by placing '\0' where commas were.
 
-   // Go through the decoders, adding each with a matching name.
-   for (int i = 0; i < names.size(); i++) {
-      for (int j = 0; j < curDecoders.size(); j++) {
-         if (!strcmp(names[i], curDecoders[j].getName())) {
-            result.push_back(curDecoders[j]);
-          }
-      }
-   }
+    // First, fill the new copy with the base string.
+    char* decCopy = decCopyBase;
+    strcpy(decCopy, decNames);
+    names.push_back(decCopy);
 
-   // Clean up the copy that we made.
-   free(decCopyBase);
+    // Convert the single string into multiple with null delimiting.
+    while (*decCopy) {
+        if (*decCopy == ',') {
+            *decCopy = 0;
+            names.push_back(decCopy + 1);
+        }
+        decCopy++;
+    }
 
-   return result;
+    // Go through the decoders, adding each with a matching name.
+    for (int i = 0; i < names.size(); i++) {
+        for (int j = 0; j < curDecoders.size(); j++) {
+            if (!strcmp(names[i], curDecoders[j].getName())) {
+                result.push_back(curDecoders[j]);
+            }
+        }
+    }
+
+    // Clean up the copy that we made.
+    free(decCopyBase);
+
+    return result;
 }

@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
    Options::parse(argc, argv);
 
    // The user selected the "-help" option, so print help and exit.
-   if (Options::get("-help") != NULL) {
+   if (Options::get("-help") || Options::get("-h")) {
       Info::printOptions();
       exit(0);
    }
@@ -343,5 +343,6 @@ int main(int argc, char** argv) {
    
    Architecture::destroy();
    Alias::destroy();
+   Options::destroy();
    return 0;
 }

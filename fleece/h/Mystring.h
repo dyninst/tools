@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,7 +15,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
 
 #ifndef _MYSTRING_H_
 #define _MYSTRING_H_
@@ -208,4 +207,4 @@ int getMinBits(long l);
 
 void removeCharacter(char* buf, int bufLen, char c);
 
-#endif
+#endif /* _MYSTRING_H_ */
