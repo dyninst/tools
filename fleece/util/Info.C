@@ -39,12 +39,12 @@ along with this software; if not, see www.gnu.org/licenses\n\n";
    std::cout << "DATA:\n";
    std::cout << "\n  byte_source | ./fleece\n";
    std::cout << "    To pipe bytes from a file or program into fleece\n";
-
+   std::cout << "\n  -rand\n";
+   std::cout << "    Generate instructions randomly.\n";
    std::cout << "\n  -n=n\n";
    std::cout << "    To generate a set number of random instructions\n";
    std::cout << "\n  -len=n\n";
    std::cout << "    To specify the number of bytes per instruction. Note: decoders use a number of bytes specific to the instruction or architecture.\n";
-   
    std::cout << "\n\nOUTPUT & REPORTING:\n";
    std::cout << "\n  -o=output_filename\n";
    std::cout << "    (MANDATORY) To set the output file.\n";
@@ -60,7 +60,6 @@ along with this software; if not, see www.gnu.org/licenses\n\n";
    std::cout << "    Specifies the seed for random instruction generation.\n";
    std::cout << "\n  -show\n";
    std::cout << "    Prints the results of each decoding to stdout.\n";
-
    std::cout << "\n\nOPTIONS:\n";
    std::cout << "\n  -arch=\n";
    std::cout << "    (MANDATORY) x84_64 or Aarch64\n";

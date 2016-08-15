@@ -25,6 +25,7 @@
 namespace Options {
     static int argc = 0;
     static char** argv = NULL;
+    static bool* args_used = NULL;
 }
 
 void Options::parse(int argc, char** argv) {
@@ -32,15 +33,18 @@ void Options::parse(int argc, char** argv) {
 
     /* Make a global copy of argc and argv */
     Options::argc = argc;
-    Options::argv = new char*[argc + 1];
+    Options::argv = new char*[argc];
+    Options::args_used = new bool[argc];
 
     /* Copy all of the arguments */
     for (int i = 0; i < argc; i++) {
         size_t len = strlen(argv[i]);
         Options::argv[i] = new char[len + 1];
         Options::argv[i][len] = 0;
+        Options::args_used[i] = false;
         strncpy(Options::argv[i], argv[i], len);
     }
+
 }
 
 char* Options::get(const char* str) {
@@ -48,10 +52,28 @@ char* Options::get(const char* str) {
 
     for (int i = 0; i < argc; i++) {
         if(!strncmp(str, Options::argv[i], strlen(str)))
+        {
+            args_used[i] = true; /* We used this argument */
             return Options::argv[i] + strlen(str);
+        }
     }
 
     return NULL;
+}
+
+void Options::check_unused()
+{
+    for(int i = 1;i < argc;i++)
+    {
+        if(!Options::args_used[i])
+        {
+            std::cerr << "Unrecognized option: " 
+                << Options::argv[i] << std::endl << std::endl;
+            std::cerr << "Remember, most args are in the form -arg=n where" 
+                << " n is some integer." << std::endl;
+            exit(1);
+        }
+    }
 }
 
 void Options::destroy()

@@ -31,7 +31,7 @@ void printBitTypes(BitType* bitTypes, unsigned int nBits);
 
 std::ostream& operator<<(std::ostream& s, MappedInst& m){
    TokenList* t = m.getTokens();
-   for (int i = 0; i < t->size(); i++) {
+   for (size_t i = 0; i < t->size(); i++) {
       if (i != 0) {
          s << " ";
       }
@@ -66,7 +66,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, Hashcounter* hc) {
 
       if (hc->increment(hcString, "a") == 1) {
          std::cout << "Queue: " << hcString << " \t";
-         for (int k = 0; k < nBytes; k++) {
+         for (size_t k = 0; k < nBytes; k++) {
             std::cout << std::hex << std::setfill('0') << std::setw(2)
                 << (unsigned int)(unsigned char)bytes[k] << " ";
          }
@@ -148,7 +148,7 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool norm
   
    assert(bitTypes != NULL && bytes != NULL && confirmed != NULL);
 
-   for (int i = 0; i < 8 * nBytes; i++) {
+   for (size_t i = 0; i < 8 * nBytes; i++) {
       confirmed[i] = false;
    }
 
@@ -179,7 +179,7 @@ int MappedInst::getNumUsedBytes() {
 }
 
 void MappedInst::print() {
-   for (int i = 0; i < tokens->size(); i++) {
+   for (size_t i = 0; i < tokens->size(); i++) {
       printf("%s ", tokens->getToken(i));
    }
 }
@@ -193,7 +193,8 @@ TokenList* MappedInst::getTokens() {
 }
 
 void MappedInst::makeSimpleMap(BitType* bTypes, TokenList* tkns) {
-   int i, j, success;
+   int success = 0;
+   size_t i = 0;
    unsigned int nBits = 8 * nBytes;
    char decStr[DECODING_BUFFER_SIZE];
    int consecutiveUnused = 0;
@@ -425,7 +426,7 @@ void MappedInst::confirmHexBits(BitType* bitTypes, char* decInsn) {
 */
 
 void MappedInst::mapBitTypes(BitType* bitTypes) {
-   int i = 0, j, success;
+   size_t i = 0;
    unsigned int nBits = 8 * nBytes;
    char decStr[DECODING_BUFFER_SIZE];
    
@@ -478,7 +479,7 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
       delete tList;
 
       bool matchesOldMapping = true;
-      for (int k = 0; matchesOldMapping && k < nBits; k++) {
+      for (size_t k = 0; matchesOldMapping && k < nBits; k++) {
          if (tmpBitTypes[k] != bitTypes[k]) {
             if (tmpBitTypes[k] == BIT_TYPE_SWITCH && bitTypes[k] == BIT_TYPE_CAUSED_ERROR) {
             } else if (tmpBitTypes[k] == BIT_TYPE_CAUSED_ERROR &&

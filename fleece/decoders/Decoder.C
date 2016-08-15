@@ -106,7 +106,7 @@ std::vector<Decoder> Decoder::getAllDecoders() {
 
 void Decoder::printAllNames(void) {
    std::vector<Decoder> allDecoders = getAllDecoders();
-   for (int i = 0; i < allDecoders.size(); i++) {
+   for (size_t i = 0; i < allDecoders.size(); i++) {
       Decoder d = allDecoders[i];
       std::cout << "\t" << d.arch << ":\t" << d.name << "\n";
    }
@@ -153,7 +153,6 @@ const char* Decoder::getName(void) {
 
 int Decoder::getNumBytesUsed(char* inst, int nBytes) {
    MappedInst* mInst = new MappedInst(inst, nBytes, this, false);
-   BitType* types = mInst->getBitTypes();
    int nUsed = mInst->getNumUsedBytes();
    delete mInst;
    return nUsed;

@@ -716,13 +716,13 @@ void Architecture::init(char* arch) {
 
 void Architecture::replaceRegSets(char* buf, int bufLen) {
 
-   for (int i = 0; i < regSets.size(); i++) {
+   for (size_t i = 0; i < regSets.size(); i++) {
       regSets[i]->replaceRegNamesWithSymbol(buf, bufLen);
    }
 }
 
 void Architecture::destroy() {
-   for (int i = 0; i < regSets.size(); i++) {
+   for (size_t i = 0; i < regSets.size(); i++) {
       delete regSets[i];
    }
 }

@@ -92,7 +92,7 @@ TokenList::TokenList(const char* buf) {
 }
 
 TokenList::~TokenList() {
-   for (int i = 0; i < nTokens; i++) {
+   for (size_t i = 0; i < nTokens; i++) {
       free(tokens[i]);
    }
    free(tokens);
@@ -137,7 +137,7 @@ char* TokenList::getToken(unsigned int index) {
 }
 
 bool TokenList::hasError() {
-   for (int i = 0; i < nTokens; i++) {
+   for (size_t i = 0; i < nTokens; i++) {
       if (signalsError(tokens[i])) {
          return true;
       }
@@ -243,13 +243,13 @@ void strStripHex(char* str) {
 }
 
 void TokenList::stripDigits() {
-   for (int i = 0; i < nTokens; i++) {
+   for (size_t i = 0; i < nTokens; i++) {
       strStripDigits(tokens[i]);
    }
 }
 
 void TokenList::stripHex() {
-   for (int i = 0; i < nTokens; i++) {
+   for (size_t i = 0; i < nTokens; i++) {
       strStripHex(tokens[i]);
    }
 }
@@ -313,7 +313,7 @@ void prepend0x(std::string& str) {
    bool inHex = false;
    bool inAlnum = false;
    bool mult = false;
-   for (int i = 0; i < str.length(); i++) {
+   for (size_t i = 0; i < str.length(); i++) {
       if (isxdigit(str.at(i))) {
          if (!inAlnum && !inHex && !mult) {
             start = i;
@@ -354,7 +354,7 @@ void removeOperand(std::string& str, const std::string& op, const std::string& o
 }
 
 void removeAtSubStr(std::string& str, const std::string& substr, int len) {
-   int index = str.find(substr);
+   size_t index = str.find(substr);
    if (index != std::string::npos) {
       str = str.erase(index, len);
    }
@@ -515,7 +515,7 @@ int getMinBits(long l) {
    
    int n = 64;
    long tmp = l;
-   long matchVal = 0;
+   unsigned long matchVal = 0;
    if (l < 0) {
       matchVal = 0xFF00000000000000;
    }

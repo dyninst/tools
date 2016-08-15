@@ -140,7 +140,7 @@ bool BitTypeMap::doTypesMatch(MappedInst* inst) {
       return false;
    }
 
-   int numUsedBytes = inst->getNumUsedBytes();
+   size_t numUsedBytes = inst->getNumUsedBytes();
 
    if (numUsedBytes != nUsedBytes) {
       return false;
@@ -255,7 +255,7 @@ void BitTypeMap::fuzzDecoders(Decoder* d1, Decoder* d2) {
       
       if (retval == 0) {
          std::cout << decodedBuf << std::endl;
-         for (int j = 0; j < nBits / 8; j++) {
+         for (size_t j = 0; j < nBits / 8; j++) {
             std::cout << std::hex << std::setfill('0') << std::setw(2)
                 << (unsigned int)(unsigned char)testInst[j] << " ";
          }
@@ -341,7 +341,6 @@ unsigned int nKeys = 0;
 
 std::ostream& operator<<(std::ostream& s, BitTypeMap& b) {
    //nKeys = 0;
-   unsigned int nBits = b.getNumBits();
    BitType* bitTypes = b.getBitTypes();
    unsigned int keySize = b.getKeySize();
    std::vector<char*>* instKeys = b.getKeys();

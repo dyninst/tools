@@ -277,7 +277,7 @@ std::ostream& operator<<(std::ostream& s, const Instruction::Ptr p) {
 
    // Begin reformatting each operand.
    bool firstOperand = true;
-   for (int i = 0; i < operands.size(); i++) {
+   for (size_t i = 0; i < operands.size(); i++) {
       std::string result = operands[i].format(Arch_x86_64);
 
       // Erase spaces and put everything in lower case.

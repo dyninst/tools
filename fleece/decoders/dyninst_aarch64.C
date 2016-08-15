@@ -248,4 +248,6 @@ int dyninst_aarch64_init(void) {
    Alias::addAlias("xzr,", "zr,");
    Alias::addAlias("xzr", "zr");
    */
+
+       return 0;
 }

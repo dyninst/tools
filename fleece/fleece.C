@@ -72,7 +72,6 @@ int main(int argc, char** argv) {
 
    // Should the program read input from stdio?
    bool pipe     = (Options::get("-pipe")  != NULL);
-   
 
    // Seed the random number generator with the time or a provided seed.
    char* strSeed = Options::get("-seed=");
@@ -148,6 +147,9 @@ int main(int argc, char** argv) {
       mask = new Mask(strMask);
    }
 
+   /* Make sure we used all of the arguments */
+   Options::check_unused();
+
    /************************************************************************/
    /*                   END OF COMMAND LINE ARG PARSING                    */
    /************************************************************************/
@@ -166,7 +168,7 @@ int main(int argc, char** argv) {
    char** decBufs = (char**)malloc(decCount * sizeof(char*));
    assert(decBufs != NULL && "Could not allocate decoder buffers!");
 
-   for (int i = 0; i < decCount; i++) {
+   for (size_t i = 0; i < decCount; i++) {
       decBufs[i] = (char*)malloc(DECODED_BUFFER_LEN);
       assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
    }
@@ -200,7 +202,8 @@ int main(int argc, char** argv) {
    }
 
    i = 0;
-   while (pipe || !random && !remainingInsns.empty() || random && i < nRuns) {
+   while (pipe || (!random && !remainingInsns.empty()) 
+           || (random && i < nRuns)) {
 
       i++;
 
@@ -298,7 +301,7 @@ int main(int argc, char** argv) {
          MappedInst* mInsn;
 
 
-         for (int j = 0; j < decCount; j++) {
+         for (size_t j = 0; j < decCount; j++) {
             
             // Each decoder maps the instruction and each instruction uses its
             // map to try to find interesting instructions and add them to the
@@ -321,7 +324,7 @@ int main(int argc, char** argv) {
 
    // Report the total number of decoded instructions.
    unsigned long totalDecInsns = 0;
-   for (int i = 0; i < decCount; i++) {
+   for (size_t i = 0; i < decCount; i++) {
       totalDecInsns += decoders[i].getTotalDecodedInsns();
    }
 
@@ -333,7 +336,7 @@ int main(int argc, char** argv) {
       delete mask;
    }
 
-   for (int i = 0; i < decCount; i++) {
+   for (size_t i = 0; i < decCount; i++) {
       free(decBufs[i]);
    }
    free(decBufs); 

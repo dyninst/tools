@@ -50,6 +50,12 @@ namespace Options {
      * Deallocates memory allocated by parse().
      */
     void destroy();
+
+    /**
+     * Check for unused arguments. Prints out errors and
+     * stops if an argument is found that isn't used.
+     */
+    void check_unused();
 }
 
 #endif

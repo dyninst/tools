@@ -66,6 +66,7 @@
 #include "llvm/Support/SystemUtils.h"
 #include "llvm/Support/ToolOutputFile.h"
 
+#if 0
 static const char* LLVMCallback(
    void* info, 
    uint64_t refVal, 
@@ -73,6 +74,7 @@ static const char* LLVMCallback(
    uint64_t refPC, 
    const char** refName
 );
+#endif
 
 int LLVMInit(void);
 
