@@ -91,9 +91,9 @@ int main(int argc, char** argv) {
 
    // Check which architecture was specified.
    char* archStr = Options::get("-arch=");
-   if (archStr == NULL) {
-      std::cerr << "Error: No architecture specified!\n";
-      exit(-1);
+   if (!archStr) {
+      std::cerr << "Error: An architecture must be specified!\n";
+      exit(1);
    }
 
    /* Initialize our decoders */
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
    // The Decoder class has a static method to match architecture and decoder
    // strings.
    std::vector<Decoder> decoders = Decoder::getDecoders(archStr, decStr);
-   int decCount = decoders.size();
+   size_t decCount = decoders.size();
    
    // If there were no valid decoders with the architecture, print all decoder
    // and architecture pairs and continue.
