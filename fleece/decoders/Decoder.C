@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,26 +15,22 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
+
+#include <assert.h>
 
 #include "Decoder.h"
 #include "MappedInst.h"
 
-Decoder dec_xed_x86_64 = Decoder(&xed_x86_64_decode, &xedInit, &xed_x86_64_norm, "xed", "x86_64");
-
-Decoder dec_dyninst_x86_64 = Decoder(&dyninst_x86_64_decode, NULL, &dyninst_x86_64_norm, "dyninst", "x86_64");
-Decoder dec_dyninst_aarch64 = Decoder(&dyninst_aarch64_decode, &dyninst_aarch64_init, &dyninst_aarch64_norm, "dyninst", "aarch64");
-
-Decoder dec_gnu_x86_64 = Decoder(&gnu_x86_64_decode, NULL, &gnu_x86_64_norm, "gnu", "x86_64");
-Decoder dec_gnu_aarch64 = Decoder(&gnu_aarch64_decode, NULL, &gnu_aarch64_norm, "gnu", "aarch64");
-
-Decoder dec_llvm_x86_64 = Decoder(&llvm_x86_64_decode, &LLVMInit, &llvm_x86_64_norm, "llvm", "x86_64");
-
-Decoder dec_llvm_aarch64 = Decoder(&llvm_aarch64_decode, &LLVMInit, &llvm_aarch64_norm, "llvm", "aarch64");
-
-Decoder dec_null_x86_64 = Decoder(&null_x86_64_decode, NULL, &null_x86_64_norm, "null", "x86_64");
-
-Decoder dec_null_aarch64 = Decoder(&null_aarch64_decode, NULL, &null_aarch64_norm, "null", "aarch64");
+Decoder* dec_xed_x86_64;
+Decoder* dec_dyninst_x86_64;
+Decoder* dec_dyninst_aarch64;
+Decoder* dec_gnu_x86_64;
+Decoder* dec_gnu_aarch64;
+Decoder* dec_llvm_x86_64;
+Decoder* dec_llvm_aarch64;
+Decoder* dec_null_x86_64;
+Decoder* dec_null_aarch64;
 
 Decoder::Decoder(
         int (*decodeFunc)(char*, int, char*, int),
@@ -60,17 +55,52 @@ Decoder::Decoder(
    totalDecodedInsns = 0;
 }
 
+void Decoder::initAllDecoders()
+{
+    dec_xed_x86_64 = new Decoder(&xed_x86_64_decode, &xedInit, 
+            &xed_x86_64_norm, "xed", "x86_64");
+    dec_dyninst_x86_64 = new Decoder(&dyninst_x86_64_decode, NULL, 
+            &dyninst_x86_64_norm, "dyninst", "x86_64");
+    dec_dyninst_aarch64 = new Decoder(&dyninst_aarch64_decode, 
+            &dyninst_aarch64_init, &dyninst_aarch64_norm, "dyninst", "aarch64");
+    dec_gnu_x86_64 = new Decoder(&gnu_x86_64_decode, NULL, 
+            &gnu_x86_64_norm, "gnu", "x86_64");
+    dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
+            &gnu_aarch64_norm, "gnu", "aarch64");
+    dec_llvm_x86_64 = new Decoder(&llvm_x86_64_decode, &LLVMInit, 
+            &llvm_x86_64_norm, "llvm", "x86_64");
+    dec_llvm_aarch64 = new Decoder(&llvm_aarch64_decode, &LLVMInit, 
+            &llvm_aarch64_norm, "llvm", "aarch64");
+    dec_null_x86_64 = new Decoder(&null_x86_64_decode, NULL, 
+            &null_x86_64_norm, "null", "x86_64");
+    dec_null_aarch64 = new Decoder(&null_aarch64_decode, NULL, 
+            &null_aarch64_norm, "null", "aarch64");
+}
+
+void Decoder::destroyAllDecoders()
+{
+    delete dec_xed_x86_64;
+    delete dec_dyninst_x86_64;
+    delete dec_dyninst_aarch64;
+    delete dec_gnu_x86_64;
+    delete dec_gnu_aarch64;
+    delete dec_llvm_x86_64;
+    delete dec_llvm_aarch64;
+    delete dec_null_x86_64;
+    delete dec_null_aarch64;
+}
+
 std::vector<Decoder> Decoder::getAllDecoders() {
    std::vector<Decoder> dec;
-   dec.push_back(dec_llvm_x86_64);
-   dec.push_back(dec_llvm_aarch64);
-   dec.push_back(dec_gnu_x86_64);
-   dec.push_back(dec_gnu_aarch64);
-   dec.push_back(dec_dyninst_x86_64);
-   dec.push_back(dec_dyninst_aarch64);
-   dec.push_back(dec_xed_x86_64);
-   dec.push_back(dec_null_aarch64);
-   dec.push_back(dec_null_x86_64);
+   dec.push_back(*dec_llvm_x86_64);
+   dec.push_back(*dec_llvm_aarch64);
+   dec.push_back(*dec_gnu_x86_64);
+   dec.push_back(*dec_gnu_aarch64);
+   dec.push_back(*dec_dyninst_x86_64);
+   dec.push_back(*dec_dyninst_aarch64);
+   dec.push_back(*dec_xed_x86_64);
+   dec.push_back(*dec_null_aarch64);
+   dec.push_back(*dec_null_x86_64);
    return dec;
 }
 
@@ -143,60 +173,88 @@ unsigned long Decoder::getTotalDecodedInsns() {
 
 std::vector<Decoder> Decoder::getDecoders(char* arch, char* decNames) {
 
-    if (arch == NULL) { 
-        std::cout << "Error: No architecture specified. Exiting...\n";
-        exit(1);
-    }
+    assert(arch);
 
-    std::vector<Decoder> allDecoders = getAllDecoders();
-    std::vector<Decoder> curDecoders = allDecoders;
+    /* Get a list of all of the availble decoders */
+    std::vector<Decoder> curDecoders = getAllDecoders();
 
-    // Remove all decoders from different architectures.
+    /* Remove all decoders that don't apply to our architecture */
     auto decode_iter = curDecoders.begin();
-    for (;decode_iter != curDecoders.end();++decode_iter) {
+    while(decode_iter != curDecoders.end()) {
         Decoder d = *decode_iter;
         if (strcmp(d.getArch(), arch)) {
-            std::cout << "Removed decoder from " << d.getArch() << std::endl;
             decode_iter = curDecoders.erase(decode_iter);
+        } else {
+            ++decode_iter;
         }
     }
 
+    /* If specific decoders weren't specified, we're done */
     if (decNames == NULL) {
+        exit(1);
         return curDecoders;
     }
 
-    std::vector<Decoder> result;
+    /* Turn the comma seperated list into a vector of names */
     std::vector<char*> names;
-    char* decCopyBase = (char*)malloc(strlen(decNames) + 1);;
 
-    // If the user specified decoders, we will make a copy and create an array
-    // of strings instead by placing '\0' where commas were.
+    size_t decCopyLen = strlen(decNames);
+    char* decCopyBase = new char[decCopyLen + 1];
+    char* decCopyOrig = decCopyBase;
+    assert(decCopyBase);
+    memset(decCopyBase, 0, decCopyLen + 1);
+    strncpy(decCopyBase, decNames, decCopyLen); 
 
-    // First, fill the new copy with the base string.
-    char* decCopy = decCopyBase;
-    strcpy(decCopy, decNames);
-    names.push_back(decCopy);
-
-    // Convert the single string into multiple with null delimiting.
-    while (*decCopy) {
-        if (*decCopy == ',') {
-            *decCopy = 0;
-            names.push_back(decCopy + 1);
+    char* decCopyStart = decCopyBase;
+    for(;*decCopyBase;decCopyBase++)
+    {
+        if(*decCopyBase == ',')
+        {
+            *decCopyBase = 0;
+            names.push_back(decCopyStart);
+            decCopyStart = decCopyBase + 1;
         }
-        decCopy++;
     }
 
-    // Go through the decoders, adding each with a matching name.
-    for (int i = 0; i < names.size(); i++) {
-        for (int j = 0; j < curDecoders.size(); j++) {
-            if (!strcmp(names[i], curDecoders[j].getName())) {
-                result.push_back(curDecoders[j]);
+    /* The last arg will not have a comma to terminate */
+    names.push_back(decCopyStart);
+
+    /** 
+     * names now contains the names of the decoders we need. Now
+     * we will remove all of the other decoders the user doesn't
+     * want to use.
+     */
+
+    decode_iter = curDecoders.begin();
+    while(decode_iter != curDecoders.end())
+    {
+        Decoder d = *decode_iter;
+
+        bool matches = false;
+        auto name_iter = names.begin();
+        while(name_iter != names.end())
+        {
+            if(!strcmp(d.getName(), *name_iter))
+            {
+                matches = true;
+                break;
             }
+
+            ++name_iter;
+        }
+
+        /* Should this decoder be in the list? */
+        if(!matches)
+        {
+            decode_iter = curDecoders.erase(decode_iter);
+        } else {
+            ++decode_iter;
         }
     }
 
-    // Clean up the copy that we made.
-    free(decCopyBase);
+    /* Clean up the copy that we made */
+    delete decCopyOrig;
 
-    return result;
+    /* Return the filtered list of decoders */
+    return curDecoders;
 }

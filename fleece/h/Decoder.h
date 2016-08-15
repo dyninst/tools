@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,7 +15,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
 
 
 #ifndef _DECODER_H_
@@ -24,7 +23,6 @@
 
 #define DECODING_BUFFER_SIZE 1024
 
-//#include "Decoders.h"
 #include <vector>
 #include <ctype.h>
 
@@ -40,6 +38,8 @@ public:
    int getNumBytesUsed(char* inst, int nBytes);
    const char* getName(void);
    const char* getArch(void);
+   static void initAllDecoders(void);
+   static void destroyAllDecoders(void);
    static std::vector<Decoder> getAllDecoders(void);
    static std::vector<Decoder> getDecoders(char* arch, char* names);
    static void printAllNames(void);
@@ -91,19 +91,19 @@ extern void null_aarch64_norm     (char*, int);
 extern int  null_x86_64_decode    (char*, int, char*, int);
 extern void null_x86_64_norm      (char*, int);
 
-extern Decoder dec_xed_x86_64;
+extern Decoder* dec_xed_x86_64;
 
-extern Decoder dec_dyninst_x86_64;
-extern Decoder dec_dyninst_aarch64;
+extern Decoder* dec_dyninst_x86_64;
+extern Decoder* dec_dyninst_aarch64;
 
-extern Decoder dec_gnu_x86_64;
-extern Decoder dec_gnu_aarch64;
+extern Decoder* dec_gnu_x86_64;
+extern Decoder* dec_gnu_aarch64;
 
-extern Decoder dec_llvm_x86_64;
-extern Decoder dec_llvm_aarch64;
+extern Decoder* dec_llvm_x86_64;
+extern Decoder* dec_llvm_aarch64;
 
-extern Decoder dec_null_x86_64;
-extern Decoder dec_null_aarch64;
+extern Decoder* dec_null_x86_64;
+extern Decoder* dec_null_aarch64;
 
 
 #endif /* _DECODER_H_ */

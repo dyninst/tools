@@ -96,6 +96,8 @@ int main(int argc, char** argv) {
       exit(-1);
    }
 
+   /* Initialize our decoders */
+   Decoder::initAllDecoders();
    // Initialize the architecture with the command line name.
    Architecture::init(archStr);
 
@@ -344,5 +346,6 @@ int main(int argc, char** argv) {
    Architecture::destroy();
    Alias::destroy();
    Options::destroy();
+   Decoder::destroyAllDecoders();
    return 0;
 }

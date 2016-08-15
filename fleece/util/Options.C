@@ -48,7 +48,7 @@ char* Options::get(const char* str) {
 
     for (int i = 0; i < argc; i++) {
         if(!strncmp(str, Options::argv[i], strlen(str)))
-            return Options::argv[i];
+            return Options::argv[i] + strlen(str);
     }
 
     return NULL;
