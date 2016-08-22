@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,7 +15,10 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
+
+#ifndef _LLVM_COMMON_H_
+#define _LLVM_COMMON_H_
 
 #include "llvm-c/Disassembler.h"
 #include "llvm/ADT/Optional.h"
@@ -64,6 +66,7 @@
 #include "llvm/Support/SystemUtils.h"
 #include "llvm/Support/ToolOutputFile.h"
 
+#if 0
 static const char* LLVMCallback(
    void* info, 
    uint64_t refVal, 
@@ -71,5 +74,8 @@ static const char* LLVMCallback(
    uint64_t refPC, 
    const char** refName
 );
+#endif
 
 int LLVMInit(void);
+
+#endif

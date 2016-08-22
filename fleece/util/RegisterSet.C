@@ -49,7 +49,7 @@ void RegisterSet::addRegName(const char* regName) {
 void RegisterSet::replaceRegNamesWithSymbol(char* buf, int bufLen) {
    
    std::string str(buf);
-   for (int i = 0; i < regNames.size(); i++) {
+   for (size_t i = 0; i < regNames.size(); i++) {
 
       size_t pos = 0;
       

@@ -69,5 +69,4 @@ private:
 
 std::ostream& operator<<(std::ostream& s, MappedInst& m);
 
-#endif // _MAPPEDINST_H_
-
+#endif /* _MAPPEDINST_H_ */

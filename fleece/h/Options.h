@@ -16,7 +16,10 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
+
+#ifndef _OPTIONS_H_
+#define _OPTIONS_H_
 
 #include <iostream>
 #include <string.h>
@@ -30,24 +33,29 @@ typedef struct OptionArg {
    struct OptionArg* next;
 } OptionsArg;
 
-class Options {
+namespace Options {
+    /**
+     * Make global copies of argc and argv for use
+     * by get().
+     */
+    void parse(int argc, char** argv);
 
-public:
+    /**
+     * Get the argument that starts with str. Returns
+     * the argument on success, NULL on failure.
+     */
+    char* get(const char* str);
 
-/*Options();
-   ~Options();
-   void addArg(const char* argStr, bool mandatory, bool hasPostfix, void (*actionFunc)(char*, void*));
-   int parse(int argc, char** argv, void* data, bool print);
-private:
-   OptionArg* optArgs;
-*/
+    /**
+     * Deallocates memory allocated by parse().
+     */
+    void destroy();
 
-public:
-   static void parse(int argc, char** argv);
-   static char* get(const char* str);
+    /**
+     * Check for unused arguments. Prints out errors and
+     * stops if an argument is found that isn't used.
+     */
+    void check_unused();
+}
 
-private:
-   static int    argc;
-   static char** argv;
-
-};
+#endif

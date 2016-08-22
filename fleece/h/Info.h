@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,7 +15,10 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
+
+#ifndef _INFO_H_
+#define _INFO_H_
 
 #include <iostream>
 
@@ -25,3 +27,5 @@ public:
    static void printOptions(void);
    static void printVersion(void);
 };
+
+#endif

@@ -142,7 +142,7 @@ bool ReportingContext::shouldReportDiff(const char** insns, int nInsns) {
 
          // If any isn't equal, set the count to -1, since that will be an
          // error value.
-         if (tLists[i]->size() != nTokens) {
+         if (tLists[i]->size() != (size_t)nTokens) {
             nTokens = -1;
          }
       }

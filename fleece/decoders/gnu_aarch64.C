@@ -282,7 +282,7 @@ void changeFmovImm(char* buf, int bufLen) {
 
       // If we are swapping left, we would have put a leading zero, so don't
       // swap.
-      if (swapPos = -1) {
+      if (swapPos == -1) {
          swapPos = 0;
       }
    }

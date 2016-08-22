@@ -28,4 +28,4 @@ typedef struct Extent {
    uint16_t len;
 }
 
-#endif // _EXTENT_H_
+#endif /* _EXTENT_H_ */

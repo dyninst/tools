@@ -1,5 +1,4 @@
-
-/*
+/**
  * See fleece/COPYRIGHT for copyright information.
  *
  * This file is a part of Fleece.
@@ -16,7 +15,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see www.gnu.org/licenses
-*/
+ */
 
 #include "Hashcounter.h"
 
@@ -79,7 +78,7 @@ unsigned int Hashcounter::increment(const char* key1, const char* key2) {
    maxLevel++;
    if (maxLevel > maxHCLevel) {
       maxHCLevel = maxLevel;
-      std::cerr << "Hashcounter depth: " << maxHCLevel << "\n";
+      // std::cerr << "Hashcounter depth: " << maxHCLevel << "\n";
    }
    // We couldn't find the element we wanted, so let's make it.
    cur = (Hashpair*)malloc(sizeof(Hashpair));
@@ -140,8 +139,6 @@ int compare(const void* p1, const void* p2) {
 
 void Hashcounter::dump(std::ostream& out) {
  
-   bool found = true;
-
    Hashpair** arr = (Hashpair**)malloc(nPairs * sizeof(Hashpair*));
    unsigned int index = 0;
 

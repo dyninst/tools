@@ -200,7 +200,6 @@ void spaceAfterCommas(char* buf, int bufLen) {
 void removeComments(char* buf, int bufLen) {
    
    char* cur = buf;
-   bool inComment = false;
    while (*cur && !(*cur == '/' && *(cur + 1) == '/')) {
       cur++;
    }

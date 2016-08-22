@@ -298,5 +298,5 @@ int gnu_x86_64_norm(char* buf, int bufLen) {
 
    cleanSpaces(buf, bufLen);
    
-
+    return 0;
 }

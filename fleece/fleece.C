@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
    Options::parse(argc, argv);
 
    // The user selected the "-help" option, so print help and exit.
-   if (Options::get("-help") != NULL) {
+   if (Options::get("-help") || Options::get("-h")) {
       Info::printOptions();
       exit(0);
    }
@@ -72,7 +72,6 @@ int main(int argc, char** argv) {
 
    // Should the program read input from stdio?
    bool pipe     = (Options::get("-pipe")  != NULL);
-   
 
    // Seed the random number generator with the time or a provided seed.
    char* strSeed = Options::get("-seed=");
@@ -91,11 +90,13 @@ int main(int argc, char** argv) {
 
    // Check which architecture was specified.
    char* archStr = Options::get("-arch=");
-   if (archStr == NULL) {
-      std::cerr << "Error: No architecture specified!\n";
-      exit(-1);
+   if (!archStr) {
+      std::cerr << "Error: An architecture must be specified!\n";
+      exit(1);
    }
 
+   /* Initialize our decoders */
+   Decoder::initAllDecoders();
    // Initialize the architecture with the command line name.
    Architecture::init(archStr);
 
@@ -106,7 +107,7 @@ int main(int argc, char** argv) {
    // The Decoder class has a static method to match architecture and decoder
    // strings.
    std::vector<Decoder> decoders = Decoder::getDecoders(archStr, decStr);
-   int decCount = decoders.size();
+   size_t decCount = decoders.size();
    
    // If there were no valid decoders with the architecture, print all decoder
    // and architecture pairs and continue.
@@ -146,6 +147,9 @@ int main(int argc, char** argv) {
       mask = new Mask(strMask);
    }
 
+   /* Make sure we used all of the arguments */
+   Options::check_unused();
+
    /************************************************************************/
    /*                   END OF COMMAND LINE ARG PARSING                    */
    /************************************************************************/
@@ -164,7 +168,7 @@ int main(int argc, char** argv) {
    char** decBufs = (char**)malloc(decCount * sizeof(char*));
    assert(decBufs != NULL && "Could not allocate decoder buffers!");
 
-   for (int i = 0; i < decCount; i++) {
+   for (size_t i = 0; i < decCount; i++) {
       decBufs[i] = (char*)malloc(DECODED_BUFFER_LEN);
       assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
    }
@@ -198,7 +202,8 @@ int main(int argc, char** argv) {
    }
 
    i = 0;
-   while (pipe || !random && !remainingInsns.empty() || random && i < nRuns) {
+   while (pipe || (!random && !remainingInsns.empty()) 
+           || (random && i < nRuns)) {
 
       i++;
 
@@ -296,7 +301,7 @@ int main(int argc, char** argv) {
          MappedInst* mInsn;
 
 
-         for (int j = 0; j < decCount; j++) {
+         for (size_t j = 0; j < decCount; j++) {
             
             // Each decoder maps the instruction and each instruction uses its
             // map to try to find interesting instructions and add them to the
@@ -319,7 +324,7 @@ int main(int argc, char** argv) {
 
    // Report the total number of decoded instructions.
    unsigned long totalDecInsns = 0;
-   for (int i = 0; i < decCount; i++) {
+   for (size_t i = 0; i < decCount; i++) {
       totalDecInsns += decoders[i].getTotalDecodedInsns();
    }
 
@@ -331,7 +336,7 @@ int main(int argc, char** argv) {
       delete mask;
    }
 
-   for (int i = 0; i < decCount; i++) {
+   for (size_t i = 0; i < decCount; i++) {
       free(decBufs[i]);
    }
    free(decBufs); 
@@ -343,5 +348,7 @@ int main(int argc, char** argv) {
    
    Architecture::destroy();
    Alias::destroy();
+   Options::destroy();
+   Decoder::destroyAllDecoders();
    return 0;
 }

@@ -106,4 +106,4 @@ private:
 
 };
 
-#endif // _HASHCOUNTER_H_
+#endif /* _HASHCOUNTER_H_ */

@@ -32,4 +32,4 @@ private:
 
 };
 
-#endif // _MASK_H_
+#endif /* _MASK_H_ */
