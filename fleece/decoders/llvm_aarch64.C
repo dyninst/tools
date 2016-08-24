@@ -234,17 +234,17 @@ int llvm_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
     static LLVMDisasmContextRef disasm = LLVMCreateDisasm(
         "aarch64-linux-gnu", 
-         nullptr, 
-         0, 
-         nullptr, 
-         LLVMCallback);
+        nullptr, 
+        0, 
+        nullptr, 
+        LLVMCallback);
 
     size_t bytesUsed = LLVMDisasmInstruction(
-            disasm, 
-            (uint8_t*)inst, 
-            nBytes, 0, 
-            buf, 
-            (size_t)bufLen);
+        disasm, 
+        (uint8_t*)inst, 
+        nBytes, 0, 
+        buf, 
+        (size_t)bufLen);
 
 
     if (!bytesUsed) {
