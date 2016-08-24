@@ -6,11 +6,11 @@ IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Default installation path" FORCE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 
-
-    set(DYNINST_DIR "/usr" CACHE STRING "Dyninst directory" FORCE)
-    set(XED_DIR "/usr" CACHE STRING "XED directory" FORCE)
-    set(GNU_DIR "/usr" CACHE STRING "Binutils directory" FORCE)
-    set(LLVM_DIR "/usr" CACHE STRING "LLVM directory" FORCE)
+    set(DYNINST_DIR "/usr" CACHE STRING "Base directory for Dyninst" FORCE)
+    set(XED_DIR "/usr" CACHE STRING "Base directory for XED" FORCE)
+    set(GNU_DIR "/usr" CACHE STRING "Base directory for Binutils" FORCE)
+    set(LLVM_DIR "/usr" CACHE STRING "Base directory for LLVM" FORCE)
+    set(CAPSTONE_DIR "/usr" CACHE STRING "Base directory for capstone" FORCE)
 
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
@@ -29,12 +29,15 @@ set (GNU_INCLUDEDIR "${GNU_DIR}/include")
 set (LLVM_LIBDIR "${LLVM_DIR}/lib")
 set (LLVM_INCLUDEDIR "${LLVM_DIR}/include")
 
-set (DEPS_LIBDIR ${DYNINST_LIBDIR} ${XED_LIBDIR} ${GNU_LIBDIR} ${LLVM_LIBDIR})
-set (DEPS_INCLUDEDIR ${DYNINST_INCLUDEDIR} ${XED_INCLUDEDIR} ${GNU_INCLUDEDIR} ${LLVM_INCLUDEDIR})
+set (CAPSTONE_LIBDIR "${CAPSTONE_DIR}/lib")
+set (CAPSTONE_INCLUDEDIR "${CAPSTONE_DIR}/include")
+
+set (DEPS_LIBDIR ${DYNINST_LIBDIR} ${XED_LIBDIR} ${GNU_LIBDIR} ${LLVM_LIBDIR} ${CAPSTONE_LIBDIR})
+set (DEPS_INCLUDEDIR ${DYNINST_INCLUDEDIR} ${XED_INCLUDEDIR} ${GNU_INCLUDEDIR} ${LLVM_INCLUDEDIR} ${CAPSTONE_INCLUDEDIR})
 
 # Which custom libraries should be linked against fleece?
 set (FLEECE_LIBRARIES fleeceutil fleecedecoders fleecereporting)
-set (OTHER_LIBRARIES z instructionAPI xed LLVM opcodes rt bfd iberty dl)
+set (OTHER_LIBRARIES z instructionAPI xed LLVM opcodes capstone rt bfd iberty dl)
 set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${OTHER_LIBRARIES})
 
 set (CMAKE_CXX_FLAGS "-std=c++0x")
