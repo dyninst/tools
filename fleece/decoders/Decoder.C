@@ -29,6 +29,8 @@ Decoder* dec_gnu_x86_64;
 Decoder* dec_gnu_aarch64;
 Decoder* dec_llvm_x86_64;
 Decoder* dec_llvm_aarch64;
+Decoder* dec_capstone_x86_64;
+Decoder* dec_capstone_aarch64;
 Decoder* dec_null_x86_64;
 Decoder* dec_null_aarch64;
 
@@ -71,6 +73,10 @@ void Decoder::initAllDecoders()
             &llvm_x86_64_norm, "llvm", "x86_64");
     dec_llvm_aarch64 = new Decoder(&llvm_aarch64_decode, &LLVMInit, 
             &llvm_aarch64_norm, "llvm", "aarch64");
+    dec_capstone_x86_64 = new Decoder(&capstone_x86_64_decode, NULL, 
+            &capstone_x86_64_norm, "capstone", "x86_64");
+    dec_capstone_aarch64 = new Decoder(&capstone_aarch64_decode, NULL, 
+            &capstone_aarch64_norm, "capstone", "aarch64");
     dec_null_x86_64 = new Decoder(&null_x86_64_decode, NULL, 
             &null_x86_64_norm, "null", "x86_64");
     dec_null_aarch64 = new Decoder(&null_aarch64_decode, NULL, 
@@ -86,6 +92,8 @@ void Decoder::destroyAllDecoders()
     delete dec_gnu_aarch64;
     delete dec_llvm_x86_64;
     delete dec_llvm_aarch64;
+    delete dec_capstone_x86_64;
+    delete dec_capstone_aarch64;
     delete dec_null_x86_64;
     delete dec_null_aarch64;
 }
@@ -99,6 +107,8 @@ std::vector<Decoder> Decoder::getAllDecoders() {
    dec.push_back(*dec_dyninst_x86_64);
    dec.push_back(*dec_dyninst_aarch64);
    dec.push_back(*dec_xed_x86_64);
+   dec.push_back(*dec_capstone_x86_64);
+   dec.push_back(*dec_capstone_aarch64);
    dec.push_back(*dec_null_aarch64);
    dec.push_back(*dec_null_x86_64);
    return dec;

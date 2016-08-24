@@ -18,18 +18,20 @@ IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
     set(LLVM_LIBDIR "/usr/lib" CACHE STRING "Library directory for LLVM" FORCE)
     set(LLVM_INCLUDEDIR "/usr/include" CACHE STRING "Include directory for LLVM" FORCE)
+    set(CAPSTONE_LIBDIR "/usr/lib" CACHE STRING "Library directory for Capstone" FORCE)
+    set(CAPSTONE_INCLUDEDIR "/usr/include" CACHE STRING "Include directory for Capstone" FORCE)
 
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 option(BUILD_SHARED "Build and link shared libraries?" ON)
 option(BUILD_STATIC "Build and link static libraries?" OFF)
 
-set (DEPS_LIBDIR ${DYNINST_LIBDIR} ${XED_LIBDIR} ${GNU_LIBDIR} ${LLVM_LIBDIR})
-set (DEPS_INCLUDEDIR ${DYNINST_INCLUDEDIR} ${XED_INCLUDEDIR} ${GNU_INCLUDEDIR} ${LLVM_INCLUDEDIR})
+set (DEPS_LIBDIR ${DYNINST_LIBDIR} ${XED_LIBDIR} ${GNU_LIBDIR} ${LLVM_LIBDIR} ${CAPSTONE_LIBDIR})
+set (DEPS_INCLUDEDIR ${DYNINST_INCLUDEDIR} ${XED_INCLUDEDIR} ${GNU_INCLUDEDIR} ${LLVM_INCLUDEDIR} ${CAPSTONE_INCLUDEDIR})
 
 # Which custom libraries should be linked against fleece?
 set (FLEECE_LIBRARIES fleeceutil fleecedecoders fleecereporting)
-set (OTHER_LIBRARIES z instructionAPI xed LLVM opcodes rt bfd iberty dl)
+set (OTHER_LIBRARIES z instructionAPI xed LLVM opcodes capstone rt bfd iberty dl)
 set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${OTHER_LIBRARIES})
 
 set (CMAKE_CXX_FLAGS "-std=c++0x")
