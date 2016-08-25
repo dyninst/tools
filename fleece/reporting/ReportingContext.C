@@ -71,6 +71,8 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
         nReports++;
         reportDiff(insns, nInsns, bytes, nBytes);
     } else {
+        std::cout << "Suppressed:\n";
+        reportDiff(insns, nInsns, bytes, nBytes);
         nSuppressed++;
     }
 
@@ -161,30 +163,31 @@ bool ReportingContext::shouldReportDiff(const char** insns, int nInsns) {
         Architecture::replaceRegSets(insnTemplates[i], len);
     }
 
-    bool result = true;
+    bool result = false;
     // If we still think the difference should be reported, now make a string
     // with all instruction templates.
-    if (result == true) {
-        for (int j = 0; j < nInsns; j++) {
-         
-            char* cur = buf;
+    for (int j = 0; j < nInsns; j++) {
+     
+        char* cur = buf;
 
-            strncpy(cur, insnTemplates[j], end - cur);
+        strncpy(cur, insnTemplates[j], end - cur);
 
-            while (*cur && cur < end) {
-                cur++;
-            }
-         
-            if (cur < end) {
-                *cur = ';';
-                cur++;
-            }
+        while (*cur && cur < end) {
+            cur++;
         }
-      
-        // Check if we have seen this value before (including this time) less
-        // than the threshold. If so, we will say that the difference
-        // should be reported.
-        result = diffMap->insert(std::make_pair(buf, 1)).second;
+     
+        if (cur < end) {
+            *cur = ';';
+            cur++;
+        }
+    }
+  
+    // Check if we have seen this value before (including this time) less
+    // than the threshold. If so, we will say that the difference
+    // should be reported.
+    if (diffMap->count(buf) == 0) {
+        result = true;
+        diffMap->insert(std::make_pair(strdup(buf), 1));
     }
    
     // Free the buffer and templates used and delete the token lists.
