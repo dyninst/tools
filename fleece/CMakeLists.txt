@@ -14,9 +14,6 @@ IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
-option(BUILD_SHARED "Build and link shared libraries?" ON)
-option(BUILD_STATIC "Build and link static libraries?" OFF)
-
 set (DYNINST_LIBDIR "${DYNINST_DIR}/lib")
 set (DYNINST_INCLUDEDIR "${DYNINST_DIR}/include")
 
