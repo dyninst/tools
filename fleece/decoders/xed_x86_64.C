@@ -26,10 +26,10 @@ extern "C" {
 #include "xed-interface.h"
 #endif
 
+#include <iomanip>
 #include "Alias.h"
 #include "Normalization.h"
-#include "Mystring.h"
-#include <iomanip>
+#include "StringUtils.h"
 
 #define XED_MACHINE_MODE XED_MACHINE_MODE_LONG_64
 #define XED_ADDRESS_WIDTH XED_ADDRESS_WIDTH_64b
