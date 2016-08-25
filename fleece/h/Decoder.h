@@ -85,6 +85,12 @@ extern void llvm_x86_64_norm      (char*, int);
 extern int  llvm_aarch64_decode   (char*, int, char*, int);
 extern void llvm_aarch64_norm     (char*, int);
 
+extern int  capstone_x86_64_decode    (char*, int, char*, int);
+extern void capstone_x86_64_norm      (char*, int);
+
+extern int  capstone_aarch64_decode   (char*, int, char*, int);
+extern void capstone_aarch64_norm     (char*, int);
+
 extern int  null_aarch64_decode   (char*, int, char*, int);
 extern void null_aarch64_norm     (char*, int);
 
@@ -101,6 +107,9 @@ extern Decoder* dec_gnu_aarch64;
 
 extern Decoder* dec_llvm_x86_64;
 extern Decoder* dec_llvm_aarch64;
+
+extern Decoder* dec_capstone_x86_64;
+extern Decoder* dec_capstone_aarch64;
 
 extern Decoder* dec_null_x86_64;
 extern Decoder* dec_null_aarch64;
