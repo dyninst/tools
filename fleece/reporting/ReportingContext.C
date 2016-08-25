@@ -71,8 +71,6 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
         nReports++;
         reportDiff(insns, nInsns, bytes, nBytes);
     } else {
-        std::cout << "Suppressed:\n";
-        reportDiff(insns, nInsns, bytes, nBytes);
         nSuppressed++;
     }
 
