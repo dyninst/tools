@@ -62,7 +62,7 @@ private:
    //int findOperandValue(BitType* bitTypes, char* val, int operandNum, int bitCount);
    //void confirmHexOperand(BitType* bitTypes, char* operand, int operandNum);
    //void confirmHexBits(BitType* bitTypes, char* decInsn);
-   void enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int>* hc);
+   void enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc);
 };
 
 std::ostream& operator<<(std::ostream& s, MappedInst& m);

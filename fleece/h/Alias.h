@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <map>
+#include "StringUtils.h"
 
 namespace Alias {
    bool isAlias(const char* s1, const char* s2);

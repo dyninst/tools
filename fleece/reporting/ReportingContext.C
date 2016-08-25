@@ -184,7 +184,7 @@ bool ReportingContext::shouldReportDiff(const char** insns, int nInsns) {
         // Check if we have seen this value before (including this time) less
         // than the threshold. If so, we will say that the difference
         // should be reported.
-        result = diffMap->insert(buf, 1).second;
+        result = diffMap->insert(std::make_pair(buf, 1)).second;
     }
    
     // Free the buffer and templates used and delete the token lists.
