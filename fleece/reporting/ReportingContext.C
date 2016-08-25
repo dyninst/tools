@@ -8,7 +8,7 @@ ReportingContext::ReportingContext(FILE* outf) {
     outFile = outf;
     assert(outFile != NULL && "Report file should not be null!");
 
-    diffMap = new std::map<char*, int, StringUtils::str_cmp();
+    diffMap = new std::map<char*, int, StringUtils::str_cmp>();
     assert(diffMap != NULL && "Report hashcounter should not be null!");
 
     // Initialize summary data to all zeroes.
@@ -44,7 +44,7 @@ void ReportingContext::reportDiff(const char** insns, int nInsns,
     }
 
     // Each report is followed by a newline.
-    int rc = fprintf(outfile, "\n");
+    int rc = fprintf(outFile, "\n");
     assert(rc == 1 && "Reporting write failed!");
 }
 
