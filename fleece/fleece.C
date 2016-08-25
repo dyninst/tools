@@ -18,26 +18,26 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include "Mask.h"
-#include "Options.h"
-#include "Mystring.h"
-#include "MappedInst.h"
-#include "Decoder.h"
-#include "Hashcounter.h"
-#include "Info.h"
-#include "Alias.h"
-#include "ReportingContext.h"
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <ios>
+#include <map>
+#include <queue>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <iostream>
-#include <ios>
-#include <fstream>
-#include <iomanip>
-#include <sstream>
-#include <vector>
-#include <queue>
 #include <unistd.h>
+#include <vector>
+#include "Alias.h"
+#include "Decoder.h"
+#include "Info.h"
+#include "Mask.h"
+#include "MappedInst.h"
+#include "Options.h"
+#include "ReportingContext.h"
+#include "StringUtils.h"
 
 #define DECODED_BUFFER_LEN 256
 
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
    // If the user passes in a mask value, read that in now.
    char* strMask = Options::get("-mask=");
    bool hasMask = (strMask != NULL);
-   Mask* mask;
+   Mask* mask = NULL;
 
    // The mask constructor will do all of the necessary string parsing.
    if (hasMask) {
@@ -179,7 +179,7 @@ int main(int argc, char** argv) {
 
    // Create a hashcounter for all of the seen formats when queuing new
    // instructions.
-   Hashcounter seenHC(528041);
+   std::map<char*, int, StringUtils::str_cmp> seenMap;
    std::queue<char*> remainingInsns;
 
    // Create an initial random instructions for the queue.
@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
    std::cerr << "decoded, queued, reports, matches, suppressed\n";
 
    // The current instruction in the loop.
-   char* curInsn;
+   char* curInsn = NULL;
 
    if (random || pipe) {
       curInsn = (char*)malloc(insnLen);
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
             // map to try to find interesting instructions and add them to the
             // queue.
             mInsn = new MappedInst(curInsn, insnLen, &decoders[j], norm);
-            mInsn->queueNewInsns(&remainingInsns, &seenHC);
+            mInsn->queueNewInsns(&remainingInsns, &seenMap);
             delete mInsn;
          }
       }

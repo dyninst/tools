@@ -2,12 +2,8 @@
 #define _REPORTING_CONTEXT_H_
 
 #include "Architecture.h"
-#include "Mystring.h"
-#include "Hashcounter.h"
+#include "StringUtils.h"
 #include "Alias.h"
-
-#define RC_HASHCOUNTER_SIZE 528041
-#define REPORTING_COUNT_THRESHOLD 2
 
 /*
  * This class is used to keep track of the instruction templates we have
@@ -78,7 +74,7 @@ private:
    /*
     * The record of different instruction decodings seen.
     */
-   Hashcounter* diffCounter;
+   std::map<char*, int, StringUtils::str_cmp>* diffMap;
 
    /*
     * The output file for all reports (but not necessarily for summary data).

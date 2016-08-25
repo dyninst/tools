@@ -83,7 +83,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, Hashcounter* hc) {
 
 }
 
-void MappedInst::queueNewInsns(std::queue<char*>* queue, Hashcounter* hc) {
+void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
    
    char* decStr = (char*)malloc(DECODING_BUFFER_SIZE);
    assert(decStr != NULL);

@@ -1,9 +1,9 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 
-#include "Mystring.h"
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include "StringUtils.h"
 
 #define MASK_SYMBOL_SET_BIT '1'
 #define MASK_SYMBOL_CLR_BIT '0'
