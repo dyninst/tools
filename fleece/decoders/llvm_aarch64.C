@@ -232,26 +232,15 @@ static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType, 
 
 int llvm_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-    static LLVMDisasmContextRef disasm = LLVMCreateDisasm(
-        "aarch64-linux-gnu", 
-        nullptr, 
-        0, 
-        nullptr, 
-        LLVMCallback);
+   static LLVMDisasmContextRef disasm = LLVMCreateDisasm("aarch64-linux-gnu", nullptr, 0, nullptr, LLVMCallback);
 
-    size_t bytesUsed = LLVMDisasmInstruction(
-        disasm, 
-        (uint8_t*)inst, 
-        nBytes, 0, 
-        buf, 
-        (size_t)bufLen);
+   size_t bytesUsed = LLVMDisasmInstruction(disasm, (uint8_t*)inst, nBytes, 0, buf, (size_t)bufLen);
 
+   if (!bytesUsed) {
+      strncpy(buf, "llvm_decoding_error", bufLen);
+   }
 
-    if (!bytesUsed) {
-        strncpy(buf, "llvm_decoding_error", bufLen);
-    }
-
-    return !bytesUsed;
+   return !bytesUsed;
 }
 
 void llvm_aarch64_norm(char* buf, int bufLen) {

@@ -19,7 +19,6 @@
 */
 
 #include "llvm_common.h"
-#include <iostream>
 
 #if 0
 static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType, uint64_t refPC, const char** refName) {
@@ -31,12 +30,12 @@ static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType, 
 #endif
 
 int LLVMInit() {
+   
+   llvm::InitializeAllTargetInfos();
+   llvm::InitializeAllTargetMCs();
+   llvm::InitializeAllDisassemblers();
 
-    llvm::InitializeAllTargetInfos();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllDisassemblers();
-
-    return 0;
+   return 0;
 
 }
 
