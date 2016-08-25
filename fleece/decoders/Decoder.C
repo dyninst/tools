@@ -41,20 +41,21 @@ Decoder::Decoder(
         const char* name,
         const char* arch) {
 
-   func = decodeFunc;
-   normFunc = normFunction;
+    func = decodeFunc;
+    normFunc = normFunction;
    
-   // Execute any initialization required for this decoder.
-   if (initFunc != NULL) {
-      assert((*initFunc)() != -1);
-   }
+    // Execute any initialization required for this decoder.
+    if (initFunc != NULL) {
+        int initResult = (*initFunc)();
+        assert(initResult != -1);
+    }
    
-   this->arch = arch;
-   this->name = name;
+    this->arch = arch;
+    this->name = name;
 
-   totalNormTime = 0;
-   totalDecodeTime = 0;
-   totalDecodedInsns = 0;
+    totalNormTime = 0;
+    totalDecodeTime = 0;
+    totalDecodedInsns = 0;
 }
 
 void Decoder::initAllDecoders()
