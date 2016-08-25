@@ -21,15 +21,15 @@
 #define PACKAGE 1
 #define PACKAGE_VERSION 1
 
-#include "Normalization.h"
 #include <algorithm>
+#include <dis-asm.h>
+#include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <stdio.h>
-#include <iostream>
-#include "Mystring.h"
-#include <iomanip>
-#include <dis-asm.h>
 #include "bfd.h"
+#include "Normalization.h"
+#include "StringUtils.h"
 
 int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
    

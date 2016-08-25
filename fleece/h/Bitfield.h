@@ -21,7 +21,7 @@
 #ifndef _BITFIELD_H_
 #define _BITFIELD_H_
 
-#include "Mystring.h"
+#include "StringUtils.h"
 
 class Bitfield {
 public:

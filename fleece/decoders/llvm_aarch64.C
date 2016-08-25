@@ -18,12 +18,12 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include "Normalization.h"
-#include "Mystring.h"
-#include <iostream>
 #include <iomanip>
-#include "llvm_common.h"
+#include <iostream>
 #include <sys/mman.h>
+#include "llvm_common.h"
+#include "Normalization.h"
+#include "StringUtils.h"
 
 using namespace llvm;
 

@@ -19,11 +19,11 @@
 */
 
 #include <assert.h>
-#include "Normalization.h"
-#include "Mystring.h"
-#include "Decoder.h"
 #include "Alias.h"
+#include "Decoder.h"
 #include "InstructionDecoder.h"
+#include "Normalization.h"
+#include "StringUtils.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;

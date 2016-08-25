@@ -20,12 +20,21 @@
 #ifndef _MYSTRING_H_
 #define _MYSTRING_H_
 
+#include <assert.h>
+#include <cstring>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 #include <string.h>
 #include <time.h>
-#include <string>
-#include <assert.h>
+
+namespace StringUtils {
+    struct str_cmp {
+        bool operator()(const char* a, const char* b) const {
+            return std::strcmp(a, b) < 0;
+        }
+    };
+}
 
 /*
  * A list of null-terminated strings, constructed from an initial c-string. The

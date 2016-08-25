@@ -1,20 +1,26 @@
 
 #include "Alias.h"
-#include <iostream>
 
-Hashcounter* aliasHC = new Hashcounter(6871);
+std::map<const char*, const char*, StringUtils::str_cmp>* aliasMap = new std::map<const char*, const char*, StringUtils::str_cmp>;
 
-bool Alias::isAlias(char* s1, char* s2) {
-   return aliasHC->get(s1, s2) != 0;
+bool Alias::isAlias(const char* s1, const char* s2) {
+    if (std::strcmp(s1, s2) > 0) {
+        s1 = s2;
+    }
+    return aliasMap->count(s1) != 0;
 }
 
 int Alias::addAlias(const char* s1, const char* s2) {
-   static int aliasCount = 0;
-   aliasCount++;
-   aliasHC->increment(s1, s2);
-   return aliasCount;
+    if (std::strcmp(s1, s2) > 0) {
+        const char* tmp = s1;
+        s1 = s2;
+        s2 = tmp;
+    }
+   
+    bool inserted = aliasMap->insert(std::make_pair(s1, s2)).second;
+    return inserted ? 0 : -1;
 }
 
 void Alias::destroy() {
-   delete aliasHC;
+    delete aliasMap;
 }

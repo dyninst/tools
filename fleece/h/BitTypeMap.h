@@ -21,11 +21,11 @@
 #ifndef _BIT_TYPE_MAP_H_
 #define _BIT_TYPE_MAP_H_
 
+#include <iomanip>
 #include <iostream>
 #include <ios>
-#include <iomanip>
 #include <string.h>
-#include "Mystring.h"
+#include "StringUtils.h"
 #include "MappedInst.h"
 #include "BitTypes.h"
 

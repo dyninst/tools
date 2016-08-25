@@ -40,7 +40,7 @@ std::ostream& operator<<(std::ostream& s, MappedInst& m){
    return s;
 }
    
-void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, Hashcounter* hc) {
+void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
    char* decStr = (char*)malloc(DECODING_BUFFER_SIZE);
    assert(decStr != NULL);
 
@@ -64,7 +64,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, Hashcounter* hc) {
 
       Architecture::replaceRegSets(hcString, len);
 
-      if (hc->increment(hcString, "a") == 1) {
+      if (hc->insert(std::make_pair(hcString, 1)).second) {
          std::cout << "Queue: " << hcString << " \t";
          for (size_t k = 0; k < nBytes; k++) {
             std::cout << std::hex << std::setfill('0') << std::setw(2)
@@ -83,7 +83,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, Hashcounter* hc) {
 
 }
 
-void MappedInst::queueNewInsns(std::queue<char*>* queue, Hashcounter* hc) {
+void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
    
    char* decStr = (char*)malloc(DECODING_BUFFER_SIZE);
    assert(decStr != NULL);

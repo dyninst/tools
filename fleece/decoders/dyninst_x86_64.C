@@ -19,7 +19,7 @@
 */
 
 #include "InstructionDecoder.h"
-#include "Mystring.h"
+#include "StringUtils.h"
 #include <string>
 #include <iomanip>
 

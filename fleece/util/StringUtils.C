@@ -18,8 +18,8 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include "Mystring.h"
 #include <iostream>
+#include "StringUtils.h"
 
 TokenList::TokenList(const char* buf) {
    int tokenCount = 0;
