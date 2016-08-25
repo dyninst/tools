@@ -22,15 +22,15 @@
 #define PACKAGE 1
 #define PACKAGE_VERSION 1
 
-#include "Normalization.h"
 #include <algorithm>
+#include <dis-asm.h>
+#include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <stdio.h>
-#include <iostream>
-#include "Mystring.h"
-#include <iomanip>
-#include <dis-asm.h>
 #include "bfd.h"
+#include "Normalization.h"
+#include "StringUtils.h"
 
 void changeBcsToBhs(char* buf, int bufLen) {
    char* cur = buf;
