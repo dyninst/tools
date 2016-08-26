@@ -175,6 +175,22 @@ bool signalsError(const char* token) {
    return retval;
 }
 
+char negHex(char h) {
+   
+   if (h >= '0' && h <= '5') {
+      return 'f' + '0' - h;
+   }
+
+   if (h >= '6' && h <= '9') {
+      return '9' + '6' - h;
+   }
+
+   if (h >= 'a' && h <= 'f') {
+      return 'f' + '0' - h;
+   }
+
+   return h;
+}
 
 int getStdinBytes(char* buf, unsigned int nBytes) {
    char* end = buf + nBytes;

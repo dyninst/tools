@@ -24,8 +24,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "StringUtils.h"
 
-char negHex(char h);
 void aliasMovn(char* buf, int bufLen);
 void aliasMovz(char* buf, int bufLen);
 void removeExtraZeroesFromFmovImm(char* buf, int bufLen);

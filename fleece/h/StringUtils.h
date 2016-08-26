@@ -212,6 +212,8 @@ char valToHex(int val);
  */
 int shiftHex(char* hex, int shift, char* buf, int bufLen);
 
+char negHex(char);
+
 int getMinBits(long l);
 
 void removeCharacter(char* buf, int bufLen, char c);
