@@ -22,8 +22,6 @@
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
-#include <iostream>
-
 void makeIndexesDecimal(char* buf, int bufLen) {
 
     char tmp[bufLen];
@@ -78,7 +76,6 @@ int capstone_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
    csh handle;
    cs_insn *insn;
-   size_t count;
 
    if (cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle) != CS_ERR_OK) {
       return -1;

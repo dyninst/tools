@@ -23,8 +23,6 @@
 
 #include <algorithm>
 #include <dis-asm.h>
-#include <iomanip>
-#include <iostream>
 #include <sstream>
 #include <stdio.h>
 #include "bfd.h"

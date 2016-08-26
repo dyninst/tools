@@ -18,8 +18,6 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include <iostream>
-#include <iomanip>
 #include "llvm_common.h"
 #include "Normalization.h"
 #include "StringUtils.h"

@@ -18,8 +18,6 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include <iomanip>
-#include <iostream>
 #include <sys/mman.h>
 #include "aarch64_common.h"
 #include "llvm_common.h"
