@@ -26,8 +26,10 @@
 #include <string.h>
 #include "StringUtils.h"
 
+void negCond(char* dest, char* src);
 void aliasMovn(char* buf, int bufLen);
 void aliasMovz(char* buf, int bufLen);
+void aliasCsInsns(char* buf, int bufLen);
 void removeExtraZeroesFromFmovImm(char* buf, int bufLen);
 
 #endif // _AARCH64_COMMON_H_

@@ -20,6 +20,137 @@
 
 #include "aarch64_common.h"
 
+void negCond(char* dest, char* src) {
+    if (!strncmp(src, "al", 2)) {
+        strncpy(dest, "nv", 2);
+    } else if (!strncmp(src, "nv", 2)) {
+        strncpy(dest, "al", 2);
+    }
+}
+
+void aliasCsInsns(char* buf, int bufLen) {
+    
+    bool inv = !strncmp(buf, "csinv", 5);
+    bool inc = !strncmp(buf, "csinc", 5);
+    bool neg = !strncmp(buf, "csneg", 5);
+
+    // This isn't one of the opcodes we want to deal with.
+    if (!(inv || inc || neg)) {
+        return;
+    }
+
+    char* operand1Start;
+    char* operand2Start;
+    char* operand3Start;
+    char* operand4Start;
+
+    char* cur = buf;
+    while (*cur && *cur != ' ') {
+        cur++; // Go to the end of the opcode.
+    }
+    if (!*cur) {
+        return;
+    }
+    cur++;
+    operand1Start = cur;
+    while (*cur && *cur != ' ') {
+        cur++; // Go to the end of the first operand.
+    }
+    if (!*cur) {
+        return;
+    }
+    cur++;
+    operand2Start = cur;
+    while (*cur && *cur != ' ') {
+        cur++; // Go to the end of the second operand.
+    }
+    if (!*cur) {
+        return;
+    }
+    cur++;
+    operand3Start = cur;
+    while (*cur && *cur != ' ') {
+        cur++; // Go to the end of the third operand.
+    }
+    if (!*cur) {
+        return;
+    }
+    cur++;
+    operand4Start = cur;
+
+    // Only alias if condition code is "al"
+    if (strncmp(operand4Start, "al", 2)) {
+        return;
+    }
+
+    // Determine if operand 2 and 3 are the same (so we need to alias).
+    if (strncmp(operand2Start, operand3Start, operand3Start - operand2Start)) {
+        return; // Two operands were different, so we don't need to alias.
+    }
+
+    char* place = NULL;
+   
+    bool zeroRegs = !strncmp(operand2Start, "wzr", 3) || 
+                    !strncmp(operand2Start, "xzr", 3);
+
+    // The new opcode is cset if the operands are zero registers, otherwise, it
+    // will be cinc.
+    if (zeroRegs) {
+
+        if (inc) {
+            strncpy(buf, "cset", 4);
+            place = buf + 4;
+        } else if (inv) {
+            strncpy(buf, "csetm", 5);
+            place = buf + 5;
+        } else {
+            strncpy(buf, "cneg", 4);
+            place = buf + 4;
+        }
+    } else {
+        if (inc) {
+            strncpy(buf, "cinc", 4);
+            place = buf + 4;
+        } else if (inv) {
+            strncpy(buf, "cinv", 4);
+            place = buf + 4;
+        } else {
+            strncpy(buf, "cneg", 4);
+            place = buf + 4;
+        }
+    }
+
+    // Add a space after the opcode.
+    *place = ' ';
+    place++;
+
+    // Copy operands 1 and 2 over, leaving out operand 3. (leaving out 2 as
+    // well if it was a zero register).
+    //
+    // Note: We can safely copy using a single buffer becase we know the new
+    // opcode is shorter than the old one.
+    int copyLen = operand3Start - operand1Start;
+    if ((inv || inc) && zeroRegs) {
+        copyLen = operand2Start - operand1Start;
+    }
+    char* copySrc = operand1Start;
+    char* endPlace = place + copyLen;
+    while (place < endPlace) {
+        *place = *copySrc;
+        place++;
+        copySrc++;
+    }
+
+    // Negate the condition code. These codes are all 2 characters, hence the
+    // two character offset of place.
+    //
+    // Note: We can safely place the new condition because we know that we
+    // decreased instruction length, since an operand was left off.
+    negCond(place, operand4Start);
+    place += 2;
+    *place = '\0';
+}
+
 void removeExtraZeroesFromFmovImm(char* buf, int bufLen) {
    
    // Verify that this is an fmov instruction.

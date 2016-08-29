@@ -27,58 +27,68 @@
 using namespace llvm;
 
 void trimBraceSpaces(char* buf, int bufLen) {
-   char* cur = buf;
-   char* place = buf;
-   while (*cur) {
-      if (*cur == '{' && *(cur + 1) == ' ') {
-         *place = *cur;
-         place++;
-         cur++;
-      } else if (!(*cur == ' ' && *(cur + 1) == '}')) {
-         *place = *cur;
-         place++;
-      }
-      cur++;
-   }
-   *place = 0;
+    char* cur = buf;
+    char* place = buf;
+    while (*cur) {
+        if (*cur == '{' && *(cur + 1) == ' ') {
+            *place = *cur;
+            place++;
+            cur++;
+        } else if (!(*cur == ' ' && *(cur + 1) == '}')) {
+            *place = *cur;
+            place++;
+        }
+        cur++;
+    }
+    *place = 0;
 }
 
 static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType, uint64_t refPC, const char** refName) {
 
-   *refType = LLVMDisassembler_ReferenceType_InOut_None;
-   return nullptr;
+    *refType = LLVMDisassembler_ReferenceType_InOut_None;
+    return nullptr;
 
 }
 
 int llvm_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-   static LLVMDisasmContextRef disasm = LLVMCreateDisasm("aarch64-linux-gnu", nullptr, 0, nullptr, LLVMCallback);
+    static LLVMDisasmContextRef disasm = LLVMCreateDisasm(
+            "aarch64-linux-gnu", 
+            nullptr, 
+            0, 
+            nullptr, 
+            LLVMCallback);
 
-   size_t bytesUsed = LLVMDisasmInstruction(disasm, (uint8_t*)inst, nBytes, 0, buf, (size_t)bufLen);
+    size_t bytesUsed = LLVMDisasmInstruction(
+        disasm, 
+        (uint8_t*)inst, 
+        nBytes, 
+        0, 
+        buf, 
+        (size_t)bufLen);
 
-   if (!bytesUsed) {
-      strncpy(buf, "llvm_decoding_error", bufLen);
-   }
+    if (!bytesUsed) {
+        strncpy(buf, "llvm_decoding_error", bufLen);
+    }
 
-   return !bytesUsed;
+    return !bytesUsed;
 }
 
 void llvm_aarch64_norm(char* buf, int bufLen) {
 
-   // NORMALIZATION STEPS
+    // NORMALIZATION STEPS
 
-   cleanSpaces(buf, bufLen);
-   //removeCharacter(buf, bufLen, ']');
-   //removeCharacter(buf, bufLen, '[');
-   removeComments(buf, bufLen);
-   toLowerCase(buf, bufLen);
-   decToHexConstants(buf, bufLen);
-   removePounds(buf, bufLen);
-   trimBraceSpaces(buf, bufLen);
-   aliasMovz(buf, bufLen);
-   aliasMovn(buf, bufLen);
-   trimHexFs(buf, bufLen);
-   trimHexZeroes(buf, bufLen);
-   removeExtraZeroesFromFmovImm(buf, bufLen);
+    cleanSpaces(buf, bufLen);
+    removeComments(buf, bufLen);
+    toLowerCase(buf, bufLen);
+    decToHexConstants(buf, bufLen);
+    removePounds(buf, bufLen);
+    trimBraceSpaces(buf, bufLen);
+    aliasMovz(buf, bufLen);
+    aliasMovn(buf, bufLen);
+    aliasCsInsns(buf, bufLen);
+    trimHexFs(buf, bufLen);
+    trimHexZeroes(buf, bufLen);
+    removeExtraZeroesFromFmovImm(buf, bufLen);
 }
 

@@ -26,6 +26,7 @@
 #include <dis-asm.h>
 #include <sstream>
 #include <stdio.h>
+#include "aarch64_common.h"
 #include "bfd.h"
 #include "Normalization.h"
 #include "StringUtils.h"
@@ -326,24 +327,22 @@ int gnu_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
 void gnu_aarch64_norm(char* buf, int bufLen) {
   
-  // NORMALIZATION STEPS
+   // NORMALIZATION STEPS
     
-   cleanSpaces(buf, bufLen);
-   toLowerCase(buf, bufLen);
-   spaceAfterCommas(buf, bufLen);
-   //removeCharacter(buf, bufLen, '[');
-   //removeCharacter(buf, bufLen, ']');
-   removeComments(buf, bufLen);
-   decToHexConstants(buf, bufLen);
-   trimHexZeroes(buf, bufLen);
-   trimHexFs(buf, bufLen);
-   removePounds(buf, bufLen);
-   removeADRPZeroes(buf, bufLen);
-   fixRegLists(buf, bufLen);
-   changeCsToHs(buf, bufLen);
-   changeCcToLo(buf, bufLen);
-   changeBccToBlo(buf, bufLen);
-   changeBcsToBhs(buf, bufLen);
-   changeFmovImm(buf, bufLen);
-
+    cleanSpaces(buf, bufLen);
+    toLowerCase(buf, bufLen);
+    spaceAfterCommas(buf, bufLen);
+    removeComments(buf, bufLen);
+    decToHexConstants(buf, bufLen);
+    trimHexZeroes(buf, bufLen);
+    trimHexFs(buf, bufLen);
+    removePounds(buf, bufLen);
+    removeADRPZeroes(buf, bufLen);
+    fixRegLists(buf, bufLen);
+    changeCsToHs(buf, bufLen);
+    changeCcToLo(buf, bufLen);
+    changeBccToBlo(buf, bufLen);
+    changeBcsToBhs(buf, bufLen);
+    changeFmovImm(buf, bufLen);
+    aliasCsInsns(buf, bufLen);
 }
