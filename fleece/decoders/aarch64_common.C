@@ -167,7 +167,7 @@ void removeExtraZeroesFromFmovImm(char* buf, int bufLen) {
     while(*cur) {
         if (*cur == ' ') {
             curField++;
-            if (curField == 2 && isdigit(*(cur + 1))) {
+            if (curField == 2 && (isdigit(*(cur + 1)) || *(cur + 1) == '-')) {
                 immVersion = true;
             }
         }
