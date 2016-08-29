@@ -31,6 +31,8 @@
 #include "Normalization.h"
 #include "StringUtils.h"
 
+#include <iostream>
+
 void changeBcsToBhs(char* buf, int bufLen) {
    char* cur = buf;
 
@@ -219,83 +221,96 @@ void fixRegLists(char* buf, int bufLen) {
 }
 
 void changeFmovImm(char* buf, int bufLen) {
+  
+    //std::cout << "BEFORE: " << buf << "\n";
+
+    // Verify that this is an fmov instruction.
+    if (strncmp(buf, "fmov", 4)) {
+        return;
+    }
    
-   // Verify that this is an fmov instruction.
-   if (strncmp(buf, "fmov", 4)) {
-      return;
-   }
+    // Get a pointer in the buffer to move around and analyze bytes.
+    char* cur = buf;
+
+    // Go until we find the 'e' sign of the exponent.
+    while(*cur && *cur != 'e') {
+        cur++;
+    }
+
+    // if we fell off the string, return.
+    if (!*cur) {
+        return;
+    }
+
+    // Put a null byte where this sign was, since we don't want to have the
+    // power suffix anymore.
+    *cur = 0;
    
-   // Get a pointer in the buffer to move around and analyze bytes.
-   char* cur = buf;
-
-   // Go until we find the 'e' sign of the exponent.
-   while(*cur && *cur != 'e') {
-      cur++;
-   }
-
-   // if we fell off the string, return.
-   if (!*cur) {
-      return;
-   }
-
-   // Put a null byte where this sign was, since we don't want to have the
-   // power suffix anymore.
-   *cur = 0;
+    cur++;
    
-   cur++;
+    int swapPos = -1;
+    if (*cur == '+') {
+        swapPos = 1;
+    }
+
+    // The exponent always takes the form "e+0x" or "e-0x" where the x can only
+    // be 0 or 1. If it is zero, we don't want to swap at the end, because the
+    // number is already correct.
+    if (*(cur + 2) == '0') {
+        swapPos = 0;
+    }
+
+    // Put the current pointer at the end of the number.
+    cur -= 2;
+
+    // Walk back to the decimal point, removing zeroes along the way.
+    bool inZeroes = true;
+    while (cur > buf && *cur != '.') {
+        if (*cur == '0' && inZeroes) {
+            *cur = 0;
+        } else {
+            inZeroes = false;
+        }
+        cur--;
+    }
+
+    // If we couldn't find a decimal point, we don't know what to do, so return.
+    if (cur == buf) {
+        return;
+    }
+
+    // If we saw only zeroes up to the decimal point, we may need to remove it,
+    // or replace it with a '0'.
+    if (inZeroes) {
+
+        if (swapPos == 0) {
+            // We aren't swapping anything and don't want a trailing '.', so 
+            // null it.
+            *cur = 0;
+        } else if (swapPos == 1) {
+            // We would swap one decimal place to before the decimal, but the
+            // decimal place would be swapped with null, so set it to '0'
+            // instead.
+            *cur = '0';
+            swapPos = 0;
+        }
+    }
+
+    //std:: cout << "SWAP: " << buf << " " << *cur << " <-> " << *(cur + swapPos)
+    //           << "\n";
+
+    // We will use this to swap around positions.
+    char tmp = *cur;
+    *cur = *(cur + swapPos);
+    *(cur + swapPos) = tmp;
    
-   int swapPos = -1;
-   if (*cur == '+') {
-      swapPos = 1;
-   }
-
-   // The exponent always takes the form "e+0x" or "e-0x" where the x can only
-   // be 0 or 1. If it is zero, we don't want to swap at the end, because the
-   // number is already correct.
-   if (*(cur + 2) == '0') {
-      swapPos = 0;
-   }
-
-   // Put the current pointer at the end of the number.
-   cur -= 2;
-
-   // Walk back to the decimal point, removing zeroes along the way.
-   bool inZeroes = true;
-   while (cur > buf && *cur != '.') {
-      if (*cur == '0' && inZeroes) {
-         *cur = 0;
-      } else {
-         inZeroes = false;
-      }
-      cur--;
-   }
-
-   // If we couldn't find a decimal point, we don't know what to do, so return.
-   if (cur == buf) {
-      return;
-   }
-
-   // If we saw only zeroes up to the decimal point, remove that too.
-   if (inZeroes) {
-      *cur = 0;
-
-      // If we are swapping left, we would have put a leading zero, so don't
-      // swap.
-      if (swapPos == -1) {
-         swapPos = 0;
-      }
-   }
-
-   // We will use this to swap around positions.
-   char tmp = *cur;
-   *cur = *(cur + swapPos);
-   *(cur + swapPos) = tmp;
-   
-   // If we swapped the decimal point to be the last value in the string, remove
-   // it.
-   if (*(cur + swapPos + 1) == 0) {
-      *(cur + swapPos) = 0;
-   }
+    // If we swapped the decimal point to be the last value in the string, 
+    // remove it.
+    if (*(cur + swapPos) == '.' && *(cur + swapPos + 1) == 0) {
+        *(cur + swapPos) = 0;
+    }
+    
+    //std::cout << "AFTER: " << buf << "\n";
 }
 
 int gnu_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
