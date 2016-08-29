@@ -153,59 +153,72 @@ void aliasCsInsns(char* buf, int bufLen) {
 
 void removeExtraZeroesFromFmovImm(char* buf, int bufLen) {
    
-   // Verify that this is an fmov instruction.
-   if (strncmp(buf, "fmov", 4)) {
-      return;
-   }
+    // Verify that this is an fmov instruction.
+    if (strncmp(buf, "fmov", 4)) {
+        return;
+    }
 
-   // Get a pointer in the buffer to move around and analyze bytes.
-   char* cur = buf;
+    // Get a pointer in the buffer to move around and analyze bytes.
+    char* cur = buf;
 
-   // Go until we find the end of the string (which includes the immediate).
-   while(*cur) {
-      cur++;
-   }
-   cur--;
+    // Go until we find the end of the string (which includes the immediate).
+    bool immVersion = false;
+    int curField = 0;
+    while(*cur) {
+        if (*cur == ' ') {
+            curField++;
+            if (curField == 2 && isdigit(*(cur + 1))) {
+                immVersion = true;
+            }
+        }
+        cur++;
+    }
 
-   // Walk back to the decimal point, removing zeroes along the way.
-   bool inZeroes = true;
-   while (cur > buf && *cur != '.') {
-      if (*cur == '0' && inZeroes) {
-         *cur = 0;
-      } else {
-         inZeroes = false;
-      }
-      cur--;
-   }
+    if (!immVersion) {
+        return;
+    }
 
-   // If we read only zeroes all the way to the decimal point, remove the
-   // decimal point as well.
-   if (inZeroes) {
-      *cur = 0;
-   }
+    cur--;
 
-   // We hit the beginning of the buffer without a decimal point, so stop.
-   if (cur == buf) {
-      return;
-   }
+    // Walk back to the decimal point, removing zeroes along the way.
+    bool inZeroes = true;
+    while (cur > buf && *cur != '.') {
+        if (*cur == '0' && inZeroes) {
+            *cur = 0;
+        } else {
+            inZeroes = false;
+        }
+        cur--;
+    }
 
-   // We need to see if the immediate value had a leading zero too, so back up.
-   cur--;
+    // If we read only zeroes all the way to the decimal point, remove the
+    // decimal point as well.
+    if (inZeroes) {
+        *cur = 0;
+    }
 
-   // If there isn't a zero, we know we're done already.
-   if (*cur != '0') {
-      return;
-   }
+    // We hit the beginning of the buffer without a decimal point, so stop.
+    if (cur == buf) {
+        return;
+    }
+
+    // We need to see if the immediate value had a leading zero too, so back up.
+    cur--;
+
+    // If there isn't a zero, we know we're done already.
+    if (*cur != '0') {
+        return;
+    }
    
-   if (*(cur - 1) == ' ' || (*(cur - 1) == '-' && *(cur - 2) == ' ')) {
+    if (*(cur - 1) == ' ' || (*(cur - 1) == '-' && *(cur - 2) == ' ')) {
 
-      while (*(cur + 1)) {
-         *cur = *(cur + 1);
-         cur++;
-      }
+        while (*(cur + 1)) {
+            *cur = *(cur + 1);
+            cur++;
+        }
 
-      *cur = 0;
-   }
+        *cur = 0;
+    }
 
 }
 
