@@ -63,6 +63,11 @@ public:
    unsigned int size();
 
    /*
+    * Returns true if the token list has the given token.
+    */
+   bool hasToken(char* token);
+   
+   /*
     * Returns a pointer to the null-terminated string stored at <index>
     * location in the list of tokens.
     */

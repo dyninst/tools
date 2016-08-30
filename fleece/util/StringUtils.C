@@ -129,6 +129,15 @@ void TokenList::fillBuf(char* buf, unsigned int len) {
    *buf = '\0';
 }
 
+bool TokenList::hasToken(char* token) {
+    for (size_t i = 0; i < nTokens; i++) {
+        if (!strcmp(token, tokens[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 char* TokenList::getToken(unsigned int index) {
    if (index >= nTokens) {
       return NULL;
