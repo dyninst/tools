@@ -20,6 +20,12 @@
 
 #include "aarch64_common.h"
 
+void aliasIns(char* buf, int bufLen) {
+    if (!strncmp(buf, "ins", 3)) {
+        strncpy(buf, "mov", 3);
+    }
+}
+
 void negCond(char* dest, char* src) {
     if (!strncmp(src, "al", 2)) {
         strncpy(dest, "nv", 2);

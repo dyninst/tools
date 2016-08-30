@@ -27,6 +27,7 @@
 #include "StringUtils.h"
 
 void negCond(char* dest, char* src);
+void aliasIns(char* buf, int bufLen);
 void aliasMovn(char* buf, int bufLen);
 void aliasMovz(char* buf, int bufLen);
 void aliasCsInsns(char* buf, int bufLen);
