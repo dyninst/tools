@@ -178,7 +178,10 @@ void init_aarch64() {
     addNumberedRegSet("qreg", "q", 0, 31);
     addNumberedRegSet("hreg", "h", 0, 31);
     addNumberedRegSet("vreg", "v", 0, 31);
- 
+
+    Alias::addAlias("zr", "xzr");
+    Alias::addAlias("zr,", "xzr,");
+
     /* General system registers */
     Alias::addAlias("s3_0_c1_c0_1", "actlr_el1");
     Alias::addAlias("s3_4_c1_c0_1", "actlr_el2");
