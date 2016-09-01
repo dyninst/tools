@@ -31,198 +31,189 @@
 #include "Normalization.h"
 #include "StringUtils.h"
 
-#include <iostream>
-
 void changeBcsToBhs(char* buf, int bufLen) {
-   char* cur = buf;
+    char* cur = buf;
 
-   if (bufLen > 4 && 
-       *cur       == 'b' && 
-       *(cur + 1) == '.' && 
-       *(cur + 2) == 'c' && 
-       *(cur + 3) == 's' && 
-       *(cur + 4) == ' ') {
+    if (bufLen > 4 && 
+        *cur       == 'b' && 
+        *(cur + 1) == '.' && 
+        *(cur + 2) == 'c' && 
+        *(cur + 3) == 's' && 
+        *(cur + 4) == ' ') {
 
-      *(cur + 2) = 'h';
-   }
+        *(cur + 2) = 'h';
+    }
 }
 
 void changeBccToBlo(char* buf, int bufLen) {
-   char* cur = buf;
+    char* cur = buf;
 
-   if (bufLen > 4 && 
-       *cur       == 'b' && 
-       *(cur + 1) == '.' && 
-       *(cur + 2) == 'c' && 
-       *(cur + 3) == 'c' && 
-       *(cur + 4) == ' ') {
+    if (bufLen > 4 && 
+        *cur       == 'b' && 
+        *(cur + 1) == '.' && 
+        *(cur + 2) == 'c' && 
+        *(cur + 3) == 'c' && 
+        *(cur + 4) == ' ') {
 
-      *(cur + 2) = 'l';
-      *(cur + 3) = 'o';
-   }
+        *(cur + 2) = 'l';
+        *(cur + 3) = 'o';
+    }
 }
 
 void changeCcToLo(char* buf, int bufLen) {
-   char* cur = buf;
-   while (*cur) {
-      cur++;
-   }
+    char* cur = buf;
+    while (*cur) {
+        cur++;
+    }
    
-   // Make sure we aren't at the beginning of the buffer still.
-   if (cur < buf + 4) {
-      return;
-   }
+    // Make sure we aren't at the beginning of the buffer still.
+    if (cur < buf + 4) {
+        return;
+    }
 
-   if (*(cur - 1) == 'c' && 
-       *(cur - 2) == 'c' &&
-       *(cur - 3) == ' ') {
+    if (*(cur - 1) == 'c' && 
+        *(cur - 2) == 'c' &&
+        *(cur - 3) == ' ') {
 
-      *(cur - 2) = 'l';
-      *(cur - 1) = 'o';
-   }
-
+        *(cur - 2) = 'l';
+        *(cur - 1) = 'o';
+    }
 }
 
 void changeCsToHs(char* buf, int bufLen) {
-   char* cur = buf;
-   while (*cur) {
-      cur++;
-   }
+    char* cur = buf;
+    while (*cur) {
+        cur++;
+    }
    
-   // Make sure we aren't at the beginning of the buffer still.
-   if (cur < buf + 4) {
-      return;
-   }
+    // Make sure we aren't at the beginning of the buffer still.
+    if (cur < buf + 4) {
+        return;
+    }
 
-   if (*(cur - 1) == 's' && 
-       *(cur - 2) == 'c' &&
-       *(cur - 3) == ' ') {
+    if (*(cur - 1) == 's' && 
+        *(cur - 2) == 'c' &&
+        *(cur - 3) == ' ') {
 
-      *(cur - 2) = 'h';
-   }
-
+        *(cur - 2) = 'h';
+    }
 }
 
 void fixRegLists(char* buf, int bufLen) {
 
-   char* tmp = (char*)malloc(bufLen);
+    char tmpBuf[bufLen];
 
-   char* cur = buf;
-   char* place = tmp;
+    char* cur = buf;
+    char* place = &tmpBuf[0];
 
-   while (*cur) {
-      if (*cur == '{') {
-         // We've found one of the trouble spots. Lets see if it's a range.
-         char* check = cur;
-         while (*check && *check != '}' && *check != '-') {
-            check++;
-         }
+    while (*cur) {
+        if (*cur == '{') {
+            // We've found one of the trouble spots. Lets see if it's a range.
+            char* check = cur;
+            while (*check && *check != '}' && *check != '-') {
+                check++;
+            }
 
-         if (*check == '-') {
+            if (*check == '-') {
             
-            // Determine the ending appended to each register. This goes from
-            // the '.' of the 2nd value to the '}' symbol.
-            while (*check != '.') {
-               check++;
+                // Determine the ending appended to each register. This goes 
+                // from the '.' of the 2nd value to the '}' symbol.
+                while (*check != '.') {
+                    check++;
+                }
+                char* ending = check;
+
+                // Find the length of the ending so we can copy it correctly.
+                while (*check != '}') {
+                    check++;
+                }
+                int endLen = check - ending;
+
+                // We've got one with a range list instead of a set, so we need
+                // to record the range and turn it into a set.
+                int minReg = 0;
+                int maxReg = 0;
+
+                // First, find the number of the maximum register.
+                while (*check != '.') {
+                    check--;
+                }
+                check--;
+
+                // Now, we're at the actual maximum number, so record it.
+                int factor = 1;
+
+                while (*check != 'v') {
+                    maxReg += (*check - '0') * factor;
+                    factor *= 10;
+                    check--;
+                }
+
+                // Now, back up to the first number and record the minimum
+                // register.
+                while (*check != '.') {
+                    check--;
+                }
+                check--;
+
+                factor = 1;
+
+                while (*check != 'v') {
+                    minReg += (*check - '0') * factor;
+                    factor *= 10;
+                    check--;
+                }
+
+                strncpy(place, "{v", 2);
+                place += 2;
+
+                for (int i = minReg; i < maxReg; i++) {
+                    if (i > 9) {
+                        *place = i / 10 + '0';
+                        place++;
+                    }
+                    *place = i % 10 + '0';
+                    place++;
+                    strncpy(place, ending, endLen);
+                    place += endLen;
+
+                    strncpy(place, ", v", 3);
+                    place += 3;
+                }
+
+                if (maxReg > 9) {
+                    *place = maxReg / 10 + '0';
+                    place++;
+                }
+                *place = maxReg % 10 + '0';
+                place++;
+                strncpy(place, ending, endLen);
+                place += endLen;
+
+                *place = '}';
+                place++;
+
+                while (*cur != '}') {
+                    cur++;
+                }
+
+            } else {
+                *place = *cur;
+                place++;
             }
-            char* ending = check;
-
-            // Find the length of the ending so we can copy it correctly.
-            while (*check != '}') {
-               check++;
-            }
-            int endLen = check - ending;
-
-            // We've got one with a range list instead of a set, so we need to
-            // record the range and turn it into a set.
-            int minReg = 0;
-            int maxReg = 0;
-
-            // First, find the number of the maximum register.
-            while (*check != '.') {
-               check--;
-            }
-            check--;
-
-            // Now, we're at the actual maximum number, so record it.
-            int factor = 1;
-
-            while (*check != 'v') {
-               maxReg += (*check - '0') * factor;
-               factor *= 10;
-               check--;
-            }
-
-            // Now, back up to the first number and record the minimum
-            // register.
-            while (*check != '.') {
-               check--;
-            }
-            check--;
-
-            factor = 1;
-
-            while (*check != 'v') {
-               minReg += (*check - '0') * factor;
-               factor *= 10;
-               check--;
-            }
-
-            strncpy(place, "{v", 2);
-            place += 2;
-
-            for (int i = minReg; i < maxReg; i++) {
-               if (i > 9) {
-                  *place = i / 10 + '0';
-                  place++;
-               }
-               *place = i % 10 + '0';
-               place++;
-               strncpy(place, ending, endLen);
-               place += endLen;
-
-               strncpy(place, ", v", 3);
-               place += 3;
-            }
-
-            if (maxReg > 9) {
-               *place = maxReg / 10 + '0';
-               place++;
-            }
-            *place = maxReg % 10 + '0';
-            place++;
-            strncpy(place, ending, endLen);
-            place += endLen;
-
-            *place = '}';
-            place++;
-
-            while (*cur != '}') {
-               cur++;
-            }
-
-         } else {
+            
+        } else {
             *place = *cur;
             place++;
-         }
-            
-      } else {
-         *place = *cur;
-         place++;
-      }
-      cur++;
-   }
+        }
+        cur++;
+    }
 
-   *place = 0;
-
-   strncpy(buf, tmp, bufLen);
-
-   free(tmp);
+    *place = 0;
+    strncpy(buf, &tmpBuf[0], bufLen);
 }
 
 void changeFmovImm(char* buf, int bufLen) {
-  
-    //std::cout << "BEFORE: " << buf << "\n";
 
     // Verify that this is an fmov instruction.
     if (strncmp(buf, "fmov", 4)) {
@@ -296,9 +287,6 @@ void changeFmovImm(char* buf, int bufLen) {
         }
     }
 
-    //std:: cout << "SWAP: " << buf << " " << *cur << " <-> " << *(cur + swapPos)
-    //           << "\n";
-
     // We will use this to swap around positions.
     char tmp = *cur;
     *cur = *(cur + swapPos);
@@ -309,8 +297,6 @@ void changeFmovImm(char* buf, int bufLen) {
     if (*(cur + swapPos) == '.' && *(cur + swapPos + 1) == 0) {
         *(cur + swapPos) = 0;
     }
-    
-    //std::cout << "AFTER: " << buf << "\n";
 }
 
 int gnu_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
@@ -342,7 +328,7 @@ int gnu_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
 void gnu_aarch64_norm(char* buf, int bufLen) {
   
-   // NORMALIZATION STEPS
+    // NORMALIZATION STEPS
     
     cleanSpaces(buf, bufLen);
     toLowerCase(buf, bufLen);
