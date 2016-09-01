@@ -63,6 +63,11 @@ public:
    unsigned int size();
 
    /*
+    * Returns true if the token list has the given token.
+    */
+   bool hasToken(char* token);
+   
+   /*
     * Returns a pointer to the null-terminated string stored at <index>
     * location in the list of tokens.
     */
@@ -211,6 +216,8 @@ char valToHex(int val);
  * Returns 0 on success, -1 on failure.
  */
 int shiftHex(char* hex, int shift, char* buf, int bufLen);
+
+char negHex(char);
 
 int getMinBits(long l);
 

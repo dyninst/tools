@@ -102,6 +102,7 @@ void capstone_aarch64_norm(char* buf, int bufLen) {
     makeHexConstantsPositive(buf, bufLen);
     aliasMovz(buf, bufLen);
     aliasMovn(buf, bufLen);
+    aliasIns(buf, bufLen);
     trimHexFs(buf, bufLen);
     trimHexZeroes(buf, bufLen);
     removeADRPZeroes(buf, bufLen);

@@ -24,10 +24,13 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "StringUtils.h"
 
-char negHex(char h);
+void negCond(char* dest, char* src);
+void aliasIns(char* buf, int bufLen);
 void aliasMovn(char* buf, int bufLen);
 void aliasMovz(char* buf, int bufLen);
+void aliasCsInsns(char* buf, int bufLen);
 void removeExtraZeroesFromFmovImm(char* buf, int bufLen);
 
 #endif // _AARCH64_COMMON_H_

@@ -162,12 +162,11 @@ bool ReportingContext::shouldReportDiff(const char** insns, int nInsns) {
     }
 
     bool result = false;
+    char* cur = buf;
     // If we still think the difference should be reported, now make a string
     // with all instruction templates.
     for (int j = 0; j < nInsns; j++) {
      
-        char* cur = buf;
-
         strncpy(cur, insnTemplates[j], end - cur);
 
         while (*cur && cur < end) {

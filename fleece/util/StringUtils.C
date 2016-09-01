@@ -129,6 +129,15 @@ void TokenList::fillBuf(char* buf, unsigned int len) {
    *buf = '\0';
 }
 
+bool TokenList::hasToken(char* token) {
+    for (size_t i = 0; i < nTokens; i++) {
+        if (!strcmp(token, tokens[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 char* TokenList::getToken(unsigned int index) {
    if (index >= nTokens) {
       return NULL;
@@ -175,6 +184,22 @@ bool signalsError(const char* token) {
    return retval;
 }
 
+char negHex(char h) {
+   
+   if (h >= '0' && h <= '5') {
+      return 'f' + '0' - h;
+   }
+
+   if (h >= '6' && h <= '9') {
+      return '9' + '6' - h;
+   }
+
+   if (h >= 'a' && h <= 'f') {
+      return 'f' + '0' - h;
+   }
+
+   return h;
+}
 
 int getStdinBytes(char* buf, unsigned int nBytes) {
    char* end = buf + nBytes;
