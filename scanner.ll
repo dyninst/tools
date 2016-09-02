@@ -69,12 +69,22 @@ if\ branch_type[^_]+_CALL[^\n]+\n    {	 return token::SET_LR;   }
     /* This can probably be merged with a generic declaration detection case. */
 bits\(64\)\ base\ =\ PC\[\];\n       {   return token::READ_PC;  }
 
-(SP|W|X)\[[a-z]?\]                   {   return token::REG;  }
+(SP|W|X)\[[a-z]?\]                   { 
+                                         string matched(yytext);
+                                         int startpos = matched.find("[");
+                                         yylval->strVal = new string(matched.substr(startpos + 1, 1));
+
+                                         return token::REG;
+                                     }
 
 PSTATE[^<]C                          {   return token::FLAG_CARRY;   }
 
 PSTATE\.<[^\n]+                      {   return token::SET_NZCV;     }
 
+address\ =\ (SP|(X|W)\[[a-z]\])[^\n]+		     {
+                                                    yylval->strVal = new string(yytext);
+                                                    return token::IGNORE;
+                                                 }
 
     /****************************************/
     /*        Instruction Operands          */
@@ -108,7 +118,7 @@ bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
                                                                                     val<<"BaseSemantics::SValuePtr "<<operandName;
                                                                                     val<<" = d->read(args["<<operandPosMap[operandName]<<"])";
                                                                                }
-                                                                               val<<";";
+                                                                               val<<";\n";
                                                                                labelPos++;
 
                                                                                yylval->strVal = new string(val.str());
@@ -140,6 +150,8 @@ then        {   return token::COND_THEN; }
 
 else        {   return token::COND_ELSE; }
 
+elsif       {   return token::COND_ELSIF; }
+
 end         {   return token::COND_END; }
 
 case	    {	return token::SWITCH_CASE;  }
@@ -162,19 +174,23 @@ of	        {	return token::SWITCH_OF;    }
 
 ,           {   return token::SYMBOL_COMMA;    }
 
+UNKNOWN	    {	return token::UNKNOWN;	}
+
 [ \t;\n]    ;
 
-!|\+|==|&&	{
-                yylval->strVal = new string(yytext);
-                return token::OPER;
-			}
+!=|!|\+|==|&&	{
+                    yylval->strVal = new string(yytext);
+                    return token::OPER;
+		        }
 
-AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero	      {
-                                                                yylval->strVal = new string(yytext);
-                                                                return token::FUNCNAME;
-                                                              }
+Mem\[[^\]]+\] {	return token::MEMORY;	}
 
-bit(s\((datasize|[0-9])\))?     {  return token::DTYPE_BITS;   }
+AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero|SignExtend|ZeroExtend|Prefetch	      {
+                                                                                                yylval->strVal = new string(yytext);
+                                                                                                return token::FUNCNAME;
+                                                                                              }
+
+bit(s\((datasize|[0-9]+)\))?     {  return token::DTYPE_BITS;   }
 
 
     /****************************************/
@@ -227,11 +243,16 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap[string("sub_op")] = string("(EXTR(30, 30) == 1)");
     operandExtractorMap[string("setflags")] = string("(EXTR(29, 29) == 1)");
     operandExtractorMap[string("d")] = string("EXTR(0, 4)");
+    operandExtractorMap[string("n")] = string("EXTR(5, 9)");
     operandExtractorMap[string("condition")] = string("EXTR(0, 4)");
     operandExtractorMap[string("page")] = string("(EXTR(31, 31) == 1)");
     operandExtractorMap[string("postindex")] = string("(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)");
     operandExtractorMap[string("iszero")] = string("(EXTR(24, 24) == 0)");
     operandExtractorMap[string("bit_val")] = string("EXTR(24, 24)");
+    operandExtractorMap[string("memop")] = string("EXTR(22, 22)");
+    operandExtractorMap[string("signed")] = string("(EXTR(23, 23) == 1)");
+    operandExtractorMap[string("regsize")] = string("d->getRegSize(raw)");
+    operandExtractorMap[string("wback")] = string("(EXTR(24, 24) == 0)");
 }
 
 void Scanner::initOperatorToFunctionMap() {

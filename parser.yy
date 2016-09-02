@@ -1,6 +1,7 @@
 %{
 
-#include <stdio.h>
+#include <cstdio>
+#include <cassert>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -47,10 +48,36 @@ string makeStr(vector<string> &args, vector<string *> *del) {
 }
 
 string *makeProgramBlock(string *arg1, string *arg2) {
-    ARGS_VEC(*arg1, "\n", *arg2);
+    ARGS_VEC(*arg1, *arg2);
     DEL_VEC(arg1, arg2);
 
     return STR(makeStr(args, &del));
+}
+#include <iostream>
+string pruneCond(string cond_str) {
+    int nextpos = 1, prevpos = 0;
+
+    string curblock = "";
+    int stmtcnt;
+    while(nextpos < cond_str.length() && (nextpos = cond_str.find("\n", nextpos)) != string::npos) {
+        string cur = cond_str.substr(prevpos, nextpos - prevpos);
+        curblock += cur + "\n";
+        if(cur == "{")
+            stmtcnt = 0;
+        else if(cur == "}") 
+        {
+            if(stmtcnt > 0)
+                return cond_str;
+            curblock = "";
+        }
+        else if(cur.find("if") == string::npos && cur.find("else") == string::npos)
+            stmtcnt++;
+
+        prevpos = nextpos + 1;
+        nextpos++;
+    }
+
+    return "";
 }
 
 %}
@@ -78,7 +105,7 @@ string *makeProgramBlock(string *arg1, string *arg2) {
     std::string* strVal;
 }
 
-%token			END	     0	"end of file"
+%token		    END	     0	"end of file"
 %token          DTYPE_BITS
 %token          DTYPE_BOOLEAN
 %token          <strVal>    INSN_START
@@ -87,13 +114,14 @@ string *makeProgramBlock(string *arg1, string *arg2) {
 %token          COND_IF
 %token          COND_THEN
 %token          COND_ELSE
+%token          COND_ELSIF
 %token          COND_END
-%token		SWITCH_CASE
-%token		SWITCH_WHEN
-%token		SWITCH_OF
+%token		    SWITCH_CASE
+%token		    SWITCH_WHEN
+%token		    SWITCH_OF
 %token          <strVal>    OPER
 %token          <strVal>    FUNCNAME
-%token          REG
+%token          <strVal>    REG
 %token          <intVal>    NUM
 %token          <strVal>    BOOLVAL
 %token          <strVal>    IDENTIFIER
@@ -103,13 +131,17 @@ string *makeProgramBlock(string *arg1, string *arg2) {
 %token		    SYMBOL_GT
 %token          SYMBOL_EQUAL
 %token          SYMBOL_COMMA
-%token			SYMBOL_COLON
+%token		    SYMBOL_COLON
 %token          READ_PC
 %token          SET_NZCV
 %token		    SET_LR
 %token          FLAG_CARRY
+%token		    IGNORE
+%token		    UNKNOWN
+%token		    MEMORY
 
-%type           <strVal>  program datatype varname targ reg_name expr funccall args condblock decl cond asnmt bitmask blockdata bitpos declblock switch whenblocks whenblock condifelse
+%type           <strVal>  program datatype varname targ expr funccall args condblock decl cond asnmt bitmask blockdata
+%type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode
 
 %{
 
@@ -126,7 +158,7 @@ string *makeProgramBlock(string *arg1, string *arg2) {
 insn:       INSN_START program INSN_END {
                                             cout<<"struct IP_"<<*$1<<": P {\nvoid p(D d, Ops ops, I insn, A args, B raw) {\n";
                                             cout<<*$2;
-                                            cout<<"}\n};\n";
+                                            cout<<"\n}\n};\n";
 
                                             delete $1;
                                             delete $2;
@@ -135,17 +167,22 @@ insn:       INSN_START program INSN_END {
 
 program:    program decl     { $$ = makeProgramBlock($1, $2); } |
             program asnmt    { $$ = makeProgramBlock($1, $2); } |
-            program funccall { $$ = makeProgramBlock($1, $2); } |
+            program funccall {
+                                string *str = new string((*$2) + ";");
+                                delete $2;
+
+                                $$ = makeProgramBlock($1, str);
+                             } |
             program cond     { $$ = makeProgramBlock($1, $2); } |
-	    program switch   { $$ = makeProgramBlock($1, $2); } |
+	        program switch   { $$ = makeProgramBlock($1, $2); } |
                              { $$ = STR("");                  }
             ;
 
 decl:       OPERAND                     {  $$ = $1; }   |
             READ_PC                     {  $$ = STR("BaseSemantics::SValuePtr base = d->readRegister(d->REG_PC);\n");   } |
-	        SET_LR			            {  $$ = STR("if(EXTR(31, 31) == 1)\nd->writeRegister(d->readRegister(findRegister(\"x30\", 64)), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
+	        SET_LR			            {  $$ = STR("if(EXTR(31, 31) == 1)\nd->writeRegister(d->findRegister(\"x30\", 64), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
             datatype declblock          {
-                                            ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool ":*$1), *$2, ";\n");
+                                            ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool ":*$1), *$2);
                                             DEL_VEC($1, $2);
 
                                             $$ = STR(makeStr(args, &del));
@@ -156,7 +193,12 @@ datatype:   DTYPE_BITS                  {  $$ = STR("BaseSemantics::SValuePtr ")
             DTYPE_BOOLEAN               {  $$ = STR("bool ");    }
             ;
 
-declblock:  varname                     {  $$ = $1;    } |
+declblock:  varname                     {  
+                                            DEL_VEC($1);
+                                            ARGS_VEC(*$1, ";\n");
+
+                                            $$ = STR(makeStr(args, &del));    
+                                        } |
             asnmt                       {  $$ = $1;    }
             ;
 
@@ -169,7 +211,7 @@ varname:    IDENTIFIER                  {
                                         }
             ;
 
-asnmt:      targ SYMBOL_EQUAL expr           {
+asnmt:      targ SYMBOL_EQUAL asnmtsrc       {
                                                 DEL_VEC($3);
 
                                                 if($1 != NULL)
@@ -178,6 +220,11 @@ asnmt:      targ SYMBOL_EQUAL expr           {
                                                     if((*$1) == "carry_in")
                                                     {
                                                         ARGS_VEC(*$1, " = ", ((*$3) == "1"?"true":"false"), ";\n");
+                                                        $$ = STR(makeStr(args, &del));
+                                                    }
+                                                    else if((*$1).find("writeMemory") != string::npos)
+                                                    {
+                                                        ARGS_VEC(*$1, *$3, ");\n");
                                                         $$ = STR(makeStr(args, &del));
                                                     }
                                                     else
@@ -192,19 +239,53 @@ asnmt:      targ SYMBOL_EQUAL expr           {
                                                     $$ = STR(makeStr(args, &del));
                                                 }
                                             } |
-			bitmask SYMBOL_EQUAL funccall   {
+	        bitmask SYMBOL_EQUAL funccall   {
                                                 string var, expr;
 
                                                 parseBitPos(*$1, var, expr);
-												ARGS_VEC(var, " = ops->or_(", expr, ", ", *$3, ");\n");
-												DEL_VEC($1, $3);
-												
-												$$ = STR(makeStr(args, &del));
-											} |
+                                                ARGS_VEC(var, " = ops->or_(", expr, ", ", *$3, ");\n");
+                                                DEL_VEC($1, $3);
+
+                                                $$ = STR(makeStr(args, &del));
+                                            } |
             SET_NZCV                        {   $$ = STR("d->writeRegister(REG_NZCV, nzcv);\n");   }
             ;
 
-bitmask:	varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bit ranges not starting at 0 and for custom varname lengths
+targ:       varname                                                             {   $$ = $1;    }  |
+            SYMBOL_OPENROUNDED varname SYMBOL_COMMA varname SYMBOL_CLOSEROUNDED {   $$ = $2;    }  |
+	        REG									{
+                                                    DEL_VEC($1);
+                                                    delArgs(del);
+
+                                                    $$ = NULL;
+			        							} |
+			MEMORY                              { $$ = STR("ops->writeMemory(address, "); }
+            ;
+
+asnmtsrc:   expr		        {  $$ = $1;	} |
+            DTYPE_BITS UNKNOWN	{  $$ = STR("ops->unspecified_(1)");   } |
+            REG     			{
+                                    DEL_VEC($1);
+                                    string regstr = "";
+
+                                    switch((*$1)[0])
+                                    {
+                                        case 't':regstr += "d->read(args[0])";
+                                            break;
+                                        case 'n':regstr += "d->read(args[1])";
+                                            break;
+                                        case 'm':regstr += "d->read(args[2])";
+                                            break;
+                                        default: assert("appears to be an invalid source register.");
+                                    }
+                                    delArgs(del);
+
+                                    $$ = STR(regstr);
+                                } |
+            MEMORY              {   $$ = STR("ops->readMemory(address, ops->unspecified_(1))");   }
+            ;
+
+bitmask:    varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bit ranges not starting at 0 and for custom varname lengths
 
                                                                     int hibit = $3, lobit = $5, range = hibit - lobit + 1;
                                                                     uint64_t mask = (1<<range) - 1;
@@ -215,7 +296,7 @@ bitmask:	varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bi
 
                                                                     $$ = STR(out.str());
                                                                 }
-			;
+	    ;
 
 expr:       NUM                         {
                                             stringstream out;
@@ -247,20 +328,12 @@ expr:       NUM                         {
             BOOLVAL                     {   $$ = $1;  }
             ;
 
-targ:       varname                                                             {   $$ = $1;    }  |
-            SYMBOL_OPENROUNDED varname SYMBOL_COMMA varname SYMBOL_CLOSEROUNDED {   $$ = $2;    }  |
-            reg_name                                                            {   $$ = NULL;  }
-            ;
-
 bitpos:     varname SYMBOL_LT OPERAND SYMBOL_GT {
                                                     DEL_VEC($1, $3);
                                                     ARGS_VEC("ops->and_(ops->shiftRight(", *$1, ", ", *$3, "), ops->number(1, 1))");
 
                                                     $$ = STR(makeStr(args, &del));
                                                 }
-            ;
-
-reg_name:   REG                         {}
             ;
 
 funccall:   FUNCNAME SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
@@ -293,33 +366,56 @@ args:       args SYMBOL_COMMA args      {
 
                                             $$ = STR(out.str());
                                         } |
+            bitmask                     {   $$ = $1;    } |
 	        OPERAND			            {   $$ = $1;	}   |
             FLAG_CARRY                  {   $$ = STR("ops->and_(d->readRegister(REG_NZCV), ops->number_(32, 0x2))"); }
             ;
 
-cond:	    COND_IF expr COND_THEN condblock condifelse	    {
-								DEL_VEC($2, $4, $5);
-								ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", *$5);
-    
-								$$ = STR(makeStr(args, &del));
-							    }
+cond:	    COND_IF expr COND_THEN condblock condshalf      {
+                                                                DEL_VEC($2, $4, $5);
+                                                                ARGS_VEC("\nif(", *$2, ")\n{\n", *$4, "}\n", *$5);
+
+                                                                $$ = STR(pruneCond(makeStr(args, &del)));
+                                                            }
             ;
 
-condifelse: COND_END			    {   $$ = new string("");    } |
-	    COND_ELSE condblock COND_END    {
-						DEL_VEC($2);
-						ARGS_VEC("else\n{\n", *$2, "}\n");
-    
-						$$ = STR(makeStr(args, &del));
-					    }
+condshalf:  condterm    {   $$ = $1;    } |
+            condelsif   {   $$ = $1;    };
+            ;
+
+condelsif:  COND_ELSIF expr COND_THEN condblock condshalf   {
+                                                                DEL_VEC($2, $4, $5);
+                                                                ARGS_VEC("\nelse if(", *$2, ")\n{\n", *$4, "}\n", *$5);
+
+                                                                $$ = STR(pruneCond(makeStr(args, &del)));
+                                                            }
+            ;
+
+condterm:   COND_END			            {   $$ = new string("");    } |
+	        COND_ELSE condblock COND_END    {
+                                                DEL_VEC($2);
+                                                ARGS_VEC("else\n{\n", *$2, "}\n");
+
+                                                $$ = STR(makeStr(args, &del));
+                                            }
+            ;
 
 condblock:  condblock blockdata {
                                     DEL_VEC($1, $2);
-                                    ARGS_VEC(*$1, "\n", *$2, "\n");
+                                    ARGS_VEC(*$1, *$2);
 
                                     $$ = STR(makeStr(args, &del));
                                 } |
             blockdata           {   $$ = $1;    }
+            ;
+
+blockcode:  blockcode blockdata {
+                                    DEL_VEC($1, $2);
+                                    ARGS_VEC(*$1, *$2);
+
+                                    $$ = STR(makeStr(args, &del));
+                                } |
+            blockdata           {   $$ = $1;    };
             ;
 
 blockdata:  asnmt       {   $$ = $1;    } |
@@ -329,15 +425,25 @@ blockdata:  asnmt       {   $$ = $1;    } |
 
                             $$ = STR(makeStr(args, &del));
                         }   |
-            cond        {   $$ = $1;    }
+            cond        {   $$ = $1;    } |
+	        switch	    {   $$ = $1;	} |
+            IGNORE      {   $$ = STR("");   }
             ;
 
-switch:	    SWITCH_CASE	varname	SWITCH_OF whenblocks		      {
+switch:	    SWITCH_CASE	varname	SWITCH_OF whenblocks		  {
                                                                      DEL_VEC($2, $4);
-                                                                     ARGS_VEC("switch(", *$2, ")\n{\n", *$4, "}\n");
-
-                                                                     $$ = STR(makeStr(args, &del));
-                                                                  }
+    
+                                                                     if(*$4 != "")
+                                                                     {
+                                                                        ARGS_VEC("\nswitch(", *$2, ")\n{\n", *$4, "}\n");
+                                                                        $$ = STR(makeStr(args, &del));
+                                                                     }
+                                                                     else
+                                                                     {
+                                                                        delArgs(del);
+                                                                        $$ = STR("");
+                                                                     }
+                                                              }
 	        ;
 
 whenblocks: whenblocks whenblock    {
@@ -346,16 +452,22 @@ whenblocks: whenblocks whenblock    {
 
                                         $$ = STR(makeStr(args, &del));
                                     } |
-	    whenblock		    {	$$ = $1; } |
-	    /* empty */		    {	$$ = STR("");	}
-	    ;
+	        whenblock		        {	$$ = $1; } |
+	        /* empty */		        {	$$ = STR("");	}
+	        ;
 
-whenblock:  SWITCH_WHEN	varname COND_THEN COND_END		     {
-                                                                            //DEL_VEC($4);
-                                                                            ARGS_VEC("case ", *$2, ":\n{\n", "", "\n}\nbreak;\n");
+whenblock:  SWITCH_WHEN	varname blockcode COND_END	 {
+                                                        DEL_VEC($3);
 
-                                                                            $$ = STR(makeStr(args, /*&del*/NULL));
-                                                                         }
+                                                        //Ignore the block if it is a prefetch operation
+                                                        if((*$2) != "MemOp_PREFETCH")
+                                                        {
+                                                            ARGS_VEC("case ", *$2, ":\n{\n", *$3, "}\nbreak;\n");
+                                                            $$ = STR(makeStr(args, &del/*NULL*/));
+                                                        }
+                                                        else
+                                                            $$ = STR("");
+                                                     }
 	    ;	 
 %%
 
@@ -365,12 +477,12 @@ whenblock:  SWITCH_WHEN	varname COND_THEN COND_END		     {
 
                                                         $$ = STR(makeStr(args, &del));
                                                       } |
-            COND_IF expr COND_THEN condblock COND_ELSE condblock COND_END {
-                                                                             DEL_VEC($2, $4, $6);
-                                                                             ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", "else\n{\n", *$6, "}\n");
+              COND_IF expr COND_THEN condblock COND_ELSE condblock COND_END {
+                                                                                 DEL_VEC($2, $4, $6);
+                                                                                 ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", "else\n{\n", *$6, "}\n");
 
-                                                                             $$ = STR(makeStr(args, &del));
- 									 }
+                                                                                 $$ = STR(makeStr(args, &del));
+ 			                                        						 }
 */
 void Dyninst_aarch64::Parser::error(const Parser::location_type& l,
 			    const string& m)
