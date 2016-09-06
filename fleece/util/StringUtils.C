@@ -179,6 +179,8 @@ bool signalsError(const char* token) {
       !strcmp(token, "INVALID")         ||
       !strcmp(token, "invalid")         ||
       !strcmp(token, "%?")              ||
+      !strcmp(token, "(bad)")           ||
+      !strcmp(token, "(bad),")          ||
       !strcmp(token, "%?,")
    );
    return retval;
