@@ -259,7 +259,7 @@ targ:       varname                                                             
 
                                                     $$ = NULL;
 			        							} |
-			MEMORY                              { $$ = STR("ops->writeMemory(address, "); }
+			MEMORY                              { $$ = STR("d->writeMemory(address, 0x8 << EXTR(30, 31), "); }
             ;
 
 asnmtsrc:   expr		        {  $$ = $1;	} |
@@ -282,7 +282,7 @@ asnmtsrc:   expr		        {  $$ = $1;	} |
 
                                     $$ = STR(regstr);
                                 } |
-            MEMORY              {   $$ = STR("ops->readMemory(address, ops->unspecified_(1))");   }
+            MEMORY              {   $$ = STR("d->readMemory(address, 0x8 << EXTR(30, 31))");   }
             ;
 
 bitmask:    varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bit ranges not starting at 0 and for custom varname lengths
