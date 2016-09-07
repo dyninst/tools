@@ -39,7 +39,7 @@ void ReportingContext::reportDiff(const char** insns, int nInsns,
 
     // Print each byte to the file with spaces separating them.
     for (int i = 0; i < nBytes; i++) {
-        int rc = fprintf(outFile, "%x ", 0xFF & bytes[i]);
+        int rc = fprintf(outFile, "%02x ", 0xFF & bytes[i]);
         assert(rc > 0 && "Reporting write failed!");
     }
 
