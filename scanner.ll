@@ -71,8 +71,14 @@ bits\(64\)\ base\ =\ PC\[\];\n       {   return token::READ_PC;  }
 
 (SP|W|X)\[[a-z]?\]                   { 
                                          string matched(yytext);
-                                         int startpos = matched.find("[");
-                                         yylval->strVal = new string(matched.substr(startpos + 1, 1));
+
+                                         if(matched.find("SP") != string::npos)
+                                            yylval->strVal = new string("s");
+                                         else
+                                         {
+                                            int startpos = matched.find("[");
+                                            yylval->strVal = new string(matched.substr(startpos + 1, 1));
+                                         }
 
                                          return token::REG;
                                      }
@@ -85,6 +91,11 @@ address\ =\ (SP|(X|W)\[[a-z]\])[^\n]+		     {
                                                     yylval->strVal = new string(yytext);
                                                     return token::IGNORE;
                                                  }
+
+ExtendReg\([^\)]+\)                 {
+                                        yylval->strVal = new string("d->read(args[2])");
+                                        return token::OPERAND;
+                                    }
 
     /****************************************/
     /*        Instruction Operands          */
@@ -204,9 +215,9 @@ bit(s\((datasize|[0-9]+)\))?     {  return token::DTYPE_BITS;   }
 
 [A-Za-z_]+[0-9]* {
                     string *ret = new string(yytext);
-                    //FIXME should probably have a table of IDs seen so far and perform a join-like check
+                    /*//FIXME should probably have a table of IDs seen so far and perform a join-like check
                     if(*ret == "offset")
-                        *ret = "d->read(args[2])";
+                        *ret = "d->read(args[2])";*/
                     yylval->strVal = ret;
                     return token::IDENTIFIER;
                  }
@@ -249,7 +260,7 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap[string("postindex")] = string("(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)");
     operandExtractorMap[string("iszero")] = string("(EXTR(24, 24) == 0)");
     operandExtractorMap[string("bit_val")] = string("EXTR(24, 24)");
-    operandExtractorMap[string("memop")] = string("EXTR(22, 22)");
+    operandExtractorMap[string("memop")] = string("(EXTR(22, 22)^EXTR(23, 23))");
     operandExtractorMap[string("signed")] = string("(EXTR(23, 23) == 1)");
     operandExtractorMap[string("regsize")] = string("d->getRegSize(raw)");
     operandExtractorMap[string("wback")] = string("(EXTR(24, 24) == 0)");

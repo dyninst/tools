@@ -212,30 +212,26 @@ varname:    IDENTIFIER                  {
             ;
 
 asnmt:      targ SYMBOL_EQUAL asnmtsrc       {
-                                                DEL_VEC($3);
+                                                DEL_VEC($1, $3);
 
-                                                if($1 != NULL)
+                                                if((*$1) == "carry_in")
                                                 {
-                                                    DEL_VEC_ADD($1);
-                                                    if((*$1) == "carry_in")
-                                                    {
-                                                        ARGS_VEC(*$1, " = ", ((*$3) == "1"?"true":"false"), ";\n");
-                                                        $$ = STR(makeStr(args, &del));
-                                                    }
-                                                    else if((*$1).find("writeMemory") != string::npos)
-                                                    {
-                                                        ARGS_VEC(*$1, *$3, ");\n");
-                                                        $$ = STR(makeStr(args, &del));
-                                                    }
-                                                    else
-                                                    {
-                                                        ARGS_VEC(((*$1) != "null"?((*$1) + " = "):""), *$3, ";\n");
-                                                        $$ = STR(makeStr(args, &del));
-                                                    }
+                                                    ARGS_VEC(*$1, " = ", ((*$3) == "1"?"true":"false"), ";\n");
+                                                    $$ = STR(makeStr(args, &del));
+                                                }
+                                                else if((*$1).find("writeMemory") != string::npos)
+                                                {
+                                                    ARGS_VEC(*$1, *$3, ");\n");
+                                                    $$ = STR(makeStr(args, &del));
+                                                }
+                                                else if((*$1).find("write") != string::npos)
+                                                {
+                                                    ARGS_VEC((*$1).substr(0, (*$1).length() - 1), ", ", *$3, ");\n");
+                                                    $$ = STR(makeStr(args, &del));
                                                 }
                                                 else
                                                 {
-                                                    ARGS_VEC("d->write(args[0], ", *$3, ");\n");
+                                                    ARGS_VEC(((*$1) != "null"?((*$1) + " = "):""), *$3, ";\n");
                                                     $$ = STR(makeStr(args, &del));
                                                 }
                                             } |
@@ -255,9 +251,22 @@ targ:       varname                                                             
             SYMBOL_OPENROUNDED varname SYMBOL_COMMA varname SYMBOL_CLOSEROUNDED {   $$ = $2;    }  |
 	        REG									{
                                                     DEL_VEC($1);
+                                                    string regstr = "";
+
+                                                    switch((*$1)[0])
+                                                    {
+                                                        case 't':
+                                                        case 'd':regstr += "d->write(args[0])";
+                                                            break;
+                                                        case 'n':regstr += "d->write(args[1])";
+                                                            break;
+                                                        case 's':regstr += "d->writeRegister(REG_SP)";
+                                                            break;
+                                                        default: assert("appears to be an invalid destination register.");
+                                                    }
                                                     delArgs(del);
 
-                                                    $$ = NULL;
+                                                    $$ = STR(regstr);
 			        							} |
 			MEMORY                              { $$ = STR("d->writeMemory(address, 0x8 << EXTR(30, 31), "); }
             ;
@@ -314,7 +323,13 @@ expr:       NUM                         {
 
                                             if((*$2) == "+")
                                             {
-                                                ARGS_VEC("ops->add(", *$1, ", ", *$3, ")");
+                                                string cur = *$3;
+                                                //NOTE: special case, if 'offset' is an argument replace it with the expression reading the third operand
+                                                //TODO don't replace if 'offset' has already been seen before as a declared variable
+                                                if(cur == "offset")
+                                                    cur = "d->read(args[2])";
+
+                                                ARGS_VEC("ops->add(", *$1, ", ", cur, ")");
                                                 $$ = STR(makeStr(args, &del));
                                             }
                                             else
@@ -359,7 +374,7 @@ args:       args SYMBOL_COMMA args      {
 
                                             $$ = STR(makeStr(args, &del));
                                         } |
-            varname                     {   $$ = $1;    } |
+            varname                     {   $$ = $1;  } |
             NUM                         {
                                             stringstream out;
                                             out<<$1;
