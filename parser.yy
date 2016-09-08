@@ -138,7 +138,7 @@ string pruneCond(string cond_str) {
 %token          FLAG_CARRY
 %token		    IGNORE
 %token		    UNKNOWN
-%token		    MEMORY
+%token		    <strVal>    MEMORY
 
 %type           <strVal>  program datatype varname targ expr funccall args condblock decl cond asnmt bitmask blockdata
 %type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode
@@ -291,7 +291,13 @@ asnmtsrc:   expr		        {  $$ = $1;	} |
 
                                     $$ = STR(regstr);
                                 } |
-            MEMORY              {   $$ = STR("d->readMemory(address, 0x8 << EXTR(30, 31))");   }
+            MEMORY              {
+                                    DEL_VEC($1);
+
+                                    $$ = STR(string("d->readMemory(address, ") + string((((*$1) == "size")?"d->ldStrLiteralAccessSize(raw))":"0x8 << EXTR(30, 31))")));
+
+                                    delArgs(del);
+                                }
             ;
 
 bitmask:    varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bit ranges not starting at 0 and for custom varname lengths

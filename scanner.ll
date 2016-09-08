@@ -194,14 +194,23 @@ UNKNOWN	    {	return token::UNKNOWN;	}
                     return token::OPER;
 		        }
 
-Mem\[[^\]]+\] {	return token::MEMORY;	}
+Mem\[[^\]]+\] {
+                string matched(yytext);
+
+                string args = matched.substr(matched.find("["), matched.length() - 1);
+                size_t firstcompos = args.find(",");
+                string sizearg = args.substr(firstcompos + 2, args.find(",", firstcompos + 1) - firstcompos - 2);
+                yylval->strVal = new string(sizearg);
+
+                return token::MEMORY;
+              }
 
 AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero|SignExtend|ZeroExtend|Prefetch	      {
                                                                                                 yylval->strVal = new string(yytext);
                                                                                                 return token::FUNCNAME;
                                                                                               }
 
-bit(s\((datasize|[0-9]+)\))?     {  return token::DTYPE_BITS;   }
+bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {  return token::DTYPE_BITS;   }
 
 
     /****************************************/
@@ -251,26 +260,26 @@ Scanner::~Scanner()
 }
 
 void Scanner::initOperandExtractorMap() {
-    operandExtractorMap[string("sub_op")] = string("(EXTR(30, 30) == 1)");
-    operandExtractorMap[string("setflags")] = string("(EXTR(29, 29) == 1)");
-    operandExtractorMap[string("d")] = string("EXTR(0, 4)");
-    operandExtractorMap[string("n")] = string("EXTR(5, 9)");
-    operandExtractorMap[string("condition")] = string("EXTR(0, 4)");
-    operandExtractorMap[string("page")] = string("(EXTR(31, 31) == 1)");
-    operandExtractorMap[string("postindex")] = string("(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)");
-    operandExtractorMap[string("iszero")] = string("(EXTR(24, 24) == 0)");
-    operandExtractorMap[string("bit_val")] = string("EXTR(24, 24)");
-    operandExtractorMap[string("memop")] = string("(EXTR(22, 22)^EXTR(23, 23))");
-    operandExtractorMap[string("signed")] = string("(EXTR(23, 23) == 1)");
-    operandExtractorMap[string("regsize")] = string("d->getRegSize(raw)");
-    operandExtractorMap[string("wback")] = string("(EXTR(24, 24) == 0)");
+    operandExtractorMap["sub_op"] = "(EXTR(30, 30) == 1)";
+    operandExtractorMap["setflags"] = "(EXTR(29, 29) == 1)";
+    operandExtractorMap["d"] = "EXTR(0, 4)";
+    operandExtractorMap["n"] = "EXTR(5, 9)";
+    operandExtractorMap["condition"] = "EXTR(0, 4)";
+    operandExtractorMap["page"] = "(EXTR(31, 31) == 1)";
+    operandExtractorMap["postindex"] = "(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)";
+    operandExtractorMap["iszero"] = "(EXTR(24, 24) == 0)";
+    operandExtractorMap["bit_val"] = "EXTR(24, 24)";
+    operandExtractorMap["memop"] = "(EXTR(22, 22)^EXTR(23, 23))";
+    operandExtractorMap["signed"] = "(EXTR(23, 23) == 1)";
+    operandExtractorMap["regsize"] = "d->getRegSize(raw)";
+    operandExtractorMap["wback"] = "((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)";
 }
 
 void Scanner::initOperatorToFunctionMap() {
-    operatorToFunctionMap[string("+")] = string("ops->add");
-    operatorToFunctionMap[string("==")] = string("ops->isEqual");
-    operatorToFunctionMap[string("&&")] = string("ops->null");
-    operatorToFunctionMap[string("!")] = string("ops->null");
+    operatorToFunctionMap["+"] = "ops->add";
+    operatorToFunctionMap["=="] = "ops->isEqual";
+    operatorToFunctionMap["&&"] = "ops->null";
+    operatorToFunctionMap["!"] = "ops->null";
 }
 
 void Scanner::initIgnoreOperands() {
