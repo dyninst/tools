@@ -127,7 +127,8 @@ bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
 
                                                                                     string operandName = matched.substr(9, idx - 9);
                                                                                     val<<"BaseSemantics::SValuePtr "<<operandName;
-                                                                                    val<<" = d->read(args["<<operandPosMap[operandName]<<"])";
+                                                                                    val<<" = d->"<<(matched.find("address") == string::npos?"read":"effectiveAddress")<<
+                                                                                         "(args["<<operandPosMap[operandName]<<"])";
                                                                                }
                                                                                val<<";\n";
                                                                                labelPos++;

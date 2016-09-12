@@ -182,10 +182,16 @@ decl:       OPERAND                     {  $$ = $1; }   |
             READ_PC                     {  $$ = STR("BaseSemantics::SValuePtr base = d->readRegister(d->REG_PC);\n");   } |
 	        SET_LR			            {  $$ = STR("if(EXTR(31, 31) == 1)\nd->writeRegister(d->findRegister(\"x30\", 64), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
             datatype declblock          {
-                                            ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool ":*$1), *$2);
-                                            DEL_VEC($1, $2);
-
-                                            $$ = STR(makeStr(args, &del));
+                                            if($2 != NULL)
+                                            {
+                                                ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool ":*$1), *$2);
+                                                DEL_VEC($1, $2);
+                                                $$ = STR(makeStr(args, &del));
+                                            }
+                                            else
+                                            {
+                                                $$ = STR("");
+                                            }
                                         }
             ;
 
@@ -228,6 +234,11 @@ asnmt:      targ SYMBOL_EQUAL asnmtsrc       {
                                                 {
                                                     ARGS_VEC((*$1).substr(0, (*$1).length() - 1), ", ", *$3, ");\n");
                                                     $$ = STR(makeStr(args, &del));
+                                                }
+                                                //We ignore declaration of 'offset', since it is anyway encoded in the instruction representation
+                                                else if((*$1) == "offset")
+                                                {
+                                                    $$ = NULL;
                                                 }
                                                 else
                                                 {
