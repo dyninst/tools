@@ -561,3 +561,12 @@ int getMinBits(long l) {
    return n;
 }
 
+void writeStrToFile(const char* filename, long offset, char* str) {
+   FILE* file = fopen(filename, "a+");
+   
+   assert(file != NULL);
+   fseek(file, offset, SEEK_SET);
+   ftruncate(fileno(file), offset);
+   fprintf(file, "%s\n", str);
+   fclose(file);
+}

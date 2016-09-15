@@ -27,6 +27,7 @@
 #include <string>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 namespace StringUtils {
     struct str_cmp {
@@ -223,4 +224,5 @@ int getMinBits(long l);
 
 void removeCharacter(char* buf, int bufLen, char c);
 
+void writeStrToFile(const char* file, long offset, char* str);
 #endif /* _MYSTRING_H_ */
