@@ -227,23 +227,30 @@ bool startHex(char* str) {
 }
 
 void strStripDigits(char* str) {
-   bool inDigits = false;
+   std::string validStartChars = " (){}[]#$*+";
+   std::string validEndChars = " ()[]{},*";
    char* place = str;
-   while (*str) {
-      if (isdigit(*str)) {
-         if (!inDigits) {
-            *place = '#';
+   char* cur = str;
+   while (*cur) {
+      if (isdigit(*cur) || *cur == '-') {
+         char* endNum = NULL;
+         strtod(cur, &endNum);
+         if ((!*endNum || validEndChars.find(*endNum) != std::string::npos) && 
+                (cur == str || 
+                validStartChars.find(*(cur - 1)) != std::string::npos)) {
+
+            *place = '_';
             place++;
+            cur = endNum;
          }
-         inDigits = true;
-      } else {
-         inDigits = false;
-         *place = *str;
-         place++;
       }
-      str++;
+      if (*cur) {
+         *place = *cur;
+         place++;
+         cur++;
+      }
    }
-   *place = *str;
+   *place = '\0';
 }
 
 void strStripHex(char* str) {
