@@ -28,91 +28,107 @@
 
 class Decoder {
 public:
-   Decoder(int (*decodeFunc)(char*, int, char*, int),
-           int (*initFunc)(void),
-           void (*normFunc)(char*, int),
-           const char* name,
-           const char* arch);
-   int decode(char* inst, int nBytes, char* buf, int bufLen);
-   void normalize (char* buf, int bufLen);
-   int getNumBytesUsed(char* inst, int nBytes);
-   const char* getName(void);
-   const char* getArch(void);
-   static void initAllDecoders(void);
-   static void destroyAllDecoders(void);
-   static std::vector<Decoder> getAllDecoders(void);
-   static std::vector<Decoder> getDecoders(char* arch, char* names);
-   static void printAllNames(void);
-   unsigned long getTotalNormalizeTime(void);
-   unsigned long getTotalDecodeTime(void);
-   unsigned long getTotalDecodedInsns(void);
-   const char* name;
-   const char* arch;
+    Decoder(int (*decodeFunc)(char*, int, char*, int),
+            int (*initFunc)(void),
+            void (*normFunc)(char*, int),
+            const char* name,
+            const char* arch);
+    int decode(char* inst, int nBytes, char* buf, int bufLen);
+    void normalize (char* buf, int bufLen);
+    int getNumBytesUsed(char* inst, int nBytes);
+    const char* getName(void);
+    const char* getArch(void);
+    static void initAllDecoders(void);
+    static void destroyAllDecoders(void);
+    static std::vector<Decoder> getAllDecoders(void);
+    static std::vector<Decoder> getDecoders(const char* arch, const char* names);
+    static void printAllNames(void);
+    unsigned long getTotalNormalizeTime(void);
+    unsigned long getTotalDecodeTime(void);
+    unsigned long getTotalDecodedInsns(void);
+    const char* name;
+    const char* arch;
 
 private:
 
-   void (*normFunc)(char*, int);
-   int (*func)(char*, int, char*, int);
+    void (*normFunc)(char*, int);
+    int (*func)(char*, int, char*, int);
 
-   unsigned long totalDecodeTime;
-   unsigned long totalNormTime;
+    unsigned long totalDecodeTime;
+    unsigned long totalNormTime;
 
-   unsigned long totalDecodedInsns;
+    unsigned long totalDecodedInsns;
 };
 
 extern int xedInit(void);
 extern int LLVMInit(void);
 
-extern int  xed_x86_64_decode     (char*, int, char*, int);
-extern void xed_x86_64_norm       (char*, int);
+extern int  xed_x86_64_decode(char*, int, char*, int);
+extern void xed_x86_64_norm(char*, int);
 
-extern int  dyninst_x86_64_decode (char*, int, char*, int);
-extern void dyninst_x86_64_norm   (char*, int);
+extern int  dyninst_x86_64_decode(char*, int, char*, int);
+extern void dyninst_x86_64_norm(char*, int);
 
 extern int  dyninst_aarch64_decode(char*, int, char*, int);
-extern void dyninst_aarch64_norm  (char*, int);
-extern int  dyninst_aarch64_init  (void);
+extern void dyninst_aarch64_norm(char*, int);
+extern int  dyninst_aarch64_init(void);
 
-extern int  gnu_x86_64_decode     (char*, int, char*, int);
-extern void gnu_x86_64_norm       (char*, int);
+extern int  dyninst_ppc_decode(char*, int, char*, int);
+extern void dyninst_ppc_norm(char*, int);
 
-extern int  gnu_aarch64_decode    (char*, int, char*, int);
-extern void gnu_aarch64_norm      (char*, int);
+extern int  gnu_x86_64_decode(char*, int, char*, int);
+extern void gnu_x86_64_norm(char*, int);
 
-extern int  llvm_x86_64_decode    (char*, int, char*, int);
-extern void llvm_x86_64_norm      (char*, int);
+extern int  gnu_aarch64_decode(char*, int, char*, int);
+extern void gnu_aarch64_norm(char*, int);
 
-extern int  llvm_aarch64_decode   (char*, int, char*, int);
-extern void llvm_aarch64_norm     (char*, int);
+extern int  llvm_x86_64_decode(char*, int, char*, int);
+extern void llvm_x86_64_norm(char*, int);
 
-extern int  capstone_x86_64_decode    (char*, int, char*, int);
-extern void capstone_x86_64_norm      (char*, int);
+extern int  llvm_aarch64_decode(char*, int, char*, int);
+extern void llvm_aarch64_norm(char*, int);
 
-extern int  capstone_aarch64_decode   (char*, int, char*, int);
-extern void capstone_aarch64_norm     (char*, int);
+extern int  llvm_ppc_decode(char*, int, char*, int);
+extern void llvm_ppc_norm(char*, int);
 
-extern int  null_aarch64_decode   (char*, int, char*, int);
-extern void null_aarch64_norm     (char*, int);
+extern int  capstone_x86_64_decode(char*, int, char*, int);
+extern void capstone_x86_64_norm(char*, int);
 
-extern int  null_x86_64_decode    (char*, int, char*, int);
-extern void null_x86_64_norm      (char*, int);
+extern int  capstone_aarch64_decode(char*, int, char*, int);
+extern void capstone_aarch64_norm(char*, int);
+
+extern int  capstone_ppc_decode(char*, int, char*, int);
+extern void capstone_ppc_norm(char*, int);
+
+extern int  null_aarch64_decode(char*, int, char*, int);
+extern void null_aarch64_norm(char*, int);
+
+extern int  null_x86_64_decode(char*, int, char*, int);
+extern void null_x86_64_norm(char*, int);
+
+extern int  null_ppc_decode(char*, int, char*, int);
+extern void null_ppc_norm(char*, int);
 
 extern Decoder* dec_xed_x86_64;
 
 extern Decoder* dec_dyninst_x86_64;
 extern Decoder* dec_dyninst_aarch64;
+extern Decoder* dec_dyninst_ppc;
 
 extern Decoder* dec_gnu_x86_64;
 extern Decoder* dec_gnu_aarch64;
 
 extern Decoder* dec_llvm_x86_64;
 extern Decoder* dec_llvm_aarch64;
+extern Decoder* dec_llvm_ppc;
 
 extern Decoder* dec_capstone_x86_64;
 extern Decoder* dec_capstone_aarch64;
+extern Decoder* dec_capstone_ppc;
 
 extern Decoder* dec_null_x86_64;
 extern Decoder* dec_null_aarch64;
+extern Decoder* dec_null_ppc;
 
 
 #endif /* _DECODER_H_ */

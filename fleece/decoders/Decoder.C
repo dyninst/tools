@@ -201,7 +201,7 @@ unsigned long Decoder::getTotalDecodedInsns() {
     return totalDecodedInsns;
 }
 
-std::vector<Decoder> Decoder::getDecoders(char* arch, char* decNames) {
+std::vector<Decoder> Decoder::getDecoders(const char* arch, const char* decNames) {
 
     assert(arch);
 
