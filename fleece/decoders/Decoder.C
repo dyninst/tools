@@ -25,14 +25,18 @@
 Decoder* dec_xed_x86_64;
 Decoder* dec_dyninst_x86_64;
 Decoder* dec_dyninst_aarch64;
+Decoder* dec_dyninst_ppc;
 Decoder* dec_gnu_x86_64;
 Decoder* dec_gnu_aarch64;
 Decoder* dec_llvm_x86_64;
 Decoder* dec_llvm_aarch64;
+Decoder* dec_llvm_ppc;
 Decoder* dec_capstone_x86_64;
 Decoder* dec_capstone_aarch64;
+Decoder* dec_capstone_ppc;
 Decoder* dec_null_x86_64;
 Decoder* dec_null_aarch64;
+Decoder* dec_null_ppc;
 
 Decoder::Decoder(
         int (*decodeFunc)(char*, int, char*, int),
@@ -40,21 +44,22 @@ Decoder::Decoder(
         void (*normFunction)(char*, int),
         const char* name,
         const char* arch) {
-
-   func = decodeFunc;
-   normFunc = normFunction;
-   
-   // Execute any initialization required for this decoder.
-   if (initFunc != NULL) {
-      assert((*initFunc)() != -1);
-   }
-   
-   this->arch = arch;
-   this->name = name;
-
-   totalNormTime = 0;
-   totalDecodeTime = 0;
-   totalDecodedInsns = 0;
+ 
+    func = decodeFunc;
+    normFunc = normFunction;
+    
+    // Execute any initialization required for this decoder.
+    if (initFunc != NULL) {
+        int rc = (*initFunc)();
+        assert(rc != -1);
+    }
+    
+    this->arch = arch;
+    this->name = name;
+ 
+    totalNormTime = 0;
+    totalDecodeTime = 0;
+    totalDecodedInsns = 0;
 }
 
 void Decoder::initAllDecoders()
@@ -65,6 +70,8 @@ void Decoder::initAllDecoders()
             &dyninst_x86_64_norm, "dyninst", "x86_64");
     dec_dyninst_aarch64 = new Decoder(&dyninst_aarch64_decode, 
             &dyninst_aarch64_init, &dyninst_aarch64_norm, "dyninst", "aarch64");
+    dec_dyninst_ppc = new Decoder(&dyninst_ppc_decode, 
+            NULL, &dyninst_ppc_norm, "dyninst", "ppc");
     dec_gnu_x86_64 = new Decoder(&gnu_x86_64_decode, NULL, 
             &gnu_x86_64_norm, "gnu", "x86_64");
     dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
@@ -73,14 +80,20 @@ void Decoder::initAllDecoders()
             &llvm_x86_64_norm, "llvm", "x86_64");
     dec_llvm_aarch64 = new Decoder(&llvm_aarch64_decode, &LLVMInit, 
             &llvm_aarch64_norm, "llvm", "aarch64");
+    dec_llvm_ppc = new Decoder(&llvm_ppc_decode, &LLVMInit, 
+            &llvm_ppc_norm, "llvm", "ppc");
     dec_capstone_x86_64 = new Decoder(&capstone_x86_64_decode, NULL, 
             &capstone_x86_64_norm, "capstone", "x86_64");
     dec_capstone_aarch64 = new Decoder(&capstone_aarch64_decode, NULL, 
             &capstone_aarch64_norm, "capstone", "aarch64");
+    dec_capstone_ppc = new Decoder(&capstone_ppc_decode, NULL, 
+            &capstone_ppc_norm, "capstone", "ppc");
     dec_null_x86_64 = new Decoder(&null_x86_64_decode, NULL, 
             &null_x86_64_norm, "null", "x86_64");
     dec_null_aarch64 = new Decoder(&null_aarch64_decode, NULL, 
             &null_aarch64_norm, "null", "aarch64");
+    dec_null_ppc = new Decoder(&null_ppc_decode, NULL, 
+            &null_ppc_norm, "null", "ppc");
 }
 
 void Decoder::destroyAllDecoders()
@@ -88,96 +101,104 @@ void Decoder::destroyAllDecoders()
     delete dec_xed_x86_64;
     delete dec_dyninst_x86_64;
     delete dec_dyninst_aarch64;
+    delete dec_dyninst_ppc;
     delete dec_gnu_x86_64;
     delete dec_gnu_aarch64;
     delete dec_llvm_x86_64;
     delete dec_llvm_aarch64;
+    delete dec_llvm_ppc;
     delete dec_capstone_x86_64;
     delete dec_capstone_aarch64;
+    delete dec_capstone_ppc;
     delete dec_null_x86_64;
     delete dec_null_aarch64;
+    delete dec_null_ppc;
 }
 
 std::vector<Decoder> Decoder::getAllDecoders() {
-   std::vector<Decoder> dec;
-   dec.push_back(*dec_llvm_x86_64);
-   dec.push_back(*dec_llvm_aarch64);
-   dec.push_back(*dec_gnu_x86_64);
-   dec.push_back(*dec_gnu_aarch64);
-   dec.push_back(*dec_dyninst_x86_64);
-   dec.push_back(*dec_dyninst_aarch64);
-   dec.push_back(*dec_xed_x86_64);
-   dec.push_back(*dec_capstone_x86_64);
-   dec.push_back(*dec_capstone_aarch64);
-   dec.push_back(*dec_null_aarch64);
-   dec.push_back(*dec_null_x86_64);
-   return dec;
+    std::vector<Decoder> dec;
+    dec.push_back(*dec_llvm_x86_64);
+    dec.push_back(*dec_llvm_aarch64);
+    dec.push_back(*dec_llvm_ppc);
+    dec.push_back(*dec_gnu_x86_64);
+    dec.push_back(*dec_gnu_aarch64);
+    dec.push_back(*dec_dyninst_x86_64);
+    dec.push_back(*dec_dyninst_aarch64);
+    dec.push_back(*dec_dyninst_ppc);
+    dec.push_back(*dec_xed_x86_64);
+    dec.push_back(*dec_capstone_x86_64);
+    dec.push_back(*dec_capstone_aarch64);
+    dec.push_back(*dec_capstone_ppc);
+    dec.push_back(*dec_null_aarch64);
+    dec.push_back(*dec_null_x86_64);
+    dec.push_back(*dec_null_ppc);
+    return dec;
 }
 
 void Decoder::printAllNames(void) {
-   std::vector<Decoder> allDecoders = getAllDecoders();
-   for (size_t i = 0; i < allDecoders.size(); i++) {
-      Decoder d = allDecoders[i];
-      std::cout << "\t" << d.arch << ":\t" << d.name << "\n";
-   }
+    std::vector<Decoder> allDecoders = getAllDecoders();
+    for (size_t i = 0; i < allDecoders.size(); i++) {
+        Decoder d = allDecoders[i];
+        std::cout << "\t" << d.arch << ":\t" << d.name << "\n";
+    }
 }
 
 void Decoder::normalize(char* buf, int bufLen) {
 
-   struct timespec startTime;
-   struct timespec endTime;
+    struct timespec startTime;
+    struct timespec endTime;
 
-   clock_gettime(CLOCK_MONOTONIC, &startTime);
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
 
-   normFunc(buf, bufLen);
-   clock_gettime(CLOCK_MONOTONIC, &endTime);
+    normFunc(buf, bufLen);
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
 
-   totalNormTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                 (endTime.tv_nsec - startTime.tv_nsec);
+    totalNormTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                  (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-   totalDecodedInsns++;
+    totalDecodedInsns++;
 
-   struct timespec startTime;
-   struct timespec endTime;
+    struct timespec startTime;
+    struct timespec endTime;
 
-   clock_gettime(CLOCK_MONOTONIC, &startTime);
-   int rc = func(inst, nBytes, buf, bufLen);
-   clock_gettime(CLOCK_MONOTONIC, &endTime);
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
+    int rc = func(inst, nBytes, buf, bufLen);
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
 
-   totalDecodeTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+    totalDecodeTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                    (endTime.tv_nsec - startTime.tv_nsec);
    
-   return rc;
+    return rc;
 }
 
 const char* Decoder::getArch(void) {
-   return arch;
+    return arch;
 }
 
 const char* Decoder::getName(void) {
-   return name;
+    return name;
 }
 
 int Decoder::getNumBytesUsed(char* inst, int nBytes) {
-   MappedInst* mInst = new MappedInst(inst, nBytes, this, false);
-   int nUsed = mInst->getNumUsedBytes();
-   delete mInst;
-   return nUsed;
+    MappedInst* mInst = new MappedInst(inst, nBytes, this, false);
+    int nUsed = mInst->getNumUsedBytes();
+    delete mInst;
+    return nUsed;
 }
 
 unsigned long Decoder::getTotalDecodeTime() {
-   return totalDecodeTime;
+    return totalDecodeTime;
 }
 
 unsigned long Decoder::getTotalNormalizeTime() {
-   return totalNormTime;
+    return totalNormTime;
 }
 
 unsigned long Decoder::getTotalDecodedInsns() {
-   return totalDecodedInsns;
+    return totalDecodedInsns;
 }
 
 std::vector<Decoder> Decoder::getDecoders(char* arch, char* decNames) {
@@ -186,7 +207,7 @@ std::vector<Decoder> Decoder::getDecoders(char* arch, char* decNames) {
 
     /* Get a list of all of the availble decoders */
     std::vector<Decoder> curDecoders = getAllDecoders();
-
+     
     /* Remove all decoders that don't apply to our architecture */
     auto decode_iter = curDecoders.begin();
     while(decode_iter != curDecoders.end()) {
