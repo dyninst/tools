@@ -174,6 +174,7 @@ void init_aarch64() {
     addNumberedRegSet("wreg", "w", 0, 31);
     addNumberedRegSet("xreg", "x", 0, 31);
     addNumberedRegSet("sreg", "s", 0, 31);
+    addNumberedRegSet("breg", "b", 0, 31);
     addNumberedRegSet("dreg", "d", 0, 31);
     addNumberedRegSet("qreg", "q", 0, 31);
     addNumberedRegSet("hreg", "h", 0, 31);
