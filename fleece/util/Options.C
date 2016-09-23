@@ -17,8 +17,6 @@
  * along with this software; if not, see www.gnu.org/licenses
  */
 
-#include <assert.h>
-
 #include "Options.h"
 
 /* Global definitions for argc and argv */
@@ -47,7 +45,7 @@ void Options::parse(int argc, char** argv) {
 
 }
 
-char* Options::get(const char* str) {
+const char* Options::get(const char* str) {
     assert(argv); /* parse must be called first */
 
     for (int i = 0; i < argc; i++) {

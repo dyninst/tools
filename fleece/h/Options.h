@@ -21,6 +21,7 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
+#include <assert.h>
 #include <iostream>
 #include <string.h>
 
@@ -44,7 +45,7 @@ namespace Options {
      * Get the argument that starts with str. Returns
      * the argument on success, NULL on failure.
      */
-    char* get(const char* str);
+    const char* get(const char* str);
 
     /**
      * Deallocates memory allocated by parse().
