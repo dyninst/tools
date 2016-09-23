@@ -23,5 +23,6 @@ void place0x          (char* buf, int bufLen);
 void removeHexBrackets(char* buf, int bufLen);
 void removeADRPZeroes (char* buf, int bufLen);
 void commaBeforeSpace (char* buf, int bufLen);
+void removeEmptyParens(char* buf, int bufLen);
 
 #endif // _NORMALIZATION_H_

@@ -197,6 +197,24 @@ void spaceAfterCommas(char* buf, int bufLen) {
 
 }
 
+void removeEmptyParens(char* buf, int bufLen) {
+   
+    char* cur = buf;
+    char* place = buf;
+    while (*cur) {
+        if (*cur == '(' && *(cur + 1) == ')') {
+            cur += 2;
+        } else {
+            if (cur != place) {
+                *place = *cur;
+            }
+            place++;
+            cur++;
+        }
+    }
+    *place = *cur;
+}
+
 void removeComments(char* buf, int bufLen) {
    
    char* cur = buf;
