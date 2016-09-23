@@ -1,8 +1,8 @@
 
 #include "Normalization.h"
+#include <iostream>
 
 bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen) {
-// DISABLE SYSTEM REGISTER OPERATIONS
    if (nBytes >= 4 && inst[3] == (char)0xD5) {
       
       if ((inst[2] & 0xF0) == 0x30 ||
@@ -212,97 +212,32 @@ void removeComments(char* buf, int bufLen) {
    }
 }
 
+void convertToHex(char* buf, int bufLen) {
+    char tmpBuf[bufLen];
+    char* end; 
+    long long int val = strtoll(buf, &end, 10);
+    snprintf(&tmpBuf[0], bufLen, "0x%llx%s", val, end);
+    strncpy(buf, &tmpBuf[0], bufLen);
+}
+
 void decToHexConstants(char* buf, int bufLen) {
-
-   if (!strncmp(buf, "fmov", 4)) {
-      return;
-   }
-
-   bool inDigits = false;
-
-   char* tmpBuf = (char*)malloc(bufLen);
-   
-   assert(tmpBuf != NULL);
-
-   bzero(tmpBuf, bufLen);
-
    char* cur = buf;
-   char* place = tmpBuf;
 
-   while (*cur && place < tmpBuf + bufLen) {
-      if (isalnum(*cur)) {
-         if (inDigits) {
-            *place = *cur;
-            place++;
-            cur++;
-         } else if (*(cur - 1) == '#' || *(cur - 1) == ' ' || 
-                   (*(cur - 1) == '-' && (*(cur - 2) == '#' || 
-                    *(cur - 2) == ' '))) {
+   while (*cur) {
+        while (*cur && (isspace(*cur) || *cur == '(' || *cur == '$')) {
+            ++cur;
+        }
 
-            char* tmp = cur;
+        if ((*cur != '0' || *(cur + 1) != 'x') && 
+            (isdigit(*cur) || *(cur) == '-')) {
+            
+            convertToHex(cur, buf + bufLen - cur);
+        }
 
-            while (*tmp && isdigit(*tmp)) {
-               tmp++;
-            }
-
-            if (!isalnum(*tmp)) {
-               
-               // We found the start and end of a number.
-               if (cur != buf && *(cur - 1) == '-') {
-                  cur--;
-               }
-
-               char stored = *tmp;
-               *tmp = 0;
-
-               // Perform transformation here.
-               char* end;
-               long long int val = strtoll(cur, &end, 10);
-               cur = end;
-               assert(*end == 0);
-
-               if (*(place - 1) == '-') {
-                  place--;
-               }
-
-               if (*(place - 1) == '#') {
-                  place--;
-               }
-
-               *place = '0';
-               place++;
-               *place = 'x';
-               place++;
-
-               sprintf(place, "%llx", val);
-               while (*place) {
-                  place++;
-               }
-
-               *tmp = stored;
-            } else {
-               *place = *cur;
-               place++;
-               cur++;
-               inDigits = true;
-            }
-         } else {
-            *place = *cur;
-            place++;
-            cur++;
-         }
-      } else {
-         *place = *cur;
-         place++;
-         cur++;
-         inDigits = false;
-      }
-   }
-   *place = 0;
-
-   strncpy(buf, tmpBuf, bufLen);
-   buf[bufLen - 1] = 0;
-   free(tmpBuf);
+        while (*cur && (!isspace(*cur) && *cur != '(')) {
+            ++cur;
+        }
+    }
 }
 
 void removeHexBrackets(char* buf, int bufLen) {
@@ -371,10 +306,6 @@ bool isAarch64Reg(char* buf, int bufLen) {
 
 void place0x(char* buf, int bufLen) {
    
-   if (!strncmp(buf, "fmov", 4)) {
-      return;
-   }
-
    char* tmp = (char*)malloc(bufLen);
 
    char* place = tmp;
