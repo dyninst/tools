@@ -253,27 +253,52 @@ void strStripDigits(char* str) {
    *place = '\0';
 }
 
-void strStripHex(char* str) {
-   str++;
-   char* newStr = str;
-   bool inHex = false;
-   while (*str) {
+void strStripHex(char* buf) {
+    char* str = buf;
+    char* newStr = str;
+   
+    /* We'll be skipping over copying hex characters. */
+    bool inHex = false;
+    while (*str) {
 
-      if (inHex) {
-         if (!isHex(*str)) {
-            inHex = false;
-         }
-      }
+       /* If we're in hex, just make sure we haven't hit non-hex characters. */
+       if (inHex) {
+          if (!isHex(*str)) {
+             inHex = false;
+          }
+       }
 
-      if (!inHex) {
-         *newStr = *str;
-         newStr++;
-         inHex = startHex(str);
-      }
+       /* If we aren't in hex, or we hit a non-hex character, assess whether or
+        * not we are starting a new hex string.*/
+       if (!inHex) {
 
-      str++;
-   }
-   *newStr = 0;
+           /* Negative hex strings will begin with a '-', followed by 0x */
+           if (!strncmp(str, "-0x", 3)) {
+
+               /* We use "0x" to denote that a hex value was found here, so 
+                * copy that into place over the "-0x". */
+               strncpy(newStr, "0x", 2);
+               newStr += 2;
+               str += 2;
+               inHex = true;
+           } else {
+
+               /* The current character isn't a part of a hex string, so copy 
+                *it. */
+               *newStr = *str;
+               newStr++;
+            
+               /* If we aren't at a "-0x" string, check if we're entering a hex
+                * string by seeing if we're at the 'x' in "0x". */
+               if (str != buf) {
+                   inHex = startHex(str);
+               }
+           }
+        }
+
+        str++;
+    }
+    *newStr = 0;
 }
 
 void TokenList::stripDigits() {
