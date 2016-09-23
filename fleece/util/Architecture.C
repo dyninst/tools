@@ -147,26 +147,8 @@ void init_x86_64() {
    addNumberedRegSet("%xmm_reg", "%xmm", 0, 15);   
    addNumberedRegSet("%ymm_reg", "%ymm", 0, 15);   
    addNumberedRegSet("%zmm_reg", "%zmm", 0, 31);   
+   addNumberedRegSet("k_reg", "k", 0, 7);
 
-   // Rep prefixes are not truly a register set, but I want to have the same
-   // effect. Seeing one rep prefix is equivalent to seeing any of the others,
-   // much like a register in a register set.
-   RegisterSet* rep_prefixes = new RegisterSet("rp_prefix");
-
-   rep_prefixes->addRegName("repne");
-   rep_prefixes->addRegName("repnz");
-   rep_prefixes->addRegName("repe");
-   rep_prefixes->addRegName("repz");
-   rep_prefixes->addRegName("rep");
-
-   regSets.push_back(rep_prefixes);
-
-   Alias::addAlias("jz", "je");
-   Alias::addAlias("ja", "jnbe");
-   Alias::addAlias("jnb", "jae");
-   Alias::addAlias("jnl", "jge");
-   Alias::addAlias("jnle", "jg");
-   Alias::addAlias("jnz", "jne");
 }
 
 void init_aarch64() {
