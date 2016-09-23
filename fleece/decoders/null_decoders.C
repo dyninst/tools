@@ -33,3 +33,11 @@ int null_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 void null_x86_64_norm(char* buf, int bufLen) {
    return;
 }
+
+int null_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
+   return -1;
+}
+
+void null_ppc_norm(char* buf, int bufLen) {
+   return;
+}
