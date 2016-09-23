@@ -13,7 +13,7 @@ class Mask {
 
 public:
 
-   Mask(char* strMask);
+   Mask(const char* strMask);
 
    ~Mask();
 

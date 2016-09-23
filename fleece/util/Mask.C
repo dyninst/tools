@@ -1,7 +1,7 @@
 
 #include "Mask.h"
 
-char* getPartialMask(char* strMask, int maskLen, char symbol) {
+char* getPartialMask(const char* strMask, int maskLen, char symbol) {
    char* partMask = (char*)malloc(maskLen);
    assert(partMask != NULL);
    bzero(partMask, maskLen);
@@ -16,7 +16,7 @@ char* getPartialMask(char* strMask, int maskLen, char symbol) {
    return partMask;
 }
 
-Mask::Mask(char* strMask) {
+Mask::Mask(const char* strMask) {
    assert(strMask != NULL && *strMask && "NULL string mask!");
 
    maskLen = (strlen(strMask) + 7) / 8;
