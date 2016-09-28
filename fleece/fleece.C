@@ -40,6 +40,7 @@
 #include "StringUtils.h"
 
 #define DECODED_BUFFER_LEN 256
+#define FLUSH_FREQ 100
 
 int main(int argc, char** argv) {
 
@@ -74,7 +75,7 @@ int main(int argc, char** argv) {
    bool pipe     = (Options::get("-pipe")  != NULL);
 
    // Seed the random number generator with the time or a provided seed.
-   char* strSeed = Options::get("-seed=");
+   const char* strSeed = Options::get("-seed=");
    if (strSeed == NULL) {
       srand(time(NULL));
    } else {
@@ -83,13 +84,13 @@ int main(int argc, char** argv) {
 
    // Determine the instruction length. The default value is 15 bytes.
    unsigned long insnLen = 15;
-   char* strInsnLen = Options::get("-len=");
+   const char* strInsnLen = Options::get("-len=");
    if (strInsnLen != NULL) {
       insnLen = strtoul(strInsnLen, NULL, 10);
    }
 
    // Check which architecture was specified.
-   char* archStr = Options::get("-arch=");
+   const char* archStr = Options::get("-arch=");
    if (!archStr) {
       std::cerr << "Error: An architecture must be specified!\n";
       exit(1);
@@ -102,7 +103,7 @@ int main(int argc, char** argv) {
 
    // Get a list of all decoders that should be used, from the comma separated
    // list of names on the command line
-   char* decStr  = Options::get("-decoders=");
+   const char* decStr = Options::get("-decoders=");
 
    // The Decoder class has a static method to match architecture and decoder
    // strings.
@@ -121,7 +122,7 @@ int main(int argc, char** argv) {
    // Verify that the user has provided a byte source or specified a number of
    // random instruction.
    unsigned long nRuns = 0;
-   char* strRuns = Options::get("-n=");
+   const char* strRuns = Options::get("-n=");
    if (strRuns == NULL && random) {
       std::cout << "You must specify \"-n=<# of insns>\" with \"-rand\"\n";
       exit(0);
@@ -130,7 +131,7 @@ int main(int argc, char** argv) {
    }
 
    // Get the specified output file
-   char* outputFilename = Options::get("-o=");
+   const char* outputFilename = Options::get("-o=");
    FILE* outF = stdout;
    if (outputFilename != NULL) {
       outF = fopen(outputFilename, "w+");
@@ -138,7 +139,7 @@ int main(int argc, char** argv) {
    assert(outF != NULL && "Must have stdout or output file available!");
 
    // If the user passes in a mask value, read that in now.
-   char* strMask = Options::get("-mask=");
+   const char* strMask = Options::get("-mask=");
    bool hasMask = (strMask != NULL);
    Mask* mask = NULL;
 
@@ -146,9 +147,6 @@ int main(int argc, char** argv) {
    if (hasMask) {
       mask = new Mask(strMask);
    }
-
-   /* Make sure we used all of the arguments */
-   Options::check_unused();
 
    /************************************************************************/
    /*                   END OF COMMAND LINE ARG PARSING                    */
@@ -174,10 +172,10 @@ int main(int argc, char** argv) {
    }
 
    // Instantiate a reporting context with the chosen output file.
-   ReportingContext* repContext = new ReportingContext(outF);
+   ReportingContext* repContext = new ReportingContext(outF, FLUSH_FREQ);
    assert(repContext != NULL && "Reporting context should not be null!");
 
-   // Create a hashcounter for all of the seen formats when queuing new
+   // Create a map as a counter for all of the seen formats when queuing new
    // instructions.
    std::map<char*, int, StringUtils::str_cmp> seenMap;
    std::queue<char*> remainingInsns;
@@ -239,17 +237,14 @@ int main(int argc, char** argv) {
          
          // Read from stdin if we're in pipe mode.
          pipeEmpty = (getStdinBytes(curInsn, insnLen) == -1);
+         if (pipeEmpty) {
+            break;
+         }
       } else {
          
          // If insns are not random, take them from the queue.
          curInsn = remainingInsns.front();
          remainingInsns.pop();
-      }
-
-      // I know break statements are evil, but if the pipe is empty in pipe
-      // mode, the last value isn't valid, so break from the input loop.
-      if (pipe && pipeEmpty) {
-         break;
       }
 
       // If the user selected to see the instruction before decode, print it
@@ -261,7 +256,6 @@ int main(int argc, char** argv) {
          }
          std::cout << "\n" << std::dec;
       }
-
       
       // Use each decoder to decode the instruction.
       for (j = 0; j < decCount; j++) {
@@ -284,7 +278,7 @@ int main(int argc, char** argv) {
          if (norm) {
             decoders[j].normalize(decBufs[j], DECODED_BUFFER_LEN);
          }
-        
+         
       }
 
       // Process the resulting decoding and report it if necessary
@@ -294,6 +288,7 @@ int main(int argc, char** argv) {
          curInsn, 
          insnLen
       );
+      
 
       if (!random && !pipe) {
 
