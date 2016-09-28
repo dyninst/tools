@@ -227,7 +227,7 @@ bool startHex(char* str) {
 }
 
 void strStripDigits(char* str) {
-   std::string validStartChars = " (){}[]#$*+";
+   std::string validStartChars = " (){}[]#$*+:";
    std::string validEndChars = " ()[]{},*";
    char* place = str;
    char* cur = str;
