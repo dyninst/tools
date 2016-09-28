@@ -1,6 +1,5 @@
 
 #include "Normalization.h"
-#include <iostream>
 
 bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen) {
    if (nBytes >= 4 && inst[3] == (char)0xD5) {
