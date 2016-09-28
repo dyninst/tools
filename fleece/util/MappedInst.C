@@ -39,55 +39,136 @@ std::ostream& operator<<(std::ostream& s, MappedInst& m){
    }
    return s;
 }
+
+bool MappedInst::isFirstByteRemovablePrefix() {
+    
+    char startBuf[DECODING_BUFFER_SIZE];
+    char* startStr = &startBuf[0];
+    
+    char newBuf[DECODING_BUFFER_SIZE];
+    char* newStr = &newBuf[0];
+   
+    bool success = !decoder->decode(bytes,
+                                    nBytes,
+                                    startStr, 
+                                    DECODING_BUFFER_SIZE);
+    
+    if (!success) {
+        return false;
+    }
+
+    if (norm) {
+        decoder->normalize(startStr, DECODING_BUFFER_SIZE);
+    }
+
+    success = !decoder->decode(bytes + 1,
+                               nBytes - 1,
+                               newStr, 
+                               DECODING_BUFFER_SIZE);
+
+    if (!success) {
+        return false;
+    }
+
+    if (norm) {
+        decoder->normalize(newStr, DECODING_BUFFER_SIZE);
+    }
+
+    if (!strcmp(startStr, newStr)) {
+        //std::cout << "FOUND UNPRINTED PREFIX!\n";
+        return true;
+    }
+
+    while (*startStr && !isspace(*startStr)) {
+        startStr++;
+    }
+    if (!*startStr) {
+        return false;
+    }
+    startStr++;
+   
+    if (!strcmp(startStr, newStr)) {
+        //std::cout << "FOUND REMOVABLE PREFIX IN:\n"; 
+        //std::cout << "\t" << &startBuf[0] << "\n";
+        //std::cout << "\t" << newStr << "\n";
+        return true;
+    }
+
+    return false;
+
+}
+
+void MappedInst::deleteRemovablePrefixes() {
+    char* baseBytes = bytes;
+    while (isFirstByteRemovablePrefix()) {
+        bytes++;
+        nBytes--;
+    }
+    if (bytes == baseBytes) {
+        return;
+    }
+
+    char* newStartBytes = bytes;
+    bytes = (char*)malloc(nBytes);
+    assert(bytes != NULL);
+    
+    memcpy(bytes, newStartBytes, nBytes);
+    free(baseBytes);
+}
    
 void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
-   char* decStr = (char*)malloc(DECODING_BUFFER_SIZE);
-   assert(decStr != NULL);
+  
+    char oldNBytes = nBytes;
+    char oldBytes[nBytes];
+    memcpy(oldBytes, bytes, nBytes);
+    deleteRemovablePrefixes();
 
-   bool success = !decoder->decode(bytes,
-                                   nBytes,
-                                   decStr, 
-                                   DECODING_BUFFER_SIZE);
-   if (norm) {
-      decoder->normalize(decStr, DECODING_BUFFER_SIZE);
-   }
+    char decBuf[DECODING_BUFFER_SIZE];
+    char* decStr = &decBuf[0];
 
-   if (success) {
-      TokenList tList(decStr);
-      tList.stripHex();
-      //tList.stripDigits();
-      int len = tList.getTotalBytes() + 64;
-      char* hcString = (char*)malloc(len);
-      assert(hcString != NULL);
+    bool success = !decoder->decode(bytes,
+                                    nBytes,
+                                    decStr, 
+                                    DECODING_BUFFER_SIZE);
+    if (norm) {
+        decoder->normalize(decStr, DECODING_BUFFER_SIZE);
+    }
 
-      tList.fillBuf(hcString, len);
+    if (success) {
+        TokenList tList(decStr);
+        if (tList.hasError()) {
+            return;
+        }
+        tList.stripHex();
+        tList.stripDigits();
+        int len = tList.getTotalBytes() + 64;
+        char* hcString = (char*)malloc(len);
+        assert(hcString != NULL);
 
-      Architecture::replaceRegSets(hcString, len);
+        tList.fillBuf(hcString, len);
 
-      if (hc->insert(std::make_pair(hcString, 1)).second) {
-         std::cout << "Queue: " << hcString << " \t";
-         for (size_t k = 0; k < nBytes; k++) {
-            std::cout << std::hex << std::setfill('0') << std::setw(2)
-                << (unsigned int)(unsigned char)bytes[k] << " ";
-         }
-         std::cout << "\n" << std::dec;
-         char* queuedBytes = (char*)malloc(nBytes);
-         bcopy(bytes, queuedBytes, nBytes);
-         queue->push(queuedBytes);
-      }
+        Architecture::replaceRegSets(hcString, len);
 
-      free(hcString);
-   }
+        if (hc->insert(std::make_pair(hcString, 1)).second) {
+         
+            std::cout << decoder->getName() << " Queue: " << hcString << "\n";
+            char* queuedBytes = (char*)malloc(nBytes);
+            bcopy(bytes, queuedBytes, nBytes);
+            queue->push(queuedBytes);
+        } else {
+            free(hcString);
+        }
 
-   free(decStr);
-
+    }
+    nBytes = oldNBytes;
+    free(bytes);
+    bytes = (char*)malloc(nBytes);
+    assert(bytes != NULL);
+    memcpy(bytes, oldBytes, nBytes);
 }
 
 void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
    
-   char* decStr = (char*)malloc(DECODING_BUFFER_SIZE);
-   assert(decStr != NULL);
-
    int nBits = 8 * nBytes;
 
    for (int i = 0; i < nBits; i++) {
@@ -95,27 +176,19 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
       if (bitTypes[i] != BIT_TYPE_SWITCH) {
          continue;
       }
-
       flipBufferBit(bytes, i);
-      
       for (int j = i + 1; j < nBits; j++) {
-
          if (bitTypes[j] != BIT_TYPE_SWITCH) {
             continue;
          }
-
          flipBufferBit(bytes, j);
-
          enqueueInsnIfNew(queue, hc);
-         
          flipBufferBit(bytes, j);
       }
-
       //printf("%s %d\n", decStr, bitTypes[i]);
       flipBufferBit(bytes, i);
    }
   
-   free(decStr);
    return;
 }
 

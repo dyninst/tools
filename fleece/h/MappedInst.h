@@ -59,6 +59,8 @@ private:
    void map(void);
    void mapBitTypes(BitType* bitTypes);
    void makeSimpleMap(BitType* bTypes, TokenList* tokens);
+   bool isFirstByteRemovablePrefix();
+   void deleteRemovablePrefixes();
    //int findOperandValue(BitType* bitTypes, char* val, int operandNum, int bitCount);
    //void confirmHexOperand(BitType* bitTypes, char* operand, int operandNum);
    //void confirmHexBits(BitType* bitTypes, char* decInsn);
