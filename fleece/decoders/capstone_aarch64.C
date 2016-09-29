@@ -95,15 +95,16 @@ int capstone_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void capstone_aarch64_norm(char* buf, int bufLen) {
-    removePounds(buf, bufLen);
-    removeExtraZeroesFromFmovImm(buf, bufLen);
-    decToHexConstants(buf, bufLen);
+    //removePounds(buf, bufLen);
+    //removeExtraZeroesFromFmovImm(buf, bufLen);
+    //decToHexConstants(buf, bufLen);
     makeIndexesDecimal(buf, bufLen);
-    makeHexConstantsPositive(buf, bufLen);
+    /*makeHexConstantsPositive(buf, bufLen);
     aliasMovz(buf, bufLen);
     aliasMovn(buf, bufLen);
     aliasIns(buf, bufLen);
     trimHexFs(buf, bufLen);
     trimHexZeroes(buf, bufLen);
     removeADRPZeroes(buf, bufLen);
+    */
 }
