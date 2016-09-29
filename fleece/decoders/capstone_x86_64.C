@@ -31,7 +31,7 @@ int capstone_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
    }
    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 
-   int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0x1000, 0, &insn);
+   int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0, 0, &insn);
    
    if (nInsns < 1) {
       return -1;
@@ -45,5 +45,4 @@ int capstone_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void capstone_x86_64_norm(char* buf, int bufLen) {
-
 }
