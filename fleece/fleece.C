@@ -123,8 +123,8 @@ int main(int argc, char** argv) {
    // random instruction.
    unsigned long nRuns = 0;
    const char* strRuns = Options::get("-n=");
-   if (strRuns == NULL && random) {
-      std::cout << "You must specify \"-n=<# of insns>\" with \"-rand\"\n";
+   if (strRuns == NULL && !pipe) {
+      std::cout << "You must specify \"-n=<# of insns>\" or \"-pipe\"\n";
       exit(0);
    } else if (random) {
       nRuns = strtoul(strRuns, NULL, 10);
@@ -180,11 +180,16 @@ int main(int argc, char** argv) {
    std::map<char*, int, StringUtils::str_cmp> seenMap;
    std::queue<char*> remainingInsns;
 
-   // Create an initial random instructions for the queue.
-   randomizeBuffer(baseInsn, insnLen);
+    if (!random && !pipe) {
+        for (i = 0; i < nRuns; i++) {
+            // Create an initial random instructions for the queue.
+            randomizeBuffer(baseInsn, insnLen);
 
-   // Push the random instruction onto the queue.
-   remainingInsns.push(baseInsn);
+            // Push the random instruction onto the queue.
+            remainingInsns.push(baseInsn);
+            baseInsn = (char*)malloc(insnLen);
+        }
+    }
 
    // Record the time reported and report stats to std::cerr regularly.
    unsigned long lastTime = 0;
