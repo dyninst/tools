@@ -2,12 +2,12 @@
 #define _ARCHITECTURE_H_
 
 #include <string>
-#include <iostream>
 #include "Alias.h"
 #include "RegisterSet.h"
 
 namespace Architecture {
-   void init(char* arch);
+   extern std::string name;
+   void init(const char* arch);
    void replaceRegSets(char* buf, int bufLen);
    void destroy();
 }
