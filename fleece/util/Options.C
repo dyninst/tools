@@ -77,6 +77,7 @@ void Options::check_unused()
 void Options::destroy()
 {
     for(int i = 0;i < Options::argc;i++)
-        delete argv[i];
-    delete argv;
+        delete [] argv[i];
+    delete [] argv;
+    delete [] args_used;
 }
