@@ -148,7 +148,7 @@ void xed_x86_64_norm(char* buf, int bufLen) {
    cleanSpaces(buf, bufLen);
    toLowerCase(buf, bufLen);
    spaceAfterCommas(buf, bufLen);
-   trimHexZeroes(buf, bufLen);
+   /*trimHexZeroes(buf, bufLen);
    trimHexFs(buf, bufLen);
 
    std::string str(buf);
@@ -229,6 +229,7 @@ void xed_x86_64_norm(char* buf, int bufLen) {
    if (buf[str.length() - 1] == ' ') {
       buf[str.length() - 1] = 0;
    }
+   */
 }
 
 int xed_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
