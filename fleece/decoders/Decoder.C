@@ -158,13 +158,14 @@ void Decoder::normalize(char* buf, int bufLen) {
 }
 
 int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen) {
-
+    
     totalDecodedInsns++;
 
     struct timespec startTime;
     struct timespec endTime;
 
     clock_gettime(CLOCK_MONOTONIC, &startTime);
+    *buf = 0;
     int rc = func(inst, nBytes, buf, bufLen);
     clock_gettime(CLOCK_MONOTONIC, &endTime);
 
@@ -283,7 +284,7 @@ std::vector<Decoder> Decoder::getDecoders(const char* arch, const char* decNames
     }
 
     /* Clean up the copy that we made */
-    delete decCopyOrig;
+    delete [] decCopyOrig;
 
     /* Return the filtered list of decoders */
     return curDecoders;
