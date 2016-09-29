@@ -185,6 +185,8 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
          enqueueInsnIfNew(queue, hc);
          flipBufferBit(bytes, j);
       }
+
+      enqueueInsnIfNew(queue, hc);
       //printf("%s %d\n", decStr, bitTypes[i]);
       flipBufferBit(bytes, i);
    }
