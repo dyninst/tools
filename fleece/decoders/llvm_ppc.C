@@ -23,6 +23,9 @@
 #include "Normalization.h"
 #include "StringUtils.h"
 
+#include <iostream>
+#include <iomanip>
+
 using namespace llvm;
 
 static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType, uint64_t refPC, const char** refName) {
@@ -40,6 +43,13 @@ int llvm_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
             0, 
             nullptr, 
             LLVMCallback);
+
+    for (int j = 0; j < nBytes; j++) {
+        std::cout << std::hex << std::setfill('0') << std::setw(2)
+            << (unsigned int)(unsigned char)inst[j] << " ";
+    }
+    std::cout << "\n" << std::dec;
+
 
     size_t bytesUsed = LLVMDisasmInstruction(
             disasm, 
