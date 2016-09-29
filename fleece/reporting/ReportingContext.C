@@ -1,7 +1,7 @@
 
 #include "ReportingContext.h"
 
-ReportingContext::ReportingContext(FILE* outf) {
+ReportingContext::ReportingContext(FILE* outf, int flushFreq) {
   
     // Verify that the files are okay and we can make a record of all
     // differences seen.
@@ -16,6 +16,9 @@ ReportingContext::ReportingContext(FILE* outf) {
     nMatches = 0;
     nReports = 0;
     nSuppressed = 0;
+
+    this->flushFreq = flushFreq;
+    flushCount = 0;
 }
 
 ReportingContext::~ReportingContext() {
@@ -29,7 +32,7 @@ ReportingContext::~ReportingContext() {
 
 void ReportingContext::reportDiff(const char** insns, int nInsns, 
         const char* bytes, int nBytes) {
-   
+  
     // Print all decoded instructions to the file with a semicolon separating
     // them.
     for (int i = 0; i < nInsns; i++) {
@@ -46,6 +49,12 @@ void ReportingContext::reportDiff(const char** insns, int nInsns,
     // Each report is followed by a newline.
     int rc = fprintf(outFile, "\n");
     assert(rc == 1 && "Reporting write failed!");
+        
+    flushCount++;
+    if (flushCount > flushFreq) {
+        flushCount = 0;
+        fflush(outFile);
+    }
 }
 
 int ReportingContext::processDecodings(const char** insns, int nInsns, 
@@ -54,8 +63,8 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
     // Update summary data.
     nProcessed++;
 
-    // Check if every instruction matches the first. If they are all equivalent,
-    // there is no more processing to do, simply return.
+    // Check if every instruction matches the first. If they are all 
+    // equivalent, there is no more processing to do, simply return.
     bool allMatch = true;
     for (int i = 1; allMatch && i < nInsns; i++) {
         allMatch = doesDecodingMatch(insns[0], insns[i]);
@@ -67,7 +76,7 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
     }
 
     // Check if we need to report the difference and do so. Update summary data.
-    if (shouldReportDiff(insns, nInsns)) {
+    if (shouldReportDiff(bytes, nBytes, insns, nInsns)) {
         nReports++;
         reportDiff(insns, nInsns, bytes, nBytes);
     } else {
@@ -117,7 +126,51 @@ unsigned int ReportingContext::getNumSuppressed() {
     return nSuppressed;
 }
 
-bool ReportingContext::shouldReportDiff(const char** insns, int nInsns) {
+bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes, 
+        const char** insns, int nInsns) {
+
+    bool atLeastOneError = false;
+    for (int i = 0; i < nInsns; i++) {
+        TokenList tl(insns[i]);
+        if (tl.hasError()) {
+            atLeastOneError = true;
+        }
+    }
+
+    if (!atLeastOneError) {
+        int nAgreed = 0;
+        char reasmResults[nInsns + 1];
+        char reasmDiffBuf[15];
+        reasmResults[nInsns] = 0;
+        for (int i = 0; i < nInsns; i++) {
+
+            char reasmBuf[15];
+            int reasmLen = 0;
+            reasmResults[i] = reassemble(bytes, nBytes, insns[i], NULL, 
+                REASM_FILENAME, &reasmBuf[0], 15, &reasmLen);
+
+            if (i == 0 && reasmResults[i] != 'E') {
+                nAgreed++;
+                memcpy(reasmDiffBuf, reasmBuf, reasmLen);
+            } else if (reasmResults[i] != 'E') {
+                if (!memcmp(reasmBuf, reasmDiffBuf, reasmLen)) {
+                    nAgreed++;
+                }
+            }
+        }
+
+        if (nAgreed == nInsns) {
+            FILE* sameF = fopen("same.txt", "a+");
+            for (int i = 0; i < nInsns; i++) {
+                fprintf(sameF, "%s; ", insns[i]);
+                //std::cout << insns[i] << "\n";
+            }
+            fprintf(sameF, "%s\n", reasmResults);
+            //std::cout << "REASSEMBLY: " << reasmResults << "\n";
+            fclose(sameF);
+            return false;
+        }
+    }
 
     // Allocate buffers for the instruction templates and output.
     char** insnTemplates = (char**)malloc(nInsns * sizeof(char*));
@@ -132,10 +185,11 @@ bool ReportingContext::shouldReportDiff(const char** insns, int nInsns) {
     for (int i = 0; i < nInsns; i++) {
         tLists.push_back(new TokenList(insns[i]));
 
-        // Strip the hex from each list.
+        // Strip the hex and dec numbersfrom each list.
         tLists[i]->stripHex();
+        tLists[i]->stripDigits();
 
-        // If they all have the same number of tokens, we can try to line the up
+        // If they all have the same number of tokens, we can check
         // to see if there are individual differences.
         if (i == 0) {
             nTokens = tLists[i]->size();
