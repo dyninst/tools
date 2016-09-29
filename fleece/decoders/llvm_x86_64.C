@@ -22,22 +22,36 @@
 #include "Normalization.h"
 #include "StringUtils.h"
 
-static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType, uint64_t refPC, const char** refName) {
+static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType,
+        uint64_t refPC, const char** refName) {
 
-   *refType = LLVMDisassembler_ReferenceType_InOut_None;
-   return nullptr;
-
+    *refType = LLVMDisassembler_ReferenceType_InOut_None;
+    return nullptr;
 }
 
 int llvm_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-   static LLVMDisasmContextRef disasm = LLVMCreateDisasm("x86_64-linux-gnu", nullptr, 0, nullptr, LLVMCallback);
+    static LLVMDisasmContextRef disasm = 
+            LLVMCreateDisasm("x86_64-linux-gnu", 
+                             nullptr, 
+                             0, 
+                             nullptr, 
+                             LLVMCallback);
 
-   size_t bytesUsed = LLVMDisasmInstruction(disasm, (uint8_t*)inst, nBytes, 0, buf, (size_t)bufLen);
+    size_t bytesUsed = 
+            LLVMDisasmInstruction(disasm, 
+                                  (uint8_t*)inst, 
+                                  nBytes, 
+                                  0, 
+                                  buf, 
+                                  (size_t)bufLen);
 
-   return !bytesUsed;
+    return !bytesUsed;
 }
 
 void llvm_x86_64_norm(char* buf, int bufLen) {
-
+    cleanSpaces(buf, bufLen);
+    decToHexConstants(buf, bufLen);
+    trimHexFs(buf, bufLen);
+    trimHexZeroes(buf, bufLen);
 }
