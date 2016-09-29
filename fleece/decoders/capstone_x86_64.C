@@ -18,29 +18,34 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
+#include <iostream>
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
+csh makeX86CSHandle() {
+    csh handle;
+    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
+        std::cerr << "ERROR: Capstone could not start!\n";
+        exit(-1);
+    }
+    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+    return handle;
+}
+
 int capstone_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-   csh handle;
-   cs_insn *insn;
-   size_t count;
-   if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
-      return -1;
-   }
-   cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+    static csh handle = makeX86CSHandle();
+    cs_insn *insn;
 
-   int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0, 0, &insn);
+    int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0, 0, &insn);
    
-   if (nInsns < 1) {
-      return -1;
-   }
+    if (nInsns < 1) {
+        return -1;
+    }
    
-   snprintf(buf, bufLen, "%s %s", insn[0].mnemonic, insn[0].op_str);
-   cs_free(insn, nInsns);
-   cs_close(&handle);
-   return 0;
+    snprintf(buf, bufLen, "%s %s", insn[0].mnemonic, insn[0].op_str);
+    cs_free(insn, nInsns);
+    return 0;
 
 }
 

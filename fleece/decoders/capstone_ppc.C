@@ -18,6 +18,7 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
+#include <iostream>
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
@@ -36,14 +37,19 @@ void removeRegLetters(char* buf, int bufLen) {
     *place = *cur;
 }
 
+csh makePPCCSHandle() {
+    csh handle;
+    if (cs_open(CS_ARCH_PPC, CS_MODE_BIG_ENDIAN, &handle) != CS_ERR_OK) {
+        std::cerr << "ERROR: Capstone could not init handle!\n";
+        exit(-1);
+    }
+    return handle;
+}
+
 int capstone_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-    csh handle;
+    static csh handle;
     cs_insn *insn;
-
-    if (cs_open(CS_ARCH_PPC, CS_MODE_BIG_ENDIAN, &handle) != CS_ERR_OK) {
-        return -1;
-    }
 
     int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0, 0, &insn);
    
