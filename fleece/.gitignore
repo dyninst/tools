@@ -11,6 +11,9 @@
 *.swo
 *.swn
 
+# Temporary files
+.__*
+
 # CMake cache files
 CMakeCache.txt
 CMakeFiles/
