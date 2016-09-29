@@ -136,30 +136,30 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 
     if (success) {
         TokenList tList(decStr);
-        if (tList.hasError()) {
-            return;
+        if (!tList.hasError()) {
+            tList.stripHex();
+            tList.stripDigits();
+            int len = tList.getTotalBytes() + 64;
+            char* hcString = (char*)malloc(len);
+            assert(hcString != NULL);
+
+            tList.fillBuf(hcString, len);
+
+            Architecture::replaceRegSets(hcString, len);
+
+            if (hc->insert(std::make_pair(hcString, 1)).second) {
+             
+                std::cout << decoder->getName() << " queue: " << hcString 
+                        << "\n";
+                char* queuedBytes = (char*)malloc(nBytes);
+                bcopy(bytes, queuedBytes, nBytes);
+                queue->push(queuedBytes);
+            } else {
+                free(hcString);
+            }
         }
-        tList.stripHex();
-        tList.stripDigits();
-        int len = tList.getTotalBytes() + 64;
-        char* hcString = (char*)malloc(len);
-        assert(hcString != NULL);
-
-        tList.fillBuf(hcString, len);
-
-        Architecture::replaceRegSets(hcString, len);
-
-        if (hc->insert(std::make_pair(hcString, 1)).second) {
-         
-            std::cout << decoder->getName() << " Queue: " << hcString << "\n";
-            char* queuedBytes = (char*)malloc(nBytes);
-            bcopy(bytes, queuedBytes, nBytes);
-            queue->push(queuedBytes);
-        } else {
-            free(hcString);
-        }
-
     }
+    
     nBytes = oldNBytes;
     free(bytes);
     bytes = (char*)malloc(nBytes);
@@ -176,6 +176,9 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
       if (bitTypes[i] != BIT_TYPE_SWITCH) {
          continue;
       }
+
+      assert(8 * nBytes == (unsigned int)nBits);
+
       flipBufferBit(bytes, i);
       for (int j = i + 1; j < nBits; j++) {
          if (bitTypes[j] != BIT_TYPE_SWITCH) {
@@ -197,7 +200,6 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
 MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool normalize) {
 
    char* decodedInstruction = (char*)malloc(DECODING_BUFFER_SIZE);
-
    assert(decodedInstruction != NULL);
 
    decoder = dec;
@@ -241,6 +243,7 @@ MappedInst::~MappedInst() {
    delete tokens;
    free(bytes);
    free(bitTypes);
+   free(confirmed);
 }
 
 int MappedInst::getNumUsedBytes() {
