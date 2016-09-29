@@ -1,5 +1,6 @@
 # Set the sources that should be compiled into the library
-set (FLEECE_UTIL_SOURCE Alias.C Architecture.C Bitfield.C BitTypeMap.C BitTypes.C Info.C MappedInst.C MapTable.C Mask.C StringUtils.C Options.C RegisterSet.C)
+set (FLEECE_UTIL_SOURCE Alias.C Architecture.C Bitfield.C BitTypeMap.C
+BitTypes.C Info.C MappedInst.C MapTable.C Mask.C Reassemble.C StringUtils.C Options.C RegisterSet.C)
 
 # When binaries link against this library, which headers should be included?
 include_directories (${PROJECT_SOURCE_DIR}/h})
