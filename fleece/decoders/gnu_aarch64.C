@@ -334,6 +334,7 @@ void gnu_aarch64_norm(char* buf, int bufLen) {
     toLowerCase(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
     removeComments(buf, bufLen);
+    aliasCsInsns(buf, bufLen);
     /*
     decToHexConstants(buf, bufLen);
     trimHexZeroes(buf, bufLen);
@@ -346,6 +347,5 @@ void gnu_aarch64_norm(char* buf, int bufLen) {
     changeBccToBlo(buf, bufLen);
     changeBcsToBhs(buf, bufLen);
     changeFmovImm(buf, bufLen);
-    aliasCsInsns(buf, bufLen);
     */
 }
