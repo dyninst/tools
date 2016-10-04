@@ -26,58 +26,56 @@ bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen) {
 
 void cleanSpaces(char* buf, int bufLen) {
 
-   bool inSpace = true;
+    bool inSpace = true;
 
-   char* cur = buf;
-   char* place = buf;
+    char* cur = buf;
+    char* place = buf;
 
-   while (*cur) {
-      if (isspace(*cur)) {
-         if (!inSpace) {
-            inSpace = true;
-            *place = ' ';
+    while (*cur) {
+        if (isspace(*cur)) {
+            if (!inSpace) {
+                inSpace = true;
+                *place = ' ';
+                place++;
+            }
+        } else {
+            inSpace = false;
+            *place = *cur;
             place++;
-         }
-      } else {
-         inSpace = false;
-         *place = *cur;
-         place++;
-      }
-      cur++;
-   }
-   if (*(place - 1) == ' ') {
-      place--;
-   }
-   *place = 0;
+        }
+        cur++;
+    }
+    if (*(place - 1) == ' ') {
+        place--;
+    }
+    *place = 0;
 }
 
 void removePounds(char* buf, int bufLen) {
 
-   char* cur = buf;
-   char* place = buf;
+    char* cur = buf;
+    char* place = buf;
 
-   while (*cur) {
-      if (*cur != '#') {
-         *place = *cur;
-         place++;
-      }
-      cur++;
-   }
-   *place = 0;
-
+    while (*cur) {
+        if (*cur != '#') {
+            *place = *cur;
+            place++;
+        }
+        cur++;
+    }
+    *place = 0;
 }
 
 void toLowerCase(char* buf, int bufLen) {
 
-   char* cur = buf;
+    char* cur = buf;
 
-   while (*cur) {
-      if (isupper(*cur)) {
-         *cur += 32;
-      }
-      cur++;
-   }
-
+    while (*cur) {
+        if (isupper(*cur)) {
+            *cur += 32;
+        }
+        cur++;
+    }
 }
 
 void trimHexZeroes(char* buf, int bufLen) {
@@ -171,29 +169,27 @@ void commaBeforeSpace(char* buf, int bufLen) {
 
 void spaceAfterCommas(char* buf, int bufLen) {
 
-   char* tmp = (char*)malloc(bufLen);
-   assert(tmp != NULL);
+    char tmpBuf[bufLen];
+    char* tmp = &tmpBuf[0];
 
-   char* cur = buf;
-   char* place = tmp;
+    char* cur = buf;
+    char* place = tmp;
 
-   while (*cur && place < tmp + bufLen) {
+    while (*cur && place < tmp + bufLen) {
       
-      *place = *cur;
-      place++;
+        *place = *cur;
+        place++;
 
-      if (*cur == ',' && *(cur + 1) != ' ') {
-         *place = ' ';
-         place++;
-      }
+        if (*cur == ',' && *(cur + 1) != ' ') {
+            *place = ' ';
+            place++;
+        }
 
-      cur++;
-   }
-   *place = 0;
+        cur++;
+    }
+    *place = 0;
 
-   strncpy(buf, tmp, bufLen);
-   free(tmp);
-
+    strncpy(buf, tmp, bufLen);
 }
 
 void removeEmptyParens(char* buf, int bufLen) {
