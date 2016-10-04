@@ -60,34 +60,51 @@ char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp,
         const char* tmpname, char* byteBuf, int bufLen, int* outputLen) {
 
     static const char* as = Options::get("-as=");
-    static const char* asOpts = Options::get("-asopt=");
-    static char** asArgv = makeAsArgs(as, asOpts, tmpname);
     if (as == NULL) {
         std::cerr << "Must specify assembler with \"-as=\"\n";
         exit(-1);
     }
+    static const char* asOpts = Options::get("-asopt=");
+    static char** asArgv = makeAsArgs(as, asOpts, tmpname);
 
     char arrBuf[REASM_BUF_LEN];
     char* buf = &arrBuf[0];
 
     snprintf(buf, REASM_BUF_LEN, ".global main\n\nmain:\n\t%s", str);
     writeStrToFile(tmpname, 0, buf);
-    
+   
+    int p[2];
+    pipe(p);
+    int status;
+
     pid_t pid = fork();
     if (pid == -1) {
         std::cerr << "ERROR: failed to fork() for reassembly\n";
         exit(-1);
     } else if (pid > 0) {
-        int status;
-        waitpid(pid, &status, 0);
-        if (status != 0) {
-            return 'E';
+        /*std::cout << "READING INPUT\n";
+        char c;
+        while (read(p[0], &c, 1) > 0) {
+            std::cout << "Read: " << c << "\n";
         }
+        std::cout << "WAITING FOR END\n";
+        */
+        waitpid(pid, &status, 0);
     } else {
+        close(p[0]);
+        dup2(p[1], STDERR_FILENO);
+        close(p[1]);
         char* envp = NULL;
         execve(asArgv[0], asArgv, &envp);
         std::cout << strerror(errno) << "\n";
         assert(false && "execve() should never return");
+    }
+
+    close(p[0]);
+    close(p[1]);
+
+    if (status != 0) {
+        return 'E';
     }
 
     *outputLen = readReassembledBytes(tmpname, byteBuf, bufLen);
@@ -97,6 +114,26 @@ char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp,
     return 'S';
 }
 
+char** makeObjdumpArgs(const char* objdump, const char* tmpname) {
+
+    const int nNeededArgs = 4;
+    
+    char** result = (char**)malloc(sizeof(*result) * (nNeededArgs));
+    assert(result != NULL);
+
+    int tempnameLen = strlen(tmpname);
+    int inputFilenameLen = tempnameLen + strlen(".o") + 1;
+    
+    result[0] = strdup(objdump);
+    result[1] = strdup("-d");
+    result[2] = (char*)malloc(inputFilenameLen);
+    assert(result[2] != NULL);
+    snprintf(result[2], inputFilenameLen, "%s.o", tmpname);
+
+    result[nNeededArgs - 1] = NULL;
+    return result;
+}
+
 int readReassembledBytes(const char* filename, char* outBytes, int bufLen) {
    
     static const char* objdump = Options::get("-objdump=");
@@ -104,14 +141,32 @@ int readReassembledBytes(const char* filename, char* outBytes, int bufLen) {
         std::cerr << "Must specify objdump with \"-objdump=\"\n";
         exit(-1);
     }
+    static char** objdumpArgv = makeObjdumpArgs(objdump, filename);
     
     char buf[REASM_BUF_LEN];
     char* str = &buf[0];
-    snprintf(str, REASM_BUF_LEN, "%s -d %s.o > %s.tmp", objdump, filename,
-        filename);
+    int status;
 
-    system(str);
-    snprintf(str, REASM_BUF_LEN, "%s.tmp", filename);
+    snprintf(str, REASM_BUF_LEN, "%s.dmp", filename);
+    
+    pid_t pid = fork();
+    if (pid == -1) {
+        std::cerr << "ERROR: failed to fork() for reassembly\n";
+        exit(-1);
+    } else if (pid > 0) {
+        waitpid(pid, &status, 0);
+    } else {
+        char* envp = NULL;
+        FILE* outfile = fopen(str, "w+");
+        dup2(fileno(outfile), STDOUT_FILENO);
+        fclose(outfile);
+        execve(objdumpArgv[0], objdumpArgv, &envp);
+        std::cout << strerror(errno) << "\n";
+        assert(false && "execve() should never return");
+    }
+
+    assert(status == 0);
+
     FILE* bytef = fopen(str, "r+");
     assert(bytef != NULL);
 
