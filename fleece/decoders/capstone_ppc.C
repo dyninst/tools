@@ -37,7 +37,7 @@ void removeRegLetters(char* buf, int bufLen) {
     *place = *cur;
 }
 
-csh makePPCCSHandle() {
+csh makePpcCsHandle() {
     csh handle;
     if (cs_open(CS_ARCH_PPC, CS_MODE_BIG_ENDIAN, &handle) != CS_ERR_OK) {
         std::cerr << "ERROR: Capstone could not init handle!\n";
@@ -48,7 +48,7 @@ csh makePPCCSHandle() {
 
 int capstone_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-    static csh handle;
+    static csh handle = makePpcCsHandle();
     cs_insn *insn;
 
     int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0, 0, &insn);
@@ -59,9 +59,7 @@ int capstone_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
    
     snprintf(buf, bufLen, "%s %s", insn[0].mnemonic, insn[0].op_str);
     cs_free(insn, nInsns);
-    cs_close(&handle);
     return 0;
-
 }
 
 void capstone_ppc_norm(char* buf, int bufLen) {
