@@ -102,7 +102,7 @@ ExtendReg\([^\)]+\)                 {
     /****************************************/
 
 bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
-                                                                               int operandIdx;
+                                                                               int operandIdx = -1;
                                                                                stringstream val;
                                                                                string matched(yytext);
 

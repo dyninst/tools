@@ -201,7 +201,7 @@ datatype:   DTYPE_BITS                  {  $$ = STR("BaseSemantics::SValuePtr ")
 
 declblock:  varname                     {  
                                             DEL_VEC($1);
-                                            ARGS_VEC(*$1, ";\n");
+                                            ARGS_VEC((*$1 == "nzcv")?"n,z,c,v":(*$1), ";\n");
 
                                             $$ = STR(makeStr(args, &del));    
                                         } |
@@ -255,7 +255,15 @@ asnmt:      targ SYMBOL_EQUAL asnmtsrc       {
 
                                                 $$ = STR(makeStr(args, &del));
                                             } |
-            SET_NZCV                        {   $$ = STR("d->writeRegister(REG_NZCV, nzcv);\n");   }
+            SET_NZCV                        {
+                                                stringstream ret;
+                                                char flags[] = {'n', 'z', 'c', 'v'};
+
+                                                for(int idx = 0; idx < sizeof(flags)/sizeof(char); idx++)
+                                                    ret<<"d->writeRegister(d->REG_"<<(char)(flags[idx] - 32)<<", "<<flags[idx]<<");\n";
+
+                                                $$ = STR(ret.str());
+                                            }
             ;
 
 targ:       varname                                                             {   $$ = $1;    }  |
@@ -271,7 +279,7 @@ targ:       varname                                                             
                                                             break;
                                                         case 'n':regstr += "d->write(args[1])";
                                                             break;
-                                                        case 's':regstr += "d->writeRegister(REG_SP)";
+                                                        case 's':regstr += "d->writeRegister(d->REG_SP)";
                                                             break;
                                                         default: assert("appears to be an invalid destination register.");
                                                     }
@@ -373,7 +381,7 @@ funccall:   FUNCNAME SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
 
                                                                         if((*$1) == "AddWithCarry")
                                                                         {
-                                                                            ARGS_VEC("d->doAddOperation(", *$3, ", ops->boolean_(false), nzcv)");
+                                                                            ARGS_VEC("d->doAddOperation(", *$3, ", ops->boolean_(false), n, z, c, v)");
                                                                             $$ = STR(makeStr(args, &del));
                                                                         }
                                                                         else
@@ -400,7 +408,7 @@ args:       args SYMBOL_COMMA args      {
                                         } |
             bitmask                     {   $$ = $1;    } |
 	        OPERAND			            {   $$ = $1;	}   |
-            FLAG_CARRY                  {   $$ = STR("ops->and_(d->readRegister(REG_NZCV), ops->number_(32, 0x2))"); }
+            FLAG_CARRY                  {   $$ = STR("d->readRegister(d->REG_C)"); }
             ;
 
 cond:	    COND_IF expr COND_THEN condblock condshalf      {
