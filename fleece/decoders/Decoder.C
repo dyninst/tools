@@ -28,6 +28,7 @@ Decoder* dec_dyninst_aarch64;
 Decoder* dec_dyninst_ppc;
 Decoder* dec_gnu_x86_64;
 Decoder* dec_gnu_aarch64;
+Decoder* dec_gnu_ppc;
 Decoder* dec_llvm_x86_64;
 Decoder* dec_llvm_aarch64;
 Decoder* dec_llvm_ppc;
@@ -76,6 +77,8 @@ void Decoder::initAllDecoders()
             &gnu_x86_64_norm, "gnu", "x86_64");
     dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
             &gnu_aarch64_norm, "gnu", "aarch64");
+    dec_gnu_ppc = new Decoder(&gnu_ppc_decode, NULL, 
+            &gnu_ppc_norm, "gnu", "ppc");
     dec_llvm_x86_64 = new Decoder(&llvm_x86_64_decode, &LLVMInit, 
             &llvm_x86_64_norm, "llvm", "x86_64");
     dec_llvm_aarch64 = new Decoder(&llvm_aarch64_decode, &LLVMInit, 
@@ -104,6 +107,7 @@ void Decoder::destroyAllDecoders()
     delete dec_dyninst_ppc;
     delete dec_gnu_x86_64;
     delete dec_gnu_aarch64;
+    delete dec_gnu_ppc;
     delete dec_llvm_x86_64;
     delete dec_llvm_aarch64;
     delete dec_llvm_ppc;
@@ -122,6 +126,7 @@ std::vector<Decoder> Decoder::getAllDecoders() {
     dec.push_back(*dec_llvm_ppc);
     dec.push_back(*dec_gnu_x86_64);
     dec.push_back(*dec_gnu_aarch64);
+    dec.push_back(*dec_gnu_ppc);
     dec.push_back(*dec_dyninst_x86_64);
     dec.push_back(*dec_dyninst_aarch64);
     dec.push_back(*dec_dyninst_ppc);

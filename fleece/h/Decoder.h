@@ -82,6 +82,9 @@ extern void gnu_x86_64_norm(char*, int);
 extern int  gnu_aarch64_decode(char*, int, char*, int);
 extern void gnu_aarch64_norm(char*, int);
 
+extern int  gnu_ppc_decode(char*, int, char*, int);
+extern void gnu_ppc_norm(char*, int);
+
 extern int  llvm_x86_64_decode(char*, int, char*, int);
 extern void llvm_x86_64_norm(char*, int);
 
