@@ -24,18 +24,18 @@
 #define CONSECUTIVE_UNUSED_THRESHOLD 8
 #endif
 
-int getBitTypeByChanges(TokenList* startTokens, char* dec_str);
+int getBitTypeByChanges(FieldList* startFields, char* dec_str);
 int cmpBitTypes(BitType* t1, BitType* t2, unsigned int len);
 void setInstructionBitVector(char* bytes, int* switchBits, int nSwitchBits, int i);
 void printBitTypes(BitType* bitTypes, unsigned int nBits);
 
 std::ostream& operator<<(std::ostream& s, MappedInst& m){
-   TokenList* t = m.getTokens();
+   FieldList* t = m.getFields();
    for (size_t i = 0; i < t->size(); i++) {
       if (i != 0) {
          s << " ";
       }
-      s << t->getToken(i);
+      s << t->getField(i);
    }
    return s;
 }
@@ -135,7 +135,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     }
 
     if (success) {
-        TokenList tList(decStr);
+        FieldList tList(decStr);
         if (!tList.hasError()) {
             tList.stripHex();
             tList.stripDigits();
@@ -233,14 +233,14 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool norm
       this->bytes[i] = bytes[i];
    }
    
-   tokens = new TokenList(decodedInstruction);
+   fields = new FieldList(decodedInstruction);
    this->map();
 
    free(decodedInstruction);
 }
 
 MappedInst::~MappedInst() {
-   delete tokens;
+   delete fields;
    free(bytes);
    free(bitTypes);
    free(confirmed);
@@ -257,8 +257,8 @@ int MappedInst::getNumUsedBytes() {
 }
 
 void MappedInst::print() {
-   for (size_t i = 0; i < tokens->size(); i++) {
-      printf("%s ", tokens->getToken(i));
+   for (size_t i = 0; i < fields->size(); i++) {
+      printf("%s ", fields->getField(i));
    }
 }
 
@@ -266,11 +266,11 @@ void MappedInst::map() {
    mapBitTypes(bitTypes);
 }
 
-TokenList* MappedInst::getTokens() {
-   return tokens;
+FieldList* MappedInst::getFields() {
+   return fields;
 }
 
-void MappedInst::makeSimpleMap(BitType* bTypes, TokenList* tkns) {
+void MappedInst::makeSimpleMap(BitType* bTypes, FieldList* tkns) {
    int success = 0;
    size_t i = 0;
    unsigned int nBits = 8 * nBytes;
@@ -283,7 +283,7 @@ void MappedInst::makeSimpleMap(BitType* bTypes, TokenList* tkns) {
    /*
    std::cout << "Mapping: ";
    for (i = 0; i < tkns->size(); i++) {
-      std::cout << tkns->getToken(i) << " ";
+      std::cout << tkns->getField(i) << " ";
    }
    std::cout << "\n";
 
@@ -299,7 +299,7 @@ void MappedInst::makeSimpleMap(BitType* bTypes, TokenList* tkns) {
    */
 
    for (i = 0; i < tkns->size(); i++) {
-      bitfields.push_back(Bitfield::create(tkns->getToken(i), NULL));
+      bitfields.push_back(Bitfield::create(tkns->getField(i), NULL));
    }
 
    // Iterate over each bit, flipping it. Update the bit types with each 
@@ -515,7 +515,7 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
       throw "ERROR: Could not allocate bit type vector!\n";
    }
 
-   makeSimpleMap(bitTypes, tokens);
+   makeSimpleMap(bitTypes, fields);
    
    // Next, iterate over every bit and select those which previously
    // altered one operand but not multiple. To determine if the bit is an
@@ -552,7 +552,7 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
          decoder->normalize(decStr, DECODING_BUFFER_SIZE);
       }
      
-      TokenList* tList = new TokenList(decStr);
+      FieldList* tList = new FieldList(decStr);
       makeSimpleMap(tmpBitTypes, tList);
       delete tList;
 
@@ -587,18 +587,18 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
 
 }
 
-int getBitTypeByChanges(TokenList* startTokens, char* decStr) {
+int getBitTypeByChanges(FieldList* startFields, char* decStr) {
    BitType result = BIT_TYPE_UNUSED;
-   TokenList tokens(decStr);
+   FieldList fields(decStr);
    
-   if (tokens.size() != startTokens->size()) {
+   if (fields.size() != startFields->size()) {
       result = BIT_TYPE_SWITCH;
    } else {
             
       // We have the same operator, so we can continue looking at
       // operands.
-      for (unsigned int i = 0; i < tokens.size(); i++) {
-         if (strcmp(tokens.getToken(i), startTokens->getToken(i))) {
+      for (unsigned int i = 0; i < fields.size(); i++) {
+         if (strcmp(fields.getField(i), startFields->getField(i))) {
 
             // If the bit hasn't caused a change so far, it may only be a part
             // of this operand. If it has changed one already, it's a switch.

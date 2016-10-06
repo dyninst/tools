@@ -37,76 +37,6 @@ namespace StringUtils {
     };
 }
 
-/*
- * A list of null-terminated strings, constructed from an initial c-string. The
- * class itself does not support changing the number of tokens or the token
- * pointers, but it does NOT protect against changing the values at the
- * pointers, which can be accessed by getToken().
- */
-class TokenList {
-
-public:
-
-   /*
-    * Creates a list of space-delimited tokens as a TokenList. The values are
-    * copied, so the original buffer may be disposed of.
-    */
-   TokenList(const char* buf);
-
-   /*
-    * Deletes all tokens, cleaning up the memory of the list.
-    */
-   ~TokenList();
-
-   /*
-    * Gives the number of tokens in the list.
-    */
-   unsigned int size();
-
-   /*
-    * Returns true if the token list has the given token.
-    */
-   bool hasToken(char* token);
-   
-   /*
-    * Returns a pointer to the null-terminated string stored at <index>
-    * location in the list of tokens.
-    */
-   char* getToken(unsigned int index);
-
-   /*
-    * Removes all digits from all tokens. Each contiguous set of digits is
-    * replaced with a pound sign ('#').
-    */
-   void stripDigits();
-   
-   /*
-    * Removes all valid hex characters following "0x" is all of the tokens.
-    */
-   void stripHex();
-
-   /*
-    * Returns the total number of bytes used in the tokens (includes null
-    * termination).
-    */
-   unsigned int getTotalBytes(void);
-
-   /*
-    * Fills the buffer with a character array representation of the tokens. It
-    * will null-terminate the buffer (at len), even if that means cutting off 
-    * characters.
-    */
-   void fillBuf(char* buf, unsigned int len);
-
-   bool hasError();
-
-private:
-
-   unsigned int nTokens;
-   char** tokens;
-
-};
-
 bool signalsError(const char* token);
 
 void removeFirst(char* buf, int bufLen, const char* str);
@@ -225,4 +155,7 @@ int getMinBits(long l);
 void removeCharacter(char* buf, int bufLen, char c);
 
 void writeStrToFile(const char* file, long offset, char* str);
+
+void strStripDigits(char* str);
+void strStripHex(char* str);
 #endif /* _MYSTRING_H_ */

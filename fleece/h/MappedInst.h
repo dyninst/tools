@@ -21,16 +21,17 @@
 #ifndef _MAPPEDINST_H_
 #define _MAPPEDINST_H_
 
-#include "Bitfield.h"
-#include "Architecture.h"
-#include "Decoder.h"
-#include "StringUtils.h"
+#include <iomanip>
+#include <iostream>
 #include <queue>
-#include "BitTypes.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
-#include <iomanip>
+#include "Architecture.h"
+#include "Bitfield.h"
+#include "BitTypes.h"
+#include "Decoder.h"
+#include "FieldList.h"
+#include "StringUtils.h"
 
 class Decoder;
 
@@ -40,7 +41,7 @@ public:
    ~MappedInst();
    int getNumUsedBytes();
    void print();
-   TokenList* getTokens();
+   FieldList* getFields();
    BitType*     getBitTypes() {return bitTypes;}
    unsigned int getNumBytes() {return nBytes;  }
    char*        getRawBytes() {return bytes;   }
@@ -54,11 +55,11 @@ private:
    bool isError;
    bool norm;
    BitType* bitTypes;
-   TokenList* tokens;
+   FieldList* fields;
    Decoder* decoder;
    void map(void);
    void mapBitTypes(BitType* bitTypes);
-   void makeSimpleMap(BitType* bTypes, TokenList* tokens);
+   void makeSimpleMap(BitType* bTypes, FieldList* fields);
    bool isFirstByteRemovablePrefix();
    void deleteRemovablePrefixes();
    //int findOperandValue(BitType* bitTypes, char* val, int operandNum, int bitCount);

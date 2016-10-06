@@ -131,7 +131,7 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
 
     bool atLeastOneError = false;
     for (int i = 0; i < nInsns; i++) {
-        TokenList tl(insns[i]);
+        FieldList tl(insns[i]);
         if (tl.hasError()) {
             atLeastOneError = true;
         }
@@ -178,27 +178,27 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
     char* end = buf + 256 * nInsns;
     assert(insnTemplates != NULL && buf != NULL);
 
-    // We're going to convert each instruction to a list of tokens.
-    std::vector<TokenList*> tLists;
+    // We're going to convert each instruction to a list of fields.
+    std::vector<FieldList*> tLists;
 
-    int nTokens;
+    int nFields;
     for (int i = 0; i < nInsns; i++) {
-        tLists.push_back(new TokenList(insns[i]));
+        tLists.push_back(new FieldList(insns[i]));
 
         // Strip the hex and dec numbersfrom each list.
         tLists[i]->stripHex();
         tLists[i]->stripDigits();
 
-        // If they all have the same number of tokens, we can check
+        // If they all have the same number of fields, we can check
         // to see if there are individual differences.
         if (i == 0) {
-            nTokens = tLists[i]->size();
+            nFields = tLists[i]->size();
         } else {
 
             // If any isn't equal, set the count to -1, since that will be an
             // error value.
-            if (tLists[i]->size() != (size_t)nTokens) {
-                nTokens = -1;
+            if (tLists[i]->size() != (size_t)nFields) {
+                nFields = -1;
             }
         }
 
@@ -208,7 +208,7 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
         insnTemplates[i] = (char*)malloc(len);
         assert(insnTemplates[i] != NULL);
 
-        // Take the stripped token list and make a buffer we can turn into the
+        // Take the stripped field list and make a buffer we can turn into the
         // template by replacing register sets.
         tLists[i]->fillBuf(insnTemplates[i], len);
   
@@ -241,7 +241,7 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
         diffMap->insert(std::make_pair(strdup(buf), 1));
     }
    
-    // Free the buffer and templates used and delete the token lists.
+    // Free the buffer and templates used and delete the field lists.
     free(buf);
     for (int i = 0; i < nInsns; i++) {
         free(insnTemplates[i]);
@@ -261,11 +261,11 @@ bool ReportingContext::doesDecodingMatch(const char* insn1, const char* insn2) {
         return true;
     }
 
-    TokenList tList1(insn1);
-    TokenList tList2(insn2);
+    FieldList tList1(insn1);
+    FieldList tList2(insn2);
 
     /*
-     * First, determine if either of the decoded results produced any tokens
+     * First, determine if either of the decoded results produced any fields
      * that signal an error during decoding. Errors are assumed to be
      * equivalent.
      */
@@ -283,7 +283,7 @@ bool ReportingContext::doesDecodingMatch(const char* insn1, const char* insn2) {
     }
 
     /*
-     * If the number of tokens in the lists are different, the decodings do not
+     * If the number of fields in the lists are different, the decodings do not
      * match.
      */
     if (tList1.size() != tList2.size()) {
@@ -291,19 +291,19 @@ bool ReportingContext::doesDecodingMatch(const char* insn1, const char* insn2) {
     }
 
     /*
-     * If any of the tokens are NOT aliases of the corresponding token in the
+     * If any of the fields are NOT aliases of the corresponding field in the
      * other list, then the decodings do not match.
      */
     for (unsigned int i = 0; i < tList1.size(); i++) {
-        if (strcmp(tList1.getToken(i), tList2.getToken(i)) &&
-             !Alias::isAlias(tList1.getToken(i), tList2.getToken(i))) {
+        if (strcmp(tList1.getField(i), tList2.getField(i)) &&
+             !Alias::isAlias(tList1.getField(i), tList2.getField(i))) {
             return false;
         }
     }
 
     /*
      * If we're here, it means that the decodings have the same number of
-     * tokens, and those tokens are either identical, or they are aliases of
+     * fields, and those fields are either identical, or they are aliases of
      * eachother.
      */
     return true;

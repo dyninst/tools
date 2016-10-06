@@ -3,6 +3,7 @@
 
 #include "Alias.h"
 #include "Architecture.h"
+#include "FieldList.h"
 #include "Reassemble.h"
 #include "StringUtils.h"
 
