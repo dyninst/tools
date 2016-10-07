@@ -22,7 +22,7 @@
 #include "FieldList.h"
 
 bool FieldList::isSeparator(char c) {
-    static std::string sepString = " ,\t[]{}():$#*\n";
+    static std::string sepString = " ,\t[]{}():-$#*\n";
 
     return sepString.find(c) != std::string::npos;
 }
@@ -184,6 +184,12 @@ char* FieldList::getField(unsigned int index) {
         return NULL;
     }
     return fields[index];
+}
+    
+void FieldList::setField(unsigned int index, const char* newField) {
+    assert(index < nFields);
+    free(fields[index]);
+    fields[index] = strdup(newField);
 }
 
 bool FieldList::hasError() {
