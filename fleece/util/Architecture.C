@@ -554,9 +554,9 @@ void Architecture::init(const char* arch) {
     }
 }
 
-void Architecture::replaceRegSets(char* buf, int bufLen) {
+void Architecture::replaceRegSets(FieldList& fl) {
     for (size_t i = 0; i < regSets.size(); i++) {
-       regSets[i]->replaceRegNamesWithSymbol(buf, bufLen);
+       regSets[i]->replaceRegNamesWithSymbol(fl);
     }
 }
 

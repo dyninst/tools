@@ -25,13 +25,14 @@
 #include <string.h>
 #include <iostream>
 #include <vector>
+#include "FieldList.h"
 
 class RegisterSet {
 public:
    RegisterSet(const char* symbol);
    ~RegisterSet();
    void addRegName(const char* regName);
-   void replaceRegNamesWithSymbol(char* buf, int bufLen);
+   void replaceRegNamesWithSymbol(FieldList& fl);
 private:
    char* sym;
    std::vector<char*> regNames;

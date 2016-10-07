@@ -82,13 +82,20 @@ char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp,
         std::cerr << "ERROR: failed to fork() for reassembly\n";
         exit(-1);
     } else if (pid > 0) {
-        /*std::cout << "READING INPUT\n";
+        close(p[1]);
         char c;
+        int assemblerErrorTabCount = 5;
+        std::cout << "STDERR: ";
+        int tabCount = 0;
         while (read(p[0], &c, 1) > 0) {
-            std::cout << "Read: " << c << "\n";
+            if (tabCount >= assemblerErrorTabCount) {
+                std::cout << c;
+            }
+            if (c == ':') {
+                tabCount++;
+            }
         }
-        std::cout << "WAITING FOR END\n";
-        */
+        std::cout << "\n";
         waitpid(pid, &status, 0);
     } else {
         close(p[0]);
@@ -101,7 +108,7 @@ char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp,
     }
 
     close(p[0]);
-    close(p[1]);
+
 
     if (status != 0) {
         return 'E';

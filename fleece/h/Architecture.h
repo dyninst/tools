@@ -3,12 +3,13 @@
 
 #include <string>
 #include "Alias.h"
+#include "FieldList.h"
 #include "RegisterSet.h"
 
 namespace Architecture {
    extern std::string name;
    void init(const char* arch);
-   void replaceRegSets(char* buf, int bufLen);
+   void replaceRegSets(FieldList& fl);
    void destroy();
 }
 

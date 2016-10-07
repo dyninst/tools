@@ -139,13 +139,11 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
         if (!tList.hasError()) {
             tList.stripHex();
             tList.stripDigits();
-            int len = tList.getTotalBytes() + 64;
+            Architecture::replaceRegSets(tList);
+            int len = tList.getTotalBytes();
             char* hcString = (char*)malloc(len);
             assert(hcString != NULL);
-
             tList.fillBuf(hcString, len);
-
-            Architecture::replaceRegSets(hcString, len);
 
             if (hc->insert(std::make_pair(hcString, 1)).second) {
              
@@ -169,38 +167,52 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 
 void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
    
-   int nBits = 8 * nBytes;
+    int nBits = 8 * nBytes;
 
-   for (int i = 0; i < nBits; i++) {
+    for (int i = 0; i < nBits; i++) {
 
-      if (bitTypes[i] != BIT_TYPE_SWITCH) {
-         continue;
-      }
-
-      assert(8 * nBytes == (unsigned int)nBits);
-
-      flipBufferBit(bytes, i);
-      for (int j = i + 1; j < nBits; j++) {
-         if (bitTypes[j] != BIT_TYPE_SWITCH) {
+        if (bitTypes[i] != BIT_TYPE_SWITCH) {
             continue;
-         }
-         flipBufferBit(bytes, j);
-         enqueueInsnIfNew(queue, hc);
-         flipBufferBit(bytes, j);
-      }
+        }
 
-      enqueueInsnIfNew(queue, hc);
-      //printf("%s %d\n", decStr, bitTypes[i]);
-      flipBufferBit(bytes, i);
-   }
-  
-   return;
+        flipBufferBit(bytes, i);
+        for (int j = i + 1; j < nBits; j++) {
+            if (bitTypes[j] != BIT_TYPE_SWITCH) {
+                continue;
+            }
+            flipBufferBit(bytes, j);
+            enqueueInsnIfNew(queue, hc);
+            flipBufferBit(bytes, j);
+        }
+
+        enqueueInsnIfNew(queue, hc);
+        //printf("%s %d\n", decStr, bitTypes[i]);
+        flipBufferBit(bytes, i);
+    }
+
+    char startBytes[nBytes];
+    memcpy(bytes, startBytes, nBytes);
+    for (int i = 0; i < fields->size(); i++) {
+        for (int j = 0; j < nBits; j++) {
+            if (bitTypes[j] == i) {
+                setBufferBit(bytes, i, 0);
+            }
+        }
+        enqueueInsnIfNew(queue, hc);
+        for (int j = 0; j < nBits; j++) {
+            if (bitTypes[j] == i) {
+                setBufferBit(bytes, i, 1);
+            }
+        }
+        enqueueInsnIfNew(queue, hc);
+        memcpy(startBytes, bytes, nBytes);
+    }
 }
 
 MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool normalize) {
 
-   char* decodedInstruction = (char*)malloc(DECODING_BUFFER_SIZE);
-   assert(decodedInstruction != NULL);
+    char decodeBuf[DECODING_BUFFER_SIZE];
+   char* decodedInstruction = &decodeBuf[0];
 
    decoder = dec;
    int success = !decoder->decode(bytes, 
@@ -235,8 +247,6 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool norm
    
    fields = new FieldList(decodedInstruction);
    this->map();
-
-   free(decodedInstruction);
 }
 
 MappedInst::~MappedInst() {
@@ -383,138 +393,16 @@ void MappedInst::makeSimpleMap(BitType* bTypes, FieldList* tkns) {
    }
 }
 
-/*
-int MappedInst::findOperandValue(BitType* bitTypes, char* val, int operandNum, int bitCount) {
-   
-   int nBits = nBytes * 8;
-   int i = 0;
-
-   while (i < nBits) {
-
-      // Skip over a section of bit types not equal to the operand we are
-      // trying to find.
-      while (i < nBits && bitTypes[i] != operandNum) {
-         i++;
-      }
-      int start = i;
-      int end = i;
-      while (end < nBits && bitTypes[end] == operandNum) {
-         end++;
-      }
-
-      while (end - i + 1 >= bitCount && bitTypes[i] == operandNum) {
-         int j = 0;
-
-         // We have started a section of this bit type, so try to match it.
-         while (i < nBits && bitTypes[i] == operandNum &&
-               getBufferBit(bytes, i) == getBufferBit(val, j) &&
-               j < bitCount) {
-
-            j++;
-            i++;
-         }
-
-         if (j == bitCount) {
-            return i - bitCount - 1;
-         } else {
-            i++;
-         }
-      }
-
-      if (end - i + 1 < bitCount) {
-         i = end + 1;
-      }
-
-
-   }
-
-   return -1;
-}
-
-void MappedInst::confirmHexOperand(BitType* bitTypes, char* operand, int operandNum) {
-   
-   long hexVal;
-   bool hexFound = false;
-   char* cur = operand;
-
-   while (*cur && *cur != ' ' && !hexFound) {
-      if (*cur == '0' && *(cur + 1) == 'x') {
-
-         hexFound = true;
-         if (cur != operand && *(cur - 1) == '-') {
-            hexVal = strtol(cur - 1, NULL, 16);
-         } else {
-            hexVal = strtol(cur, NULL, 16);
-         }
-      } else {
-         cur++;
-      }
-   }
-
-   if (!hexFound) {
-      return;
-   }
-  
-   int operandBitCount = getMinBits(hexVal);
-
-   char* valBuf = (char*)malloc(sizeof(long));
-   for (int i = 0; i < 8; i++) {
-      for (int j = 7; j >= 0; j--) {
-         setBufferBit(valBuf, i * 8 + j, hexVal & 0x01);
-         hexVal = hexVal >> 1;
-      }
-   }
-   
-   // We now have the value of the operand and a map, so we should be able to
-   // match these up fairly well and save some time.
-   
-   int firstBit = findOperandValue(bitTypes, valBuf, operandNum, operandBitCount);
-
-   if (firstBit < 0) {
-      free(valBuf);
-      return;
-   }
-
-   for (int i = firstBit; i < operandBitCount; i++) {
-      confirmed[i] = true;
-   }
-
-   free(valBuf);
-
-}
-
-void MappedInst::confirmHexBits(BitType* bitTypes, char* decInsn) {
-
-   char* cur = decInsn;
-   int operandNum = 0;
-
-   while (*cur) {
-      while (*cur && *cur != ' ') {
-         cur++;
-      }
-      
-      if (*cur) {
-         operandNum++;
-         cur++;
-         confirmHexOperand(bitTypes, cur, operandNum);
-      }
-   }
-
-}
-*/
-
 void MappedInst::mapBitTypes(BitType* bitTypes) {
-   size_t i = 0;
-   unsigned int nBits = 8 * nBytes;
-   char decStr[DECODING_BUFFER_SIZE];
+    size_t i = 0;
+    unsigned int nBits = 8 * nBytes;
+    char decStr[DECODING_BUFFER_SIZE];
+  
+    BitType tmpBitTypeBuf[nBits];
+    BitType newBitTypeBuf[nBits];
+    BitType* tmpBitTypes = &tmpBitTypeBuf[0];
+    BitType* newBitTypes = &newBitTypeBuf[0];
    
-   BitType* tmpBitTypes = (BitType*)malloc(nBits * sizeof(BitType));
-   BitType* newBitTypes = (BitType*)malloc(nBits * sizeof(BitType));
-   
-   if (tmpBitTypes == NULL || newBitTypes == NULL) {
-      throw "ERROR: Could not allocate bit type vector!\n";
-   }
-
    makeSimpleMap(bitTypes, fields);
    
    // Next, iterate over every bit and select those which previously
@@ -582,9 +470,6 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
    }
 
    memcpy(bitTypes, newBitTypes, nBits * sizeof(BitType));
-   free(newBitTypes);
-   free(tmpBitTypes);
-
 }
 
 int getBitTypeByChanges(FieldList* startFields, char* decStr) {

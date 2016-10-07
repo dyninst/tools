@@ -201,9 +201,11 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
                 nFields = -1;
             }
         }
+        
+        Architecture::replaceRegSets(*(tLists[i]));
 
         // Leave some room for extra register value.
-        int len = tLists[i]->getTotalBytes() + 64;
+        int len = tLists[i]->getTotalBytes();
 
         insnTemplates[i] = (char*)malloc(len);
         assert(insnTemplates[i] != NULL);
@@ -212,7 +214,6 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
         // template by replacing register sets.
         tLists[i]->fillBuf(insnTemplates[i], len);
   
-        Architecture::replaceRegSets(insnTemplates[i], len);
     }
 
     bool result = false;

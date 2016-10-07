@@ -65,7 +65,13 @@ public:
      * Returns a pointer to the null-terminated string stored at <index>
      * location in the list of fields.
      */
-    char* getField(unsigned int Field);
+    char* getField(unsigned int index);
+
+    /*
+     * Replaces the field at a given index with a new value. This value will be
+     * copied from the supplied string.
+     */
+    void setField(unsigned int index, const char* newField);
 
     /*
      * Removes all digits from all fields. Each contiguous set of digits is
