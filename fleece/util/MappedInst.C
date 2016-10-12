@@ -166,7 +166,11 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 }
 
 void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
-   
+  
+    if (isError) {
+        return;
+    }
+
     int nBits = 8 * nBytes;
 
     for (int i = 0; i < nBits; i++) {
@@ -212,48 +216,51 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
 MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool normalize) {
 
     char decodeBuf[DECODING_BUFFER_SIZE];
-   char* decodedInstruction = &decodeBuf[0];
+    char* decodedInstruction = &decodeBuf[0];
 
-   decoder = dec;
-   int success = !decoder->decode(bytes, 
-                                  nBytes, 
-                                  decodedInstruction, 
-                                  DECODING_BUFFER_SIZE);
-   if (!success) {
-      this->isError = true;
-   } else {
-      isError = false;
-   }
-
-   this->norm = normalize;
-   if (this->norm) {
-      decoder->normalize(decodedInstruction, DECODING_BUFFER_SIZE);
-   }
-
-   this->nBytes = nBytes;
-   this->bitTypes = (BitType*)malloc(8 * nBytes * sizeof(*bitTypes));
-   this->bytes = (char*)malloc(nBytes);
-   this->confirmed = (bool*)malloc(8 * nBytes * sizeof(*confirmed));
-  
-   assert(bitTypes != NULL && bytes != NULL && confirmed != NULL);
-
-   for (size_t i = 0; i < 8 * nBytes; i++) {
-      confirmed[i] = false;
-   }
-
-   for (unsigned int i = 0; i < nBytes; i++) {
-      this->bytes[i] = bytes[i];
-   }
+    decoder = dec;
+    int success = !decoder->decode(bytes, 
+                                   nBytes, 
+                                   decodedInstruction, 
+                                   DECODING_BUFFER_SIZE);
    
-   fields = new FieldList(decodedInstruction);
-   this->map();
+    isError = !success;
+    if (isError) {
+        return;
+    }
+
+    this->norm = normalize;
+    if (this->norm) {
+        decoder->normalize(decodedInstruction, DECODING_BUFFER_SIZE);
+    }
+
+    this->nBytes = nBytes;
+    this->bitTypes = (BitType*)malloc(8 * nBytes * sizeof(*bitTypes));
+    this->bytes = (char*)malloc(nBytes);
+    this->confirmed = (bool*)malloc(8 * nBytes * sizeof(*confirmed));
+  
+    assert(bitTypes != NULL && bytes != NULL && confirmed != NULL);
+
+    for (size_t i = 0; i < 8 * nBytes; i++) {
+        confirmed[i] = false;
+    }
+
+    for (unsigned int i = 0; i < nBytes; i++) {
+        this->bytes[i] = bytes[i];
+    }
+   
+    fields = new FieldList(decodedInstruction);
+    this->map();
 }
 
 MappedInst::~MappedInst() {
-   delete fields;
-   free(bytes);
-   free(bitTypes);
-   free(confirmed);
+    if (isError) {
+        return;
+    }
+    delete fields;
+    free(bytes);
+    free(bitTypes);
+    free(confirmed);
 }
 
 int MappedInst::getNumUsedBytes() {
