@@ -157,12 +157,35 @@ void fixStRegs(char* buf, int bufLen) {
     }
 }
 
+void fixMmxRegs(char* buf, int bufLen) {
+
+
+    // We are looking for the 'x' in 'mmx', so the string must be at least 3
+    // letters, and we can skip the first two.
+    if (*buf == '\0' || *(buf + 1) == '\0') {
+        return;
+    }
+    
+    char* cur = buf + 2;
+    char* place = buf + 2;
+    
+    while (*cur) {
+        if (*cur != 'x' || *(cur - 1) != 'm' || *(cur - 2) != 'm') {
+            *place = *cur;
+            place++;
+        }
+        cur++;
+    }
+    *place = '\0';
+}
+
 void xed_x86_64_norm(char* buf, int bufLen) {
 
    cleanSpaces(buf, bufLen);
    toLowerCase(buf, bufLen);
    spaceAfterCommas(buf, bufLen);
    fixStRegs(buf, bufLen);
+   fixMmxRegs(buf, bufLen);
    /*trimHexZeroes(buf, bufLen);
    trimHexFs(buf, bufLen);
 
