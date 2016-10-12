@@ -27,6 +27,7 @@ extern "C" {
 #endif
 
 #include <iomanip>
+#include <iostream>
 #include "Alias.h"
 #include "Normalization.h"
 #include "StringUtils.h"
@@ -77,26 +78,6 @@ int xedInit(void) {
    Alias::addAlias("%mmx6,", "%mm6,");
    Alias::addAlias("%mmx7,", "%mm7,");
    
-   Alias::addAlias("%st0", "%st");
-   Alias::addAlias("%st0", "%st(0)");
-   Alias::addAlias("%st1", "%st(1)");
-   Alias::addAlias("%st2", "%st(2)");
-   Alias::addAlias("%st3", "%st(3)");
-   Alias::addAlias("%st4", "%st(4)");
-   Alias::addAlias("%st5", "%st(5)");
-   Alias::addAlias("%st6", "%st(6)");
-   Alias::addAlias("%st7", "%st(7)");
-
-   Alias::addAlias("%st0,", "%st,");
-   Alias::addAlias("%st0,", "%st(0),");
-   Alias::addAlias("%st1,", "%st(1),");
-   Alias::addAlias("%st2,", "%st(2),");
-   Alias::addAlias("%st3,", "%st(3),");
-   Alias::addAlias("%st4,", "%st(4),");
-   Alias::addAlias("%st5,", "%st(5),");
-   Alias::addAlias("%st6,", "%st(6),");
-   Alias::addAlias("%st7,", "%st(7),");
-
    aliasSizes("or");
    aliasSizes("adc");
    aliasSizes("sub");
@@ -143,11 +124,45 @@ int xedInit(void) {
    return 0;
 }
 
+void fixStRegs(char* buf, int bufLen) {
+    char tmpBuf[bufLen];
+    char* place = &tmpBuf[0];
+    char* cur = buf;
+    char* firstRegStart = NULL;
+    while (*cur && place + 5 < &tmpBuf[bufLen - 1]) {
+        if (!strncmp(cur, "%st", 3)) {
+            if (firstRegStart == NULL) {
+                firstRegStart = cur;
+            }
+            for (int i = 0; i < 3; i++) {
+                *place = *cur;
+                place++;
+                cur++;
+            }
+            *place = '(';
+            place++;
+            *place = *cur;
+            place++;
+            *place = ')';
+            place++;
+        } else if (firstRegStart != NULL) {
+            *place = *cur;
+            place++;
+        }
+        cur++;
+    }
+    *place = '\0';
+    if (firstRegStart != NULL) {
+        strncpy(firstRegStart, &tmpBuf[0], bufLen + buf - firstRegStart);
+    }
+}
+
 void xed_x86_64_norm(char* buf, int bufLen) {
 
    cleanSpaces(buf, bufLen);
    toLowerCase(buf, bufLen);
    spaceAfterCommas(buf, bufLen);
+   fixStRegs(buf, bufLen);
    /*trimHexZeroes(buf, bufLen);
    trimHexFs(buf, bufLen);
 
