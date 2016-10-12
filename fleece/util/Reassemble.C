@@ -57,7 +57,8 @@ char** makeAsArgs(const char* as, const char* asOpts,
 }
 
 char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp, 
-        const char* tmpname, char* byteBuf, int bufLen, int* outputLen) {
+        const char* tmpname, char* byteBuf, int bufLen, int* outputLen,
+        char* errorBuf, int errorBufLen) {
 
     static const char* as = Options::get("-as=");
     if (as == NULL) {
@@ -85,17 +86,18 @@ char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp,
         close(p[1]);
         char c;
         int assemblerErrorTabCount = 5;
-        std::cout << "STDERR: ";
         int tabCount = 0;
-        while (read(p[0], &c, 1) > 0) {
-            if (tabCount >= assemblerErrorTabCount) {
-                std::cout << c;
+        char* errorBufEnd = errorBuf + errorBufLen;
+        while (read(p[0], &c, 1) > 0 && errorBuf < errorBufEnd) {
+            if (tabCount >= assemblerErrorTabCount && c != '\n') {
+                *errorBuf = c;
+                errorBuf++;
             }
             if (c == ':') {
                 tabCount++;
             }
         }
-        std::cout << "\n";
+        *errorBuf = '\0';
         waitpid(pid, &status, 0);
     } else {
         close(p[0]);

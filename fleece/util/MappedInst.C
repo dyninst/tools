@@ -147,8 +147,8 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 
             if (hc->insert(std::make_pair(hcString, 1)).second) {
              
-                std::cout << decoder->getName() << " queue: " << hcString 
-                        << "\n";
+                //std::cout << decoder->getName() << " queue: " << hcString 
+                //        << "\n";
                 char* queuedBytes = (char*)malloc(nBytes);
                 bcopy(bytes, queuedBytes, nBytes);
                 queue->push(queuedBytes);
@@ -231,9 +231,9 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool norm
    }
 
    this->nBytes = nBytes;
-   this->bitTypes = (BitType*)malloc(8 * nBytes * sizeof(BitType));
+   this->bitTypes = (BitType*)malloc(8 * nBytes * sizeof(*bitTypes));
    this->bytes = (char*)malloc(nBytes);
-   this->confirmed = (bool*)malloc(8 * nBytes * sizeof(bool));
+   this->confirmed = (bool*)malloc(8 * nBytes * sizeof(*confirmed));
   
    assert(bitTypes != NULL && bytes != NULL && confirmed != NULL);
 

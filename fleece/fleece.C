@@ -27,6 +27,8 @@
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 #include <vector>
@@ -41,102 +43,109 @@
 
 #define DECODED_BUFFER_LEN 256
 #define FLUSH_FREQ 100
+#define DIR_ACCESS_PERMS S_IRUSR | S_IWUSR | S_IXUSR
 
 int main(int argc, char** argv) {
 
-   /***********************************************************************/
-   /*                     PARSING COMMAND LINE ARGS                       */
-   /***********************************************************************/
+    /***********************************************************************/
+    /*                     PARSING COMMAND LINE ARGS                       */
+    /***********************************************************************/
 
-   Options::parse(argc, argv);
+    Options::parse(argc, argv);
 
-   // The user selected the "-help" option, so print help and exit.
-   if (Options::get("-help") || Options::get("-h")) {
-      Info::printOptions();
-      exit(0);
-   }
+    // The user selected the "-help" option, so print help and exit.
+    if (Options::get("-help") || Options::get("-h")) {
+        Info::printOptions();
+        exit(0);
+    }
 
-   // The user selected the "-version" option, so print the version and exit.
-   if (Options::get("-version") != NULL) {
-      Info::printVersion();
-      exit(0);
-   }
+    // The user selected the "-version" option, so print the version and exit.
+    if (Options::get("-version") != NULL) {
+        Info::printVersion();
+        exit(0);
+    }
    
-   // Should output from decoders be normalized before use?
-   bool norm     = (Options::get("-norm")  != NULL);
+    // Should output from decoders be normalized before use?
+    bool norm     = (Options::get("-norm")  != NULL);
 
-   // Should the input method be random bytes with an (optional) mask?
-   bool random   = (Options::get("-rand")  != NULL);
+    // Should the input method be random bytes with an (optional) mask?
+    bool random   = (Options::get("-rand")  != NULL);
 
-   // Should the raw bytes of an insn be printed right before decoding?
-   bool showInsn = (Options::get("-bytes") != NULL);
+    // Should the raw bytes of an insn be printed right before decoding?
+    bool showInsn = (Options::get("-bytes") != NULL);
 
-   // Should the program read input from stdio?
-   bool pipe     = (Options::get("-pipe")  != NULL);
+    // Should the program read input from stdio?
+    bool pipe     = (Options::get("-pipe")  != NULL);
 
-   // Seed the random number generator with the time or a provided seed.
-   const char* strSeed = Options::get("-seed=");
-   if (strSeed == NULL) {
-      srand(time(NULL));
-   } else {
-      srand(strtoul(strSeed, NULL, 10));
-   }
+    // Seed the random number generator with the time or a provided seed.
+    const char* strSeed = Options::get("-seed=");
+    if (strSeed == NULL) {
+        srand(time(NULL));
+    } else {
+        srand(strtoul(strSeed, NULL, 10));
+    }
 
-   // Determine the instruction length. The default value is 15 bytes.
-   unsigned long insnLen = 15;
-   const char* strInsnLen = Options::get("-len=");
-   if (strInsnLen != NULL) {
-      insnLen = strtoul(strInsnLen, NULL, 10);
-   }
+    // Determine the instruction length. The default value is 15 bytes.
+    unsigned long insnLen = 15;
+    const char* strInsnLen = Options::get("-len=");
+    if (strInsnLen != NULL) {
+        insnLen = strtoul(strInsnLen, NULL, 10);
+    }
 
-   // Check which architecture was specified.
-   const char* archStr = Options::get("-arch=");
-   if (!archStr) {
-      std::cerr << "Error: An architecture must be specified!\n";
-      exit(1);
-   }
+    // Check which architecture was specified.
+    const char* archStr = Options::get("-arch=");
+    if (!archStr) {
+        std::cerr << "FLEECE FATAL: Must specify architecture!\n";
+        exit(1);
+    }
 
-   /* Initialize our decoders */
-   Decoder::initAllDecoders();
-   // Initialize the architecture with the command line name.
-   Architecture::init(archStr);
+    /* Initialize our decoders */
+    Decoder::initAllDecoders();
+    // Initialize the architecture with the command line name.
+    Architecture::init(archStr);
 
-   // Get a list of all decoders that should be used, from the comma separated
-   // list of names on the command line
-   const char* decStr = Options::get("-decoders=");
+    // Get a list of all decoders that should be used, from the comma separated
+    // list of names on the command line
+    const char* decStr = Options::get("-decoders=");
 
-   // The Decoder class has a static method to match architecture and decoder
-   // strings.
-   std::vector<Decoder> decoders = Decoder::getDecoders(archStr, decStr);
-   size_t decCount = decoders.size();
+    // The Decoder class has a static method to match architecture and decoder
+    // strings.
+    std::vector<Decoder> decoders = Decoder::getDecoders(archStr, decStr);
+    size_t decCount = decoders.size();
    
-   // If there were no valid decoders with the architecture, print all decoder
-   // and architecture pairs and continue.
-   if (decCount == 0) {
-      std::cout << "Error: No valid decoders for the given architecture.\n"; 
-      std::cout << "Valid options are:\n";
-      Decoder::printAllNames();
-      exit(0);
-   }
+    // If there were no valid decoders with the architecture, print all decoder
+    // and architecture pairs and continue.
+    if (decCount == 0) {
+        std::cout << "FLEECE FATAL: No decoders for this architecture.\n"; 
+        std::cout << "Valid options are:\n";
+        Decoder::printAllNames();
+        exit(0);
+    }
 
-   // Verify that the user has provided a byte source or specified a number of
-   // random instruction.
-   unsigned long nRuns = 0;
-   const char* strRuns = Options::get("-n=");
-   if (strRuns == NULL && !pipe) {
-      std::cout << "You must specify \"-n=<# of insns>\" or \"-pipe\"\n";
-      exit(0);
-   } else if (random) {
-      nRuns = strtoul(strRuns, NULL, 10);
-   }
+    // Verify that the user has provided a byte source or specified a number of
+    // random instruction.
+    unsigned long nRuns = 0;
+    const char* strRuns = Options::get("-n=");
+    if (strRuns == NULL && !pipe) {
+        std::cout << "FLEECE FATAL: Need \"-n=<# of insns>\" or \"-pipe\"\n";
+        exit(0);
+    } else if (!pipe) {
+        nRuns = strtoul(strRuns, NULL, 10);
+    }
 
-   // Get the specified output file
-   const char* outputFilename = Options::get("-o=");
-   FILE* outF = stdout;
-   if (outputFilename != NULL) {
-      outF = fopen(outputFilename, "w+");
-   }
-   assert(outF != NULL && "Must have stdout or output file available!");
+    // Get the specified output file
+    const char* outputDir = Options::get("-o=");
+    if (outputDir == NULL) {
+        outputDir = "fleece_results";
+    }
+    int rc = mkdir(outputDir, DIR_ACCESS_PERMS);
+    if (rc != 0) {
+        if (errno != EEXIST) {
+            std::cerr << "FLEECE FATAL: Cannot create output directory:"
+                    << outputDir << "\n";
+            exit(-1);
+        }
+    }
 
    // If the user passes in a mask value, read that in now.
    const char* strMask = Options::get("-mask=");
@@ -171,9 +180,23 @@ int main(int argc, char** argv) {
       assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
    }
 
-   // Instantiate a reporting context with the chosen output file.
-   ReportingContext* repContext = new ReportingContext(outF, FLUSH_FREQ);
-   assert(repContext != NULL && "Reporting context should not be null!");
+    // Instantiate a reporting context with the chosen output file.
+    ReportingContext* repContext = new ReportingContext(outputDir, FLUSH_FREQ);
+    assert(repContext != NULL && "Reporting context should not be null!");
+    for (size_t i = 0; i < decCount; i++) { 
+        repContext->addDecoder(decoders[i].getName());
+        char dirBuf[REPORT_FILENAME_BUF_LEN];
+        snprintf(dirBuf, REPORT_FILENAME_BUF_LEN, "%s/%s", outputDir, \
+                decoders[i].getName());
+        int rc = mkdir(dirBuf, DIR_ACCESS_PERMS);
+        if (rc != 0) {
+            if (errno != EEXIST) {
+                std::cerr << "FLEECE FATAL: Cannot create output directory:"
+                        << dirBuf << "\n";
+                exit(-1);
+            }
+        }
+    }
 
    // Create a map as a counter for all of the seen formats when queuing new
    // instructions.
@@ -204,6 +227,10 @@ int main(int argc, char** argv) {
       curInsn = (char*)malloc(insnLen);
    }
 
+   uint64_t totalDisasmTime = 0;
+   uint64_t totalMapTime = 0;
+   struct timespec startTime, endTime;
+
    i = 0;
    while (pipe || (!random && !remainingInsns.empty()) 
            || (random && i < nRuns)) {
@@ -225,6 +252,8 @@ int main(int argc, char** argv) {
          // Output instructions decoded and summary of reporting done.
          std::cerr << nDecoded << ", " << remainingInsns.size() << ", ";
          repContext->printSummary(stderr);
+         std::cerr << "Disasm Time: " << totalDisasmTime / 1000000000 << "\n";
+         std::cerr << "Map Time: " << totalMapTime / 1000000000 << "\n";
       }
 
       bool pipeEmpty = false;
@@ -262,6 +291,7 @@ int main(int argc, char** argv) {
          std::cout << "\n" << std::dec;
       }
       
+      clock_gettime(CLOCK_MONOTONIC, &startTime);
       // Use each decoder to decode the instruction.
       for (j = 0; j < decCount; j++) {
          bcopy(curInsn, tempInsn, insnLen);
@@ -293,8 +323,13 @@ int main(int argc, char** argv) {
          curInsn, 
          insnLen
       );
+      clock_gettime(CLOCK_MONOTONIC, &endTime);
+
+      totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                      (endTime.tv_nsec - startTime.tv_nsec);
       
 
+      clock_gettime(CLOCK_MONOTONIC, &startTime);
       if (!random && !pipe) {
 
          // If the input is non-random, we need to add to the queue now.
@@ -317,10 +352,16 @@ int main(int argc, char** argv) {
       if (!random) {
          free(curInsn);
       }
+      clock_gettime(CLOCK_MONOTONIC, &endTime);
+
+      totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                   (endTime.tv_nsec - startTime.tv_nsec);
+      //random = true;
+      //nRuns = 0;
    }
 
    // Print a summary at the end of execution.
-   repContext->printSummary(outF);
+   repContext->printSummary(stdout);
 
    // Report the total number of decoded instructions.
    unsigned long totalDecInsns = 0;

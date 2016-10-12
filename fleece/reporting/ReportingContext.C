@@ -1,13 +1,8 @@
 
 #include "ReportingContext.h"
 
-ReportingContext::ReportingContext(FILE* outf, int flushFreq) {
+ReportingContext::ReportingContext(const char* outputDir, int flushFreq) {
   
-    // Verify that the files are okay and we can make a record of all
-    // differences seen.
-    outFile = outf;
-    assert(outFile != NULL && "Report file should not be null!");
-
     diffMap = new std::map<char*, int, StringUtils::str_cmp>();
     assert(diffMap != NULL && "Report hashcounter should not be null!");
 
@@ -17,11 +12,17 @@ ReportingContext::ReportingContext(FILE* outf, int flushFreq) {
     nReports = 0;
     nSuppressed = 0;
 
+    this->outputDir = strdup(outputDir);
+
     this->flushFreq = flushFreq;
     flushCount = 0;
 }
 
 ReportingContext::~ReportingContext() {
+
+    flushReportQueue();
+    
+    free(outputDir);
 
     // We only need to delete the difference counter, since the file was passed
     // as an already-opened FILE*, someone else is responsible.
@@ -31,30 +32,71 @@ ReportingContext::~ReportingContext() {
 }
 
 void ReportingContext::reportDiff(const char** insns, int nInsns, 
-        const char* bytes, int nBytes) {
+        const char* bytes, int nBytes, const char** reasmErrors) {
   
-    // Print all decoded instructions to the file with a semicolon separating
-    // them.
-    for (int i = 0; i < nInsns; i++) {
-        int rc = fprintf(outFile, "%s; ", insns[i]);
-        assert(rc > 0 && "Reporting file write failed!");
-    }
-
-    // Print each byte to the file with spaces separating them.
-    for (int i = 0; i < nBytes; i++) {
-        int rc = fprintf(outFile, "%02x ", 0xFF & bytes[i]);
-        assert(rc > 0 && "Reporting write failed!");
-    }
-
-    // Each report is followed by a newline.
-    int rc = fprintf(outFile, "\n");
-    assert(rc == 1 && "Reporting write failed!");
-        
+    reportQueue.push(new Report(insns, nInsns, bytes, nBytes, reasmErrors));
     flushCount++;
     if (flushCount > flushFreq) {
+        flushReportQueue();
         flushCount = 0;
-        fflush(outFile);
     }
+}
+
+void ReportingContext::flushReportQueue() {
+    while (!reportQueue.empty()) {
+
+        // Read the next report from the queue.
+        Report* r = reportQueue.front();
+        reportQueue.pop();
+
+        // Construct a buffer for the filenames to be written to.
+        char filenameBuf[REPORT_FILENAME_BUF_LEN];
+        char* filename = &filenameBuf[0];
+
+        // All reports are issued to the all_reports.txt file.
+        snprintf(filename, REPORT_FILENAME_BUF_LEN, "%s/all_reports.txt",
+                outputDir);
+        r->issue(filename);
+
+        // We need to track whether or not a report has been issued to at least
+        // one decoder. If not, we can add it to the no_obv_error file.
+        bool issuedToDecoder = false;
+
+        // Issue reports to each decoder that interpreted an instruction as
+        // invalid.
+        for (size_t i = 0; i < r->size(); i++) {
+            FieldList fl = FieldList(r->getInsn(i));
+            if (fl.hasError()) {
+                snprintf(filename, REPORT_FILENAME_BUF_LEN,
+                        "%s/%s/errors.txt", outputDir, decoderNames[i]);
+                r->issue(filename);
+                issuedToDecoder = true;
+            } else if (r->hasReasmError(i)) {
+                snprintf(filename, REPORT_FILENAME_BUF_LEN,
+                        "%s/%s/%s.txt", outputDir, decoderNames[i],
+                        asmErrorToFilename(r->getReasmError(i)).c_str());
+                r->issue(filename);
+                issuedToDecoder = true;
+            }
+        }
+
+        // If there were no failures to decode and all outputs assembled, add
+        // it to the no obvious error file. This should be renamed, but will
+        // suffice for now.
+        if (!issuedToDecoder) {
+            snprintf(filename, REPORT_FILENAME_BUF_LEN, "%s/no_obv_error.txt",
+                    outputDir);
+            r->issue(filename);
+        }
+
+        // Reports were created using new and put on the queue, so free them
+        // here.
+        delete r;
+    }
+}
+
+void ReportingContext::addDecoder(const char* name) {
+    decoderNames.push_back(strdup(name));
 }
 
 int ReportingContext::processDecodings(const char** insns, int nInsns, 
@@ -70,6 +112,55 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
         allMatch = doesDecodingMatch(insns[0], insns[i]);
     }
 
+    char reasmResults[nInsns + 1];
+    char reasmErrorBufs[nInsns][REASM_ERROR_BUF_LEN];
+    char* reasmErrors[nInsns];
+    for (int i = 0; i < nInsns; i++) {
+        reasmErrors[i] = &reasmErrorBufs[i][0];
+    }
+    if (!allMatch) {
+        int nAgreed = 0;
+        char reasmDiffBuf[15];
+        reasmResults[nInsns] = 0;
+        for (int i = 0; i < nInsns; i++) {
+        
+            reasmErrors[i][0] = '\0';
+            FieldList f = FieldList(insns[i]);
+            char reasmBuf[15];
+            int reasmLen = 0;
+            if (f.hasError()) {
+                reasmResults[i] = 'N';
+            } else {
+                reasmResults[i] = reassemble(bytes, nBytes, insns[i], NULL, 
+                    REASM_FILENAME, &reasmBuf[0], 15, &reasmLen,
+                    &reasmErrors[i][0], REASM_ERROR_BUF_LEN);
+
+                if (reasmResults[i] != 'E') {
+                    if (i == 0) {
+                        nAgreed++;
+                        memcpy(reasmDiffBuf, reasmBuf, reasmLen);
+                    } else {
+                        if (!memcmp(reasmBuf, reasmDiffBuf, reasmLen)) {
+                            nAgreed++;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (nAgreed == nInsns) {
+            FILE* sameF = fopen("same.txt", "a+");
+            for (int i = 0; i < nInsns; i++) {
+                fprintf(sameF, "%s; ", insns[i]);
+                //std::cout << insns[i] << "\n";
+            }
+            fprintf(sameF, "%s\n", reasmResults);
+            //std::cout << "REASSEMBLY: " << reasmResults << "\n";
+            fclose(sameF);
+            allMatch = true;
+        }
+    }
+
     if (allMatch) {
        nMatches++;
        return nBytes;
@@ -78,7 +169,7 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
     // Check if we need to report the difference and do so. Update summary data.
     if (shouldReportDiff(bytes, nBytes, insns, nInsns)) {
         nReports++;
-        reportDiff(insns, nInsns, bytes, nBytes);
+        reportDiff(insns, nInsns, bytes, nBytes, (const char**)&reasmErrors[0]);
     } else {
         nSuppressed++;
     }
@@ -87,12 +178,6 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
 }
 
 void ReportingContext::printSummary(FILE* outf) {
- 
-    // If the file given to this function is null, write to the file given to
-    // the ReportingContext object by default.
-    if (outf == NULL) {
-        outf = outFile;
-    }
 
     // Verify that we have a valid file and report data.
     assert(outf != NULL && "File for summary should not be null!");
@@ -128,49 +213,6 @@ unsigned int ReportingContext::getNumSuppressed() {
 
 bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes, 
         const char** insns, int nInsns) {
-
-    bool atLeastOneError = false;
-    for (int i = 0; i < nInsns; i++) {
-        FieldList tl(insns[i]);
-        if (tl.hasError()) {
-            atLeastOneError = true;
-        }
-    }
-
-    if (!atLeastOneError) {
-        int nAgreed = 0;
-        char reasmResults[nInsns + 1];
-        char reasmDiffBuf[15];
-        reasmResults[nInsns] = 0;
-        for (int i = 0; i < nInsns; i++) {
-
-            char reasmBuf[15];
-            int reasmLen = 0;
-            reasmResults[i] = reassemble(bytes, nBytes, insns[i], NULL, 
-                REASM_FILENAME, &reasmBuf[0], 15, &reasmLen);
-
-            if (i == 0 && reasmResults[i] != 'E') {
-                nAgreed++;
-                memcpy(reasmDiffBuf, reasmBuf, reasmLen);
-            } else if (reasmResults[i] != 'E') {
-                if (!memcmp(reasmBuf, reasmDiffBuf, reasmLen)) {
-                    nAgreed++;
-                }
-            }
-        }
-
-        if (nAgreed == nInsns) {
-            FILE* sameF = fopen("same.txt", "a+");
-            for (int i = 0; i < nInsns; i++) {
-                fprintf(sameF, "%s; ", insns[i]);
-                //std::cout << insns[i] << "\n";
-            }
-            fprintf(sameF, "%s\n", reasmResults);
-            //std::cout << "REASSEMBLY: " << reasmResults << "\n";
-            fclose(sameF);
-            return false;
-        }
-    }
 
     // Allocate buffers for the instruction templates and output.
     char** insnTemplates = (char**)malloc(nInsns * sizeof(char*));

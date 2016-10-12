@@ -1,11 +1,16 @@
 #ifndef _REPORTING_CONTEXT_H_
 #define _REPORTING_CONTEXT_H_
 
+#include <queue>
+#include <vector>
 #include "Alias.h"
 #include "Architecture.h"
 #include "FieldList.h"
 #include "Reassemble.h"
+#include "Report.h"
 #include "StringUtils.h"
+
+#define REPORT_FILENAME_BUF_LEN 512
 
 /*
  * This class is used to keep track of the instruction templates we have
@@ -20,13 +25,19 @@ public:
      * Creates a reporting context with the given output file. The file will
      * be flushed every flushFreq reports.
      */
-    ReportingContext(FILE* outf, int flushFreq);
+    ReportingContext(const char* outputDir, int flushFreq);
 
     /*
      * Destroys the reporting context. Does NOT close the output file (the
      * reporting context did not open it).
      */
     ~ReportingContext();
+
+    /*
+     * Adds the name of a decoder to the list of decoders that this reporting
+     * context is receiving instructions from.
+     */
+    void addDecoder(const char* name);
 
     /*
      * Takes an array of decoded instructions, and the bytes and produces a
@@ -54,7 +65,7 @@ private:
      * Reports a difference to the file that was passed at creation time.
      */
     void reportDiff(const char** insns, int nInsns, const char* bytes, 
-            int nBytes);
+            int nBytes, const char** reasmErrors);
 
     /*
      * Examines the data already reported and decides if the incoming decodings
@@ -70,6 +81,11 @@ private:
     bool doesDecodingMatch(const char* insn1, const char* insn2);
 
     /*
+     * Writes all waiting reports out to files.
+     */
+    void flushReportQueue();
+
+    /*
      * Data used to summarize the activity of the reporting context.
      */
     unsigned int nReports;
@@ -83,15 +99,27 @@ private:
     std::map<char*, int, StringUtils::str_cmp>* diffMap;
 
     /*
-     * The output file for all reports (but not necessarily for summary data).
+     * The output dir for all reports (but not necessarily for summary data).
      */
-    FILE* outFile;
+    char* outputDir;
 
     /*
      * The frequency (in reports) with which the report file should be flushed.
      */
     int flushFreq;
     int flushCount;
+
+    /*
+     * A list of the names of each decoder. When processDecodings is called, it
+     * will be assumed that the ith instruction is from the ith decoder in this
+     * list.
+     */
+     std::vector<char*> decoderNames;
+
+     /*
+      * A queue of all reports waiting to be written to output files.
+      */
+     std::queue<Report*> reportQueue;
 };
 
 #endif // _REPORTING_CONTEXT_H_

@@ -30,7 +30,7 @@
 bool signalsError(const char* token) {
    bool retval =  (
       !strcmp(token, "decoding_error")  ||
-      !strcmp(token, "No_Entry")        ||
+      !strcmp(token, "no_entry")        ||
       !strcmp(token, "[INVALID]")       ||
       !strcmp(token, "[<invalid_reg>]") ||
       !strcmp(token, "<invalid_reg>,")  ||
@@ -456,4 +456,35 @@ void writeStrToFile(const char* filename, long offset, char* str) {
    ftruncate(fileno(file), offset);
    fprintf(file, "%s\n", str);
    fclose(file);
+}
+
+std::string asmErrorToFilename(const char* asmError) {
+    char buf[strlen(asmError) + 1];
+    char* place = &buf[0];
+    const char* cur = asmError;
+    bool inQuotes = false;
+    while (isspace(*cur)) {
+        cur++;
+    }
+    while (*cur) {
+        if (*cur == '`') {
+            inQuotes = true;
+        } else if (*cur == '\'') {
+            inQuotes = false;
+        }
+        if (!inQuotes) {
+            if (*cur == '\'') {
+                *place = 'X';
+            } else if (*cur == ' ') {
+                *place = '_';
+            } else {
+                *place = *cur;
+            }
+            place++;
+        }
+        cur++;
+    }
+    *place = '\0';
+
+    return std::string(buf);
 }

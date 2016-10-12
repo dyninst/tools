@@ -157,5 +157,8 @@ void removeCharacter(char* buf, int bufLen, char c);
 void writeStrToFile(const char* file, long offset, char* str);
 
 void strStripDigits(char* str);
+
 void strStripHex(char* str);
+
+std::string asmErrorToFilename(const char* asmError);
 #endif /* _MYSTRING_H_ */
