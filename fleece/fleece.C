@@ -147,38 +147,38 @@ int main(int argc, char** argv) {
         }
     }
 
-   // If the user passes in a mask value, read that in now.
-   const char* strMask = Options::get("-mask=");
-   bool hasMask = (strMask != NULL);
-   Mask* mask = NULL;
+    // If the user passes in a mask value, read that in now.
+    const char* strMask = Options::get("-mask=");
+    bool hasMask = (strMask != NULL);
+    Mask* mask = NULL;
 
-   // The mask constructor will do all of the necessary string parsing.
-   if (hasMask) {
-      mask = new Mask(strMask);
-   }
+    // The mask constructor will do all of the necessary string parsing.
+    if (hasMask) {
+        mask = new Mask(strMask);
+    }
 
-   /************************************************************************/
-   /*                   END OF COMMAND LINE ARG PARSING                    */
-   /************************************************************************/
+    /************************************************************************/
+    /*                   END OF COMMAND LINE ARG PARSING                    */
+    /************************************************************************/
 
-   // We'll be needing these, trust me (loop vars).
-   unsigned long i, j;
+    // We'll be needing these, trust me (loop vars).
+    unsigned long i, j;
 
-   // Allocate a starting instruction and a temporary instruction to be used
-   // during decoding.
-   char* baseInsn = (char*)malloc(insnLen);
-   char* tempInsn = (char*)malloc(insnLen);
+    // Allocate a starting instruction and a temporary instruction to be used
+    // during decoding.
+    char* baseInsn = (char*)malloc(insnLen);
+    char* tempInsn = (char*)malloc(insnLen);
 
-   assert(baseInsn != NULL && tempInsn != NULL);
+    assert(baseInsn != NULL && tempInsn != NULL);
 
-   // Allocate buffers for the output from each of the decoders.
-   char** decBufs = (char**)malloc(decCount * sizeof(char*));
-   assert(decBufs != NULL && "Could not allocate decoder buffers!");
+    // Allocate buffers for the output from each of the decoders.
+    char** decBufs = (char**)malloc(decCount * sizeof(char*));
+    assert(decBufs != NULL && "Could not allocate decoder buffers!");
 
-   for (size_t i = 0; i < decCount; i++) {
-      decBufs[i] = (char*)malloc(DECODED_BUFFER_LEN);
-      assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
-   }
+    for (size_t i = 0; i < decCount; i++) {
+        decBufs[i] = (char*)malloc(DECODED_BUFFER_LEN);
+        assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
+    }
 
     // Instantiate a reporting context with the chosen output file.
     ReportingContext* repContext = new ReportingContext(outputDir, FLUSH_FREQ);
@@ -198,10 +198,10 @@ int main(int argc, char** argv) {
         }
     }
 
-   // Create a map as a counter for all of the seen formats when queuing new
-   // instructions.
-   std::map<char*, int, StringUtils::str_cmp> seenMap;
-   std::queue<char*> remainingInsns;
+    // Create a map as a counter for all of the seen formats when queuing new
+    // instructions.
+    std::map<char*, int, StringUtils::str_cmp> seenMap;
+    std::queue<char*> remainingInsns;
 
     if (!random && !pipe) {
         for (i = 0; i < nRuns; i++) {
@@ -214,182 +214,181 @@ int main(int argc, char** argv) {
         }
     }
 
-   // Record the time reported and report stats to std::cerr regularly.
-   unsigned long lastTime = 0;
+    // Record the time reported and report stats to std::cerr regularly.
+    unsigned long lastTime = 0;
 
-   // Output a header to std::cerr.
-   std::cerr << "decoded, queued, reports, matches, suppressed\n";
+    // Output a header to std::cerr.
+    std::cerr << "decoded, queued, reports, matches, suppressed\n";
 
-   // The current instruction in the loop.
-   char* curInsn = NULL;
+    // The current instruction in the loop.
+    char* curInsn = NULL;
 
-   if (random || pipe) {
-      curInsn = (char*)malloc(insnLen);
-   }
+    if (random || pipe) {
+        curInsn = (char*)malloc(insnLen);
+    }
 
-   uint64_t totalDisasmTime = 0;
-   uint64_t totalMapTime = 0;
-   struct timespec startTime, endTime;
+    uint64_t totalDisasmTime = 0;
+    uint64_t totalMapTime = 0;
+    struct timespec startTime, endTime;
 
-   i = 0;
-   while (pipe || (!random && !remainingInsns.empty()) 
-           || (random && i < nRuns)) {
+    i = 0;
+    while (pipe || (!random && !remainingInsns.empty()) 
+                || (random && i < nRuns)) {
 
-      i++;
+        i++;
 
-      // If it has been 10 seconds, output a new line to std::cerr with data.
-      unsigned long newTime = time(NULL);
+        // If it has been 10 seconds, output a new line to std::cerr with data.
+        unsigned long newTime = time(NULL);
 
-      if (newTime >= lastTime + 10) {
-         lastTime = newTime;
+        if (newTime >= lastTime + 10) {
+            lastTime = newTime;
          
-         // Count the total number of instructions decoded.
-         unsigned long nDecoded = 0;
-         for (j = 0; j < decCount; j++) {
-            nDecoded += decoders[j].getTotalDecodedInsns();
-         }
+            // Count the total number of instructions decoded.
+            unsigned long nDecoded = 0;
+            for (j = 0; j < decCount; j++) {
+                nDecoded += decoders[j].getTotalDecodedInsns();
+            }
 
-         // Output instructions decoded and summary of reporting done.
-         std::cerr << nDecoded << ", " << remainingInsns.size() << ", ";
-         repContext->printSummary(stderr);
-         std::cerr << "Disasm Time: " << totalDisasmTime / 1000000000 << "\n";
-         std::cerr << "Map Time: " << totalMapTime / 1000000000 << "\n";
-      }
+            // Output instructions decoded and summary of reporting done.
+            std::cerr << nDecoded << ", " << remainingInsns.size() << ", ";
+            repContext->printSummary(stderr);
+            std::cerr << "Disasm Time: " << totalDisasmTime/1000000000 << "\n";
+            std::cerr << "Map Time: " << totalMapTime/1000000000 << "\n";
+        }
 
-      bool pipeEmpty = false;
+        bool pipeEmpty = false;
 
-      // Get the next instruction.
-      if (random) {
+        // Get the next instruction.
+        if (random) {
 
-         // Fill the buffer then apply the mask.
-         randomizeBuffer(curInsn, insnLen);
-         if (hasMask) {
-            mask->apply(curInsn, insnLen);
-            mask->increment();
-         }
-      } else if (pipe) {
+            // Fill the buffer then apply the mask.
+            randomizeBuffer(curInsn, insnLen);
+            if (hasMask) {
+                mask->apply(curInsn, insnLen);
+                mask->increment();
+            }
+        } else if (pipe) {
          
-         // Read from stdin if we're in pipe mode.
-         pipeEmpty = (getStdinBytes(curInsn, insnLen) == -1);
-         if (pipeEmpty) {
-            break;
-         }
-      } else {
+            // Read from stdin if we're in pipe mode.
+            pipeEmpty = (getStdinBytes(curInsn, insnLen) == -1);
+            if (pipeEmpty) {
+                break;
+            }
+        } else {
          
-         // If insns are not random, take them from the queue.
-         curInsn = remainingInsns.front();
-         remainingInsns.pop();
-      }
+            // If insns are not random, take them from the queue.
+            curInsn = remainingInsns.front();
+            remainingInsns.pop();
+        }
 
-      // If the user selected to see the instruction before decode, print it
-      // now.
-      if (showInsn) {
-         for (j = 0; j < insnLen; j++) {
-            std::cout << std::hex << std::setfill('0') << std::setw(2)
-                << (unsigned int)(unsigned char)curInsn[j] << " ";
-         }
-         std::cout << "\n" << std::dec;
-      }
+        // If the user selected to see the instruction before decode, print it
+        // now.
+        if (showInsn) {
+            for (j = 0; j < insnLen; j++) {
+                std::cout << std::hex << std::setfill('0') << std::setw(2)
+                    << (unsigned int)(unsigned char)curInsn[j] << " ";
+            }
+            std::cout << "\n" << std::dec;
+        }
       
-      clock_gettime(CLOCK_MONOTONIC, &startTime);
-      // Use each decoder to decode the instruction.
-      for (j = 0; j < decCount; j++) {
-         bcopy(curInsn, tempInsn, insnLen);
+        clock_gettime(CLOCK_MONOTONIC, &startTime);
+        // Use each decoder to decode the instruction.
+        for (j = 0; j < decCount; j++) {
+            bcopy(curInsn, tempInsn, insnLen);
 
-         int retval = decoders[j].decode(
-            tempInsn, 
-            insnLen, 
-            decBufs[j], 
-            DECODED_BUFFER_LEN
-         );
+            int retval = decoders[j].decode(
+                tempInsn, 
+                insnLen, 
+                decBufs[j], 
+                DECODED_BUFFER_LEN
+            );
 
-         // We want to make sure that all decoders were at least able to come
-         // up with some kind of decoding, otherwise we'll fill it with a
-         // defaul bad value to be used later as an error indicator.
-         if (retval != 0) {
-            strcpy(decBufs[j], "decoding_error");
-         }
+            // We want to make sure that all decoders were at least able to come
+            // up with some kind of decoding, otherwise we'll fill it with a
+            // defaul bad value to be used later as an error indicator.
+            if (retval != 0) {
+                strcpy(decBufs[j], "decoding_error");
+            }
 
-         if (norm) {
-            decoders[j].normalize(decBufs[j], DECODED_BUFFER_LEN);
-         }
-         
-      }
+            if (norm) {
+                decoders[j].normalize(decBufs[j], DECODED_BUFFER_LEN);
+            }   
+       }
 
-      // Process the resulting decoding and report it if necessary
-      repContext->processDecodings(
-         (const char**)decBufs, 
-         decCount, 
-         curInsn, 
-         insnLen
-      );
-      clock_gettime(CLOCK_MONOTONIC, &endTime);
+        // Process the resulting decoding and report it if necessary
+        repContext->processDecodings(
+            (const char**)decBufs, 
+            decCount, 
+            curInsn, 
+            insnLen
+        );
+        clock_gettime(CLOCK_MONOTONIC, &endTime);
 
-      totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                      (endTime.tv_nsec - startTime.tv_nsec);
+        totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                        (endTime.tv_nsec - startTime.tv_nsec);
       
 
-      clock_gettime(CLOCK_MONOTONIC, &startTime);
-      if (!random && !pipe) {
+        clock_gettime(CLOCK_MONOTONIC, &startTime);
+        if (!random && !pipe) {
 
-         // If the input is non-random, we need to add to the queue now.
-         MappedInst* mInsn;
+            // If the input is non-random, we need to add to the queue now.
+            MappedInst* mInsn;
 
 
-         for (size_t j = 0; j < decCount; j++) {
+            for (size_t j = 0; j < decCount; j++) {
             
-            // Each decoder maps the instruction and each instruction uses its
-            // map to try to find interesting instructions and add them to the
-            // queue.
-            mInsn = new MappedInst(curInsn, insnLen, &decoders[j], norm);
-            mInsn->queueNewInsns(&remainingInsns, &seenMap);
-            delete mInsn;
-         }
-      }
+                // Each decoder maps the instruction and each instruction uses its
+                // map to try to find interesting instructions and add them to the
+                // queue.
+                mInsn = new MappedInst(curInsn, insnLen, &decoders[j], norm);
+                mInsn->queueNewInsns(&remainingInsns, &seenMap);
+                delete mInsn;
+            }
+        }
 
-      // If the instruction was from the queue, it was malloced at somepoint
-      // and we need to free it.
-      if (!random) {
-         free(curInsn);
-      }
-      clock_gettime(CLOCK_MONOTONIC, &endTime);
+        // If the instruction was from the queue, it was malloced at somepoint
+        // and we need to free it.
+        if (!random) {
+            free(curInsn);
+        }
+        clock_gettime(CLOCK_MONOTONIC, &endTime);
 
-      totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                   (endTime.tv_nsec - startTime.tv_nsec);
-      //random = true;
-      //nRuns = 0;
-   }
+        totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                     (endTime.tv_nsec - startTime.tv_nsec);
+        //random = true;
+        //nRuns = 0;
+    }
 
-   // Print a summary at the end of execution.
-   repContext->printSummary(stdout);
+    // Print a summary at the end of execution.
+    repContext->printSummary(stdout);
 
-   // Report the total number of decoded instructions.
-   unsigned long totalDecInsns = 0;
-   for (size_t i = 0; i < decCount; i++) {
-      totalDecInsns += decoders[i].getTotalDecodedInsns();
-   }
+    // Report the total number of decoded instructions.
+    unsigned long totalDecInsns = 0;
+    for (size_t i = 0; i < decCount; i++) {
+        totalDecInsns += decoders[i].getTotalDecodedInsns();
+    }
 
-   std::cout << "Total instructions decoded: " << totalDecInsns << "\n";
+    std::cout << "Total instructions decoded: " << totalDecInsns << "\n";
 
-   delete repContext;
+    delete repContext;
 
-   if (hasMask) {
-      delete mask;
-   }
+    if (hasMask) {
+        delete mask;
+    }
 
-   for (size_t i = 0; i < decCount; i++) {
-      free(decBufs[i]);
-   }
-   free(decBufs); 
+    for (size_t i = 0; i < decCount; i++) {
+        free(decBufs[i]);
+    }
+    free(decBufs); 
 
-   if (!random && !pipe) {
-      free(baseInsn);
-   }
-   free(tempInsn);
+    if (!random && !pipe) {
+        free(baseInsn);
+    }
+    free(tempInsn);
    
-   Architecture::destroy();
-   Alias::destroy();
-   Options::destroy();
-   Decoder::destroyAllDecoders();
-   return 0;
+    Architecture::destroy();
+    Alias::destroy();
+    Options::destroy();
+    Decoder::destroyAllDecoders();
+    return 0;
 }
