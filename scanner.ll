@@ -138,7 +138,7 @@ bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
                                                                            }
 
 imm|bit_pos                 {
-                                yylval->strVal = new string("d->read(args[0])");
+                                yylval->strVal = new string("d->read(args[1])");
                                 labelPos++;
                                 return token::OPERAND;
                             }

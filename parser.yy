@@ -322,10 +322,10 @@ asnmtsrc:   expr		        {  $$ = $1;	} |
 bitmask:    varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bit ranges not starting at 0 and for custom varname lengths
 
                                                                     int hibit = $3, lobit = $5, range = hibit - lobit + 1;
-                                                                    uint64_t mask = (1<<range) - 1;
+                                                                    uint64_t mask = ~((1<<range) - 1);
                                                                     stringstream out;
 
-                                                                    out<<*$1<<" = ops->and_("<<*$1<<", ops->number_("<<range<<", 0x"<<hex<<mask<<"))";
+                                                                    out<<*$1<<" = ops->and_("<<*$1<<", ops->number_(64, 0x"<<hex<<mask<<"))";
                                                                     delete $1;
 
                                                                     $$ = STR(out.str());
