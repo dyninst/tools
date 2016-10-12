@@ -22,78 +22,77 @@
 
 Bitfield* Bitfield::create(char* str, char** endPtr) {
    
-   long hexVal;
-   bool hexFound = false;
-   char* cur = str;
+    long hexVal;
+    bool hexFound = false;
+    char* cur = str;
 
-   while (*cur && *cur != ' ' && !hexFound) {
-      if (*cur == '0' && *(cur + 1) == 'x') {
+    while (*cur && *cur != ' ' && !hexFound) {
+        if (*cur == '0' && *(cur + 1) == 'x') {
 
-         hexFound = true;
-         if (cur != str && *(cur - 1) == '-') {
-            hexVal = strtol(cur - 1, endPtr, 16);
-         } else {
-            hexVal = strtol(cur, endPtr, 16);
-         }
-      } else {
-         cur++;
-      }
-   }
+            hexFound = true;
+            if (cur != str && *(cur - 1) == '-') {
+                hexVal = strtol(cur - 1, endPtr, 16);
+            } else {
+                hexVal = strtol(cur, endPtr, 16);
+            }
+        } else {
+            cur++;
+        }
+    }
 
-   if (!hexFound) {
-      if (endPtr != NULL) {
-         *endPtr = cur;
-      }
-      return NULL;
-   }
+    if (!hexFound) {
+        if (endPtr != NULL) {
+            *endPtr = cur;
+        }
+        return NULL;
+    }
 
-   int nBits = getMinBits(hexVal);
-   int nBytes = (nBits + 7) / 8;
+    int nBits = getMinBits(hexVal);
+    int nBytes = (nBits + 7) / 8;
 
-   char* valBuf = (char*)malloc(nBytes);
-   assert(valBuf != NULL);
-   for (int i = 0; i < nBytes; i++) {
-      for (int j = 7; j >= 0; j--) {
-         setBufferBit(valBuf, i * 8 + j, hexVal & 0x01);
-         hexVal = hexVal >> 1;
-      }
-   }
+    char* valBuf = (char*)malloc(nBytes);
+    assert(valBuf != NULL);
+    for (int i = 0; i < nBytes; i++) {
+        for (int j = 7; j >= 0; j--) {
+            setBufferBit(valBuf, i * 8 + j, hexVal & 0x01);
+            hexVal = hexVal >> 1;
+        }
+    }
 
-   return new Bitfield(valBuf, nBits);
+    return new Bitfield(valBuf, nBits);
 }  
 
 
 Bitfield::Bitfield(char* buf, int size) {
-   bytes = buf;
-   sz = size;
+    bytes = buf;
+    sz = size;
 }
 
 
 Bitfield::~Bitfield() {
-   free(bytes);
+    free(bytes);
 }
 
 int Bitfield::getBit(int bit) {
-   return getBufferBit(bytes, bit);
+    return getBufferBit(bytes, bit);
 }
 
 bool Bitfield::matches(char* buf, int whichBit, int nBits) {
    
-   int i;
+    int i;
+    for (i = 0; i < sz && whichBit + i < nBits; i++) {
+        if (getBufferBit(buf, whichBit + i) != getBufferBit(bytes, i)) {
+            return false;
+        }
+    }
 
-   for (i = 0; i < sz && whichBit + i < nBits; i++) {
-      if (getBufferBit(buf, whichBit + i) != getBufferBit(bytes, i)) {
-         return false;
-      }
-   }
-
-   if (whichBit + i == nBits && i != sz) {
-      return false;
-   }
+    if (whichBit + i == nBits && i != sz) {
+        return false;
+    }
   
-   return true;
+    return true;
 }
 
 int Bitfield::size() {
-   return sz;
+    return sz;
 }
