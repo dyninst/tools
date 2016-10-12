@@ -37,7 +37,7 @@ class Decoder;
 
 class MappedInst {
 public:
-   MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool normalize);
+   MappedInst(char* bytes, unsigned int nBytes, Decoder* dec);
    ~MappedInst();
    int getNumUsedBytes();
    void print();
@@ -53,7 +53,6 @@ private:
    char* bytes;
    unsigned int nBytes;
    bool isError;
-   bool norm;
    BitType* bitTypes;
    FieldList* fields;
    Decoder* decoder;

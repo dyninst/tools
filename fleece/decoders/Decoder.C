@@ -58,6 +58,7 @@ Decoder::Decoder(
     this->arch = arch;
     this->name = name;
  
+    norm = false;
     totalNormTime = 0;
     totalDecodeTime = 0;
     totalDecodedInsns = 0;
@@ -176,7 +177,11 @@ int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen) {
 
     totalDecodeTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                    (endTime.tv_nsec - startTime.tv_nsec);
-   
+ 
+    if (norm) {
+        normalize(buf, bufLen);
+    }
+
     return rc;
 }
 
@@ -189,7 +194,7 @@ const char* Decoder::getName(void) {
 }
 
 int Decoder::getNumBytesUsed(char* inst, int nBytes) {
-    MappedInst* mInst = new MappedInst(inst, nBytes, this, false);
+    MappedInst* mInst = new MappedInst(inst, nBytes, this);
     int nUsed = mInst->getNumUsedBytes();
     delete mInst;
     return nUsed;
@@ -205,6 +210,10 @@ unsigned long Decoder::getTotalNormalizeTime() {
 
 unsigned long Decoder::getTotalDecodedInsns() {
     return totalDecodedInsns;
+}
+
+void Decoder::setNorm(bool newNorm) {
+    norm = newNorm;
 }
 
 std::vector<Decoder> Decoder::getDecoders(const char* arch, const char* decNames) {

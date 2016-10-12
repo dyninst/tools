@@ -38,6 +38,7 @@ public:
     int getNumBytesUsed(char* inst, int nBytes);
     const char* getName(void);
     const char* getArch(void);
+    void setNorm(bool newNorm);
     static void initAllDecoders(void);
     static void destroyAllDecoders(void);
     static std::vector<Decoder> getAllDecoders(void);
@@ -54,10 +55,13 @@ private:
     void (*normFunc)(char*, int);
     int (*func)(char*, int, char*, int);
 
+    bool norm;
+
     unsigned long totalDecodeTime;
     unsigned long totalNormTime;
 
     unsigned long totalDecodedInsns;
+
 };
 
 extern int xedInit(void);

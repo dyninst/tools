@@ -176,6 +176,7 @@ int main(int argc, char** argv) {
     assert(decBufs != NULL && "Could not allocate decoder buffers!");
 
     for (size_t i = 0; i < decCount; i++) {
+        decoders[i].setNorm(norm);
         decBufs[i] = (char*)malloc(DECODED_BUFFER_LEN);
         assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
     }
@@ -309,10 +310,6 @@ int main(int argc, char** argv) {
             if (retval != 0) {
                 strcpy(decBufs[j], "decoding_error");
             }
-
-            if (norm) {
-                decoders[j].normalize(decBufs[j], DECODED_BUFFER_LEN);
-            }   
        }
 
         // Process the resulting decoding and report it if necessary
@@ -340,7 +337,7 @@ int main(int argc, char** argv) {
                 // Each decoder maps the instruction and each instruction uses its
                 // map to try to find interesting instructions and add them to the
                 // queue.
-                mInsn = new MappedInst(curInsn, insnLen, &decoders[j], norm);
+                mInsn = new MappedInst(curInsn, insnLen, &decoders[j]);
                 mInsn->queueNewInsns(&remainingInsns, &seenMap);
                 delete mInsn;
             }

@@ -57,10 +57,6 @@ bool MappedInst::isFirstByteRemovablePrefix() {
         return false;
     }
 
-    if (norm) {
-        decoder->normalize(startStr, DECODING_BUFFER_SIZE);
-    }
-
     success = !decoder->decode(bytes + 1,
                                nBytes - 1,
                                newStr, 
@@ -68,10 +64,6 @@ bool MappedInst::isFirstByteRemovablePrefix() {
 
     if (!success) {
         return false;
-    }
-
-    if (norm) {
-        decoder->normalize(newStr, DECODING_BUFFER_SIZE);
     }
 
     if (!strcmp(startStr, newStr)) {
@@ -130,10 +122,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
                                     nBytes,
                                     decStr, 
                                     DECODING_BUFFER_SIZE);
-    if (norm) {
-        decoder->normalize(decStr, DECODING_BUFFER_SIZE);
-    }
-
+    
     if (success) {
         FieldList tList(decStr);
         if (!tList.hasError()) {
@@ -213,7 +202,7 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
     }
 }
 
-MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool normalize) {
+MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
 
     char decodeBuf[DECODING_BUFFER_SIZE];
     char* decodedInstruction = &decodeBuf[0];
@@ -227,11 +216,6 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec, bool norm
     isError = !success;
     if (isError) {
         return;
-    }
-
-    this->norm = normalize;
-    if (this->norm) {
-        decoder->normalize(decodedInstruction, DECODING_BUFFER_SIZE);
     }
 
     this->nBytes = nBytes;
@@ -327,10 +311,6 @@ void MappedInst::makeSimpleMap(BitType* bTypes, FieldList* tkns) {
       flipBufferBit(bytes, i);
         
       success = !decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE);
-
-      if (norm) {
-         decoder->normalize(decStr, DECODING_BUFFER_SIZE);
-      }
 
       // Default the bit type to unused.
       bTypes[i] = BIT_TYPE_UNUSED;
@@ -443,10 +423,6 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
       );
       //printf("%s %d\n", decStr, bitTypes[i]);
       
-      if (norm) {
-         decoder->normalize(decStr, DECODING_BUFFER_SIZE);
-      }
-     
       FieldList* tList = new FieldList(decStr);
       makeSimpleMap(tmpBitTypes, tList);
       delete tList;
