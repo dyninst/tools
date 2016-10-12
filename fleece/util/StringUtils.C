@@ -31,24 +31,16 @@ bool signalsError(const char* token) {
    bool retval =  (
       !strcmp(token, "decoding_error")  ||
       !strcmp(token, "no_entry")        ||
-      !strcmp(token, "[INVALID]")       ||
-      !strcmp(token, "[<invalid_reg>]") ||
-      !strcmp(token, "<invalid_reg>,")  ||
+      !strcmp(token, "No_Entry")        ||
       !strcmp(token, "<invalid_reg>")   ||
       !strcmp(token, "<INVALID_REG>")   ||
       !strcmp(token, "nop")             ||
       !strcmp(token, "bad")             ||
       !strcmp(token, "?")               ||
-      !strcmp(token, "?,")              ||
       !strcmp(token, "undefined")       ||
-      !strcmp(token, "undefined,")      ||
       !strcmp(token, "nyi")             ||
-      !strcmp(token, "INVALID")         ||
       !strcmp(token, "invalid")         ||
-      !strcmp(token, "%?")              ||
-      !strcmp(token, "(bad)")           ||
-      !strcmp(token, "(bad),")          ||
-      !strcmp(token, "%?,")
+      !strcmp(token, "%?")
    );
    return retval;
 }
@@ -475,7 +467,7 @@ std::string asmErrorToFilename(const char* asmError) {
         if (!inQuotes) {
             if (*cur == '\'') {
                 *place = 'X';
-            } else if (*cur == ' ') {
+            } else if (*cur == ' ' || *cur == '/') {
                 *place = '_';
             } else {
                 *place = *cur;
