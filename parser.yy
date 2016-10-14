@@ -53,6 +53,29 @@ string *makeProgramBlock(string *arg1, string *arg2) {
 
     return STR(makeStr(args, &del));
 }
+
+string makeDeclCondAsnmt(string in) {
+    size_t equalPos = in.find("=");
+    string id = in.substr(0, equalPos - 1);
+    string rem = in.substr(equalPos + 2);
+
+    size_t ifend = rem.find("\n");
+    size_t condend = rem.find("\n", ifend + 1);
+    size_t st1end = rem.find("\n", condend + 1);
+
+    string cond = rem.substr(ifend + 1, condend - ifend - 1);
+    string st1 = rem.substr(condend + 1, st1end - condend - 1);
+    string st2 = rem.substr(st1end + 1);
+
+    stringstream val;
+    val<<id<<";\n";
+    val<<"if ("<<cond<<")\n";
+    val<<id<<" = "<<st1<<";\nelse\n";
+    val<<id<<" = "<<st2;
+
+    return val.str();
+}
+
 #include <iostream>
 string pruneCond(string cond_str) {
     int nextpos = 1, prevpos = 0;
@@ -85,6 +108,8 @@ string pruneCond(string cond_str) {
 %require "2.3"
 
 %defines
+
+%error-verbose
 
 %skeleton "lalr1.cc"
 
@@ -140,8 +165,8 @@ string pruneCond(string cond_str) {
 %token		    UNKNOWN
 %token		    <strVal>    MEMORY
 
-%type           <strVal>  program datatype varname targ expr funccall args condblock decl cond asnmt bitmask blockdata
-%type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode
+%type           <strVal>  program datatype varname targ expr funccall args condblock decl cond asnmt bitmask blockdata srcreg
+%type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode deccondsrc
 
 %{
 
@@ -195,6 +220,10 @@ decl:       OPERAND                     {  $$ = $1; }   |
                                         }
             ;
 
+deccondsrc: funccall    { $$ = $1; } |
+            srcreg      { $$ = $1; }
+            ;
+
 datatype:   DTYPE_BITS                  {  $$ = STR("BaseSemantics::SValuePtr ");   }   |
             DTYPE_BOOLEAN               {  $$ = STR("bool ");    }
             ;
@@ -205,7 +234,16 @@ declblock:  varname                     {
 
                                             $$ = STR(makeStr(args, &del));    
                                         } |
-            asnmt                       {  $$ = $1;    }
+            asnmt                       {
+                                            string ret = *$1;
+
+                                            if(ret.find("if\n") != string::npos)
+                                            {
+                                               $$ = STR(makeDeclCondAsnmt(ret));
+                                            }
+                                            else
+                                               $$ = $1;
+                                        }
             ;
 
 varname:    IDENTIFIER                  {
@@ -292,12 +330,30 @@ targ:       varname                                                             
 
 asnmtsrc:   expr		        {  $$ = $1;	} |
             DTYPE_BITS UNKNOWN	{  $$ = STR("ops->unspecified_(1)");   } |
-            REG     			{
+            COND_IF expr COND_THEN deccondsrc COND_ELSE deccondsrc  {
+                                                                        DEL_VEC($2, $4, $6);
+
+                                                                        $$ = STR(string("if\n" + *$2 + "\n" + *$4 + "\n" + *$6));
+
+                                                                        delArgs(del);
+                                                                    } |
+            srcreg     			{  $$ = $1; } |
+            MEMORY              {
+                                    DEL_VEC($1);
+
+                                    $$ = STR(string("d->readMemory(address, ") + string((((*$1) == "size")?"d->ldStrLiteralAccessSize(raw))":"0x8 << EXTR(30, 31))")));
+
+                                    delArgs(del);
+                                }
+            ;
+
+srcreg:     REG     			{
                                     DEL_VEC($1);
                                     string regstr = "";
 
                                     switch((*$1)[0])
                                     {
+                                        case 'd':
                                         case 't':regstr += "d->read(args[0])";
                                             break;
                                         case 'n':regstr += "d->read(args[1])";
@@ -309,13 +365,6 @@ asnmtsrc:   expr		        {  $$ = $1;	} |
                                     delArgs(del);
 
                                     $$ = STR(regstr);
-                                } |
-            MEMORY              {
-                                    DEL_VEC($1);
-
-                                    $$ = STR(string("d->readMemory(address, ") + string((((*$1) == "size")?"d->ldStrLiteralAccessSize(raw))":"0x8 << EXTR(30, 31))")));
-
-                                    delArgs(del);
                                 }
             ;
 
