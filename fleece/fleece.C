@@ -184,6 +184,8 @@ int main(int argc, char** argv) {
     // Instantiate a reporting context with the chosen output file.
     ReportingContext* repContext = new ReportingContext(outputDir, FLUSH_FREQ);
     assert(repContext != NULL && "Reporting context should not be null!");
+    
+    // Create reporting directories.
     for (size_t i = 0; i < decCount; i++) { 
         repContext->addDecoder(decoders[i].getName());
         char dirBuf[REPORT_FILENAME_BUF_LEN];
@@ -292,6 +294,29 @@ int main(int argc, char** argv) {
             std::cout << "\n" << std::dec;
         }
       
+      
+
+        clock_gettime(CLOCK_MONOTONIC, &startTime);
+        if (!random && !pipe) {
+
+            // If the input is non-random, we need to add to the queue now.
+            MappedInst* mInsn;
+
+
+            for (size_t j = 0; j < decCount; j++) {
+            
+                // Each decoder maps the instruction and uses its
+                // map to try to find new inputs to add to the queue.
+                mInsn = new MappedInst(curInsn, insnLen, &decoders[j]);
+                mInsn->queueNewInsns(&remainingInsns, &seenMap);
+                delete mInsn;
+            }
+        }
+        clock_gettime(CLOCK_MONOTONIC, &endTime);
+
+        totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                     (endTime.tv_nsec - startTime.tv_nsec);
+
         clock_gettime(CLOCK_MONOTONIC, &startTime);
         // Use each decoder to decode the instruction.
         for (j = 0; j < decCount; j++) {
@@ -323,35 +348,11 @@ int main(int argc, char** argv) {
 
         totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                         (endTime.tv_nsec - startTime.tv_nsec);
-      
-
-        clock_gettime(CLOCK_MONOTONIC, &startTime);
-        if (!random && !pipe) {
-
-            // If the input is non-random, we need to add to the queue now.
-            MappedInst* mInsn;
-
-
-            for (size_t j = 0; j < decCount; j++) {
-            
-                // Each decoder maps the instruction and each instruction uses its
-                // map to try to find interesting instructions and add them to the
-                // queue.
-                mInsn = new MappedInst(curInsn, insnLen, &decoders[j]);
-                mInsn->queueNewInsns(&remainingInsns, &seenMap);
-                delete mInsn;
-            }
-        }
-
         // If the instruction was from the queue, it was malloced at somepoint
         // and we need to free it.
         if (!random) {
             free(curInsn);
         }
-        clock_gettime(CLOCK_MONOTONIC, &endTime);
-
-        totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                     (endTime.tv_nsec - startTime.tv_nsec);
         //random = true;
         //nRuns = 0;
     }
