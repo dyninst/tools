@@ -22,3 +22,7 @@ Makefile
 
 # Output files
 fleece
+
+# Temporary directory
+temp/*
+Temp/*
