@@ -151,6 +151,16 @@ PC\[\]\ \+\ offset   {
                         return token::OPERAND;
                      }
 
+R|S                    {
+                            stringstream out;
+                            out<<"d->read(args[";
+                            out<<2 + (yytext[0] - 'R');
+                            out<<"])";
+
+                            yylval->strVal = new string(out.str());
+                            return token::OPERAND;
+                       }
+
 
     /****************************************/
     /*     Pseudocode keywords/symbols      */
@@ -190,10 +200,10 @@ UNKNOWN	    {	return token::UNKNOWN;	}
 
 [ \t;\n]    ;
 
-!=|!|\+|==|&&	{
-                    yylval->strVal = new string(yytext);
-                    return token::OPER;
-		        }
+!=|!|\+|==|&&|AND|OR	{
+                            yylval->strVal = new string(yytext);
+                            return token::OPER;
+                        }
 
 Mem\[[^\]]+\] {
                 string matched(yytext);
@@ -206,10 +216,10 @@ Mem\[[^\]]+\] {
                 return token::MEMORY;
               }
 
-AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero|SignExtend|ZeroExtend|Prefetch	      {
-                                                                                                yylval->strVal = new string(yytext);
-                                                                                                return token::FUNCNAME;
-                                                                                              }
+AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero|SignExtend|ZeroExtend|Prefetch|ROR|Replicate	      {
+                                                                                                            yylval->strVal = new string(yytext);
+                                                                                                            return token::FUNCNAME;
+                                                                                                          }
 
 bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {  return token::DTYPE_BITS;   }
 
@@ -236,6 +246,8 @@ bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {  return token::DTYPE_BITS;
     /****************************************/
     /*        Ignore everything else        */
     /****************************************/
+\/\/[^\n]+    ;
+
 .           ;
 %%
 
@@ -274,6 +286,8 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap["signed"] = "(EXTR(23, 23) == 1)";
     operandExtractorMap["regsize"] = "d->getRegSize(raw)";
     operandExtractorMap["wback"] = "((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)";
+    operandExtractorMap["inzero"] = "d->inzero(raw)";
+    operandExtractorMap["extend"] = "d->extend(raw)";
 }
 
 void Scanner::initOperatorToFunctionMap() {

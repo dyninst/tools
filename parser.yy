@@ -1,5 +1,5 @@
 %{
-
+#include <iostream>
 #include <cstdio>
 #include <cassert>
 #include <string>
@@ -76,7 +76,6 @@ string makeDeclCondAsnmt(string in) {
     return val.str();
 }
 
-#include <iostream>
 string pruneCond(string cond_str) {
     int nextpos = 1, prevpos = 0;
 
@@ -221,7 +220,8 @@ decl:       OPERAND                     {  $$ = $1; }   |
             ;
 
 deccondsrc: funccall    { $$ = $1; } |
-            srcreg      { $$ = $1; }
+            srcreg      { $$ = $1; } |
+            varname     { $$ = $1; }
             ;
 
 datatype:   DTYPE_BITS                  {  $$ = STR("BaseSemantics::SValuePtr ");   }   |
@@ -388,6 +388,7 @@ expr:       NUM                         {
 
                                             $$ = STR(out.str());
                                         } |
+            SYMBOL_OPENROUNDED expr SYMBOL_CLOSEROUNDED {   $$ = $2;    } |
             funccall                    {   $$ = $1;    } |
             varname                     {   $$ = $1;    } |
             bitpos                      {   $$ = $1;    } |
@@ -406,6 +407,14 @@ expr:       NUM                         {
                                                 ARGS_VEC("ops->add(", *$1, ", ", cur, ")");
                                                 $$ = STR(makeStr(args, &del));
                                             }
+                                            else if((*$2) == "AND" || (*$2) == "OR")
+                                            {
+                                                string oper = *$2;
+                                                std::transform(oper.begin(), oper.end(), oper.begin(), ::tolower);
+                                                ARGS_VEC("ops->", oper, "_(", *$1, ", ", *$3, ")");
+
+                                                $$ = STR(makeStr(args, &del));
+                                            }
                                             else
                                             {
                                                 ARGS_VEC(*$1, " ", *$2, " ", *$3);
@@ -419,7 +428,7 @@ expr:       NUM                         {
 
 bitpos:     varname SYMBOL_LT OPERAND SYMBOL_GT {
                                                     DEL_VEC($1, $3);
-                                                    ARGS_VEC("ops->and_(ops->shiftRight(", *$1, ", ", *$3, "), ops->number(1, 1))");
+                                                    ARGS_VEC("ops->and_(ops->shiftRight(", *$1, ", ", *$3, "), ops->number_(1, 1))");
 
                                                     $$ = STR(makeStr(args, &del));
                                                 }
@@ -456,7 +465,8 @@ args:       args SYMBOL_COMMA args      {
                                             $$ = STR(out.str());
                                         } |
             bitmask                     {   $$ = $1;    } |
-	        OPERAND			            {   $$ = $1;	}   |
+            bitpos                      {   $$ = $1;    } |
+	        OPERAND			            {   $$ = $1;	} |
             FLAG_CARRY                  {   $$ = STR("d->readRegister(d->REG_C)"); }
             ;
 
@@ -560,19 +570,6 @@ whenblock:  SWITCH_WHEN	varname blockcode COND_END	 {
 	    ;	 
 %%
 
-/*cond:       COND_IF expr COND_THEN condblock COND_END {
-                                                        DEL_VEC($2, $4);
-                                                        ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n");
-
-                                                        $$ = STR(makeStr(args, &del));
-                                                      } |
-              COND_IF expr COND_THEN condblock COND_ELSE condblock COND_END {
-                                                                                 DEL_VEC($2, $4, $6);
-                                                                                 ARGS_VEC("if(", *$2, ")\n{\n", *$4, "}\n", "else\n{\n", *$6, "}\n");
-
-                                                                                 $$ = STR(makeStr(args, &del));
- 			                                        						 }
-*/
 void Dyninst_aarch64::Parser::error(const Parser::location_type& l,
 			    const string& m)
 {
