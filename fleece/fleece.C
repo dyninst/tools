@@ -181,6 +181,12 @@ int main(int argc, char** argv) {
         assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
     }
 
+    /* Generation testing code */
+    /*
+    std::ofstream gen_stream("generations.txt", std::ofstream::out);
+    for (int test_num = 0; test_num < 30; test_num++) {
+    */
+    
     // Instantiate a reporting context with the chosen output file.
     ReportingContext* repContext = new ReportingContext(outputDir, FLUSH_FREQ);
     assert(repContext != NULL && "Reporting context should not be null!");
@@ -234,10 +240,25 @@ int main(int argc, char** argv) {
     uint64_t totalMapTime = 0;
     struct timespec startTime, endTime;
 
+    int cur_generation = 0;
+    uint64_t next_generation = 0;
     i = 0;
-    while (pipe || (!random && !remainingInsns.empty()) 
-                || (random && i < nRuns)) {
+    while (cur_generation != 7 && (pipe || (!random && !remainingInsns.empty()) 
+                || (random && i < nRuns))) {
 
+        /* generation testing code */
+        /*
+        if (!random && !pipe && i == next_generation) {
+            gen_stream << remainingInsns.size();
+            if (cur_generation == 6) {
+                gen_stream << "\n";
+            } else {
+                gen_stream << "; ";
+            }
+            next_generation = i + remainingInsns.size();
+            cur_generation++;
+        }
+        */
         i++;
 
         // If it has been 10 seconds, output a new line to std::cerr with data.
@@ -293,8 +314,6 @@ int main(int argc, char** argv) {
             }
             std::cout << "\n" << std::dec;
         }
-      
-      
 
         clock_gettime(CLOCK_MONOTONIC, &startTime);
         if (!random && !pipe) {
@@ -357,6 +376,7 @@ int main(int argc, char** argv) {
         //nRuns = 0;
     }
 
+
     // Print a summary at the end of execution.
     repContext->printSummary(stdout);
 
@@ -369,6 +389,10 @@ int main(int argc, char** argv) {
     std::cout << "Total instructions decoded: " << totalDecInsns << "\n";
 
     delete repContext;
+    
+    /* Code for printing values when testing input "generations" */
+    //}
+    //gen_stream.close();
 
     if (hasMask) {
         delete mask;
