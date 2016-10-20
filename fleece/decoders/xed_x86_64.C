@@ -179,6 +179,77 @@ void fixMmxRegs(char* buf, int bufLen) {
     *place = '\0';
 }
 
+void fixVexMaskOperations(char* buf, int bufLen) {
+    
+    // Start at the beginning of the buffer and go to the end.
+    char* cur = buf;
+    while (*cur) {
+        cur++;
+    }
+
+    // If the last character isn't a bracket, we aren't interested in this
+    // insn, so return.
+    if (*(cur - 1) != '}') {
+        return;
+    }
+
+    // We will need to increase the length of the instruction by two, so make
+    // sure we have room for that.
+    char* insnEnd = cur - 1;
+    if (buf + bufLen <= insnEnd + 2) {
+        std::cerr << "ERROR: Decoding buffer too short!\n";
+        exit(-1);
+    }
+
+    // Go back until we identify an opening brace.
+    while (cur >= buf && *cur != '{') {
+        cur--;
+    }
+
+    // Vector operations all begin with 'r' or 's'. If this braced value
+    // doesn't, return.
+    if (*(cur + 1) != 'r' && *(cur + 1) != 's') {
+        return;
+    }
+
+    // We now know that were dealing with a vector operation. Record its length
+    // and allocate a buffer to hold it.
+    int opLen = strlen(cur);
+    char tmpBuf[opLen + 1];
+    char* tmp = &tmpBuf[0];
+    strcpy(tmp, cur);
+
+    // Start at the beginning of the instruction and find the first space,
+    // which is where we want to place the vector operation.
+    cur = buf;
+    while (*cur && *cur != ' ') {
+        cur++;
+    }
+
+    // If we didn't find a space, return.
+    if (*cur != ' ') {
+        return;
+    }
+
+    // Record the position to copy the operation to.
+    char* opPos = cur + 1;
+    int copyOffset = opLen + 2;
+
+    // Copy the instruction starting at the end.
+    cur = insnEnd + 2; // include space for the ", "
+    *(cur + 1) = 0;
+    while (cur > opPos + copyOffset) {
+        *cur = *(cur - copyOffset);
+        cur--;
+    }
+
+    // We've now copied all of the instruction leaving space for the operation
+    // and ", ", so add those in.
+    strncpy(opPos, tmp, opLen);
+    *(opPos + opLen) = ',';
+    *(opPos + opLen + 1) = ' ';
+}
+
 void xed_x86_64_norm(char* buf, int bufLen) {
 
     cleanSpaces(buf, bufLen);
@@ -198,6 +269,8 @@ void xed_x86_64_norm(char* buf, int bufLen) {
     replaceStr(buf, bufLen, "psy ", "ps ");
     replaceStr(buf, bufLen, "pdy ", "pd ");
     replaceStr(buf, bufLen, "sxd ", "slq ");
+
+    fixVexMaskOperations(buf, bufLen);
 
    /*trimHexZeroes(buf, bufLen);
    trimHexFs(buf, bufLen);
