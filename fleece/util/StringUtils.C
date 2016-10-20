@@ -267,8 +267,8 @@ void removeAtSubStr(std::string& str, const std::string& substr, int len) {
 }
 
 void replaceStr(char* buf, int bufLen, const char* oldStr, const char* newStr) {
-   char* tmp = (char*)malloc(bufLen);
-   assert(tmp != NULL);
+   char tmpBuf[bufLen];
+   char* tmp = &tmpBuf[0];
 
    size_t oldLen = strlen(oldStr);
    
@@ -290,7 +290,6 @@ void replaceStr(char* buf, int bufLen, const char* oldStr, const char* newStr) {
    *place = *cur;
 
    strncpy(buf, tmp, bufLen);
-   free(tmp);
 }
 
 void removeFirst(char* buf, int bufLen, const char* str) {
