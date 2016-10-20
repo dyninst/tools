@@ -42,52 +42,24 @@ std::ostream& operator<<(std::ostream& s, MappedInst& m){
 
 bool MappedInst::isFirstByteRemovablePrefix() {
     
-    char startBuf[DECODING_BUFFER_SIZE];
-    char* startStr = &startBuf[0];
-    
     char newBuf[DECODING_BUFFER_SIZE];
     char* newStr = &newBuf[0];
-   
-    bool success = !decoder->decode(bytes,
-                                    nBytes,
-                                    startStr, 
-                                    DECODING_BUFFER_SIZE);
-    
-    if (!success) {
-        return false;
-    }
 
-    success = !decoder->decode(bytes + 1,
-                               nBytes - 1,
-                               newStr, 
-                               DECODING_BUFFER_SIZE);
+    bool success = !decoder->decode(bytes + 1, nBytes - 1, newStr, 
+            DECODING_BUFFER_SIZE);
 
     if (!success) {
         return false;
     }
 
-    if (!strcmp(startStr, newStr)) {
-        //std::cout << "FOUND UNPRINTED PREFIX!\n";
-        return true;
+    FieldList new_fields = FieldList(newStr);
+    for (size_t i = 0; i < new_fields.size(); i++) {
+        if (!fields->hasField(new_fields.getField(i))) {
+            return false;
+        }
     }
 
-    while (*startStr && !isspace(*startStr)) {
-        startStr++;
-    }
-    if (!*startStr) {
-        return false;
-    }
-    startStr++;
-   
-    if (!strcmp(startStr, newStr)) {
-        //std::cout << "FOUND REMOVABLE PREFIX IN:\n"; 
-        //std::cout << "\t" << &startBuf[0] << "\n";
-        //std::cout << "\t" << newStr << "\n";
-        return true;
-    }
-
-    return false;
-
+    return true;
 }
 
 void MappedInst::deleteRemovablePrefixes() {
@@ -95,6 +67,11 @@ void MappedInst::deleteRemovablePrefixes() {
     while (isFirstByteRemovablePrefix()) {
         bytes++;
         nBytes--;
+        char newBuf[DECODING_BUFFER_SIZE];
+        char* newStr = &newBuf[0];
+        decoder->decode(bytes, nBytes, newStr, DECODING_BUFFER_SIZE);
+        delete fields;
+        fields = new FieldList(newStr);
     }
     if (bytes == baseBytes) {
         return;
@@ -169,6 +146,7 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
         }
 
         flipBufferBit(bytes, i);
+        
         for (int j = i + 1; j < nBits; j++) {
             if (bitTypes[j] != BIT_TYPE_SWITCH) {
                 continue;
@@ -185,7 +163,7 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
 
     char startBytes[nBytes];
     memcpy(bytes, startBytes, nBytes);
-    for (int i = 0; i < fields->size(); i++) {
+    for (size_t i = 0; i < fields->size(); i++) {
         for (int j = 0; j < nBits; j++) {
             if (bitTypes[j] == i) {
                 setBufferBit(bytes, i, 0);
