@@ -181,11 +181,24 @@ void fixMmxRegs(char* buf, int bufLen) {
 
 void xed_x86_64_norm(char* buf, int bufLen) {
 
-   cleanSpaces(buf, bufLen);
-   toLowerCase(buf, bufLen);
-   spaceAfterCommas(buf, bufLen);
-   fixStRegs(buf, bufLen);
-   fixMmxRegs(buf, bufLen);
+    cleanSpaces(buf, bufLen);
+    toLowerCase(buf, bufLen);
+    spaceAfterCommas(buf, bufLen);
+    fixStRegs(buf, bufLen);
+    fixMmxRegs(buf, bufLen);
+
+    replaceStr(buf, bufLen, "sdq ", "sd ");
+    replaceStr(buf, bufLen, "sdl ", "sl ");
+    replaceStr(buf, bufLen, "psq ", "ps ");
+    replaceStr(buf, bufLen, "fqq ", "fq ");
+    replaceStr(buf, bufLen, "sbb ", "sb ");
+    replaceStr(buf, bufLen, "wdy ", "wd ");
+    replaceStr(buf, bufLen, "psx ", "ps ");
+    replaceStr(buf, bufLen, "sqq ", "sq ");
+    replaceStr(buf, bufLen, "psy ", "ps ");
+    replaceStr(buf, bufLen, "pdy ", "pd ");
+    replaceStr(buf, bufLen, "sxd ", "slq ");
+
    /*trimHexZeroes(buf, bufLen);
    trimHexFs(buf, bufLen);
 
