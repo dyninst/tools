@@ -90,7 +90,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     char oldNBytes = nBytes;
     char oldBytes[nBytes];
     memcpy(oldBytes, bytes, nBytes);
-    deleteRemovablePrefixes();
+    //deleteRemovablePrefixes();
 
     char decBuf[DECODING_BUFFER_SIZE];
     char* decStr = &decBuf[0];
@@ -156,8 +156,16 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
             flipBufferBit(bytes, j);
         }
 
-        enqueueInsnIfNew(queue, hc);
         //printf("%s %d\n", decStr, bitTypes[i]);
+        flipBufferBit(bytes, i);
+    }
+
+    for (int i = 0; i < nBits; i++) {
+        if (bitTypes[i] != BIT_TYPE_SWITCH) {
+            continue;
+        }
+        flipBufferBit(bytes, i);
+        enqueueInsnIfNew(queue, hc);
         flipBufferBit(bytes, i);
     }
 
