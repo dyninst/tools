@@ -14,15 +14,38 @@ using namespace std;
 #define DEL_VEC(arglist...)     vector<string *> del = {arglist}
 #define DEL_VEC_ADD(arg)        del.push_back(arg)
 
-void parseBitPos(string str, string &var, string &expr) {
-    string temp;
-    for(int idx = 0; idx < str.length(); idx++)
-        if(str[idx] != ' ')
-            temp += str[idx];
+void getBitMaskParts(string in, string &var, string &start, string &end) {
+    size_t lbar = in.find("|"), rbar = in.find("|", lbar + 1);
 
-    size_t equalPos = temp.find_first_of("=");
-    var = temp.substr(0, equalPos);
-    expr = temp.substr(equalPos + 1);
+    var = in.substr(0, lbar);
+    end = in.substr(lbar + 1, rbar - lbar - 1);
+    start = in.substr(rbar + 1);
+}
+
+void parseBitPos(string bmask, string repltarg, string &res) {
+    string var, start, end;
+    getBitMaskParts(bmask, var, start, end);
+
+    stringstream top, bottom;
+    bottom<<((start != "0")?("ops->extract(" + var + ", 0, " + start + ")"):var);
+    top<<"ops->extract("<<var<<", "<<end<<" + 1, "<<var<<"->get_width())";
+
+    stringstream ret, mid;
+    ret<<var<<" = ";
+
+    mid<<"ops->or_(ops->shiftLeft("<<repltarg<<", ops->number_(32, "<<start<<")), ";
+    mid<<" ops->shiftLeft("<<top.str()<<", ops->number_(32, "<<end<<" + 1)))";
+
+    if(bottom.str()== var)
+    {
+        ret<<mid.str()<<";";
+    }
+    else
+    {
+        ret<<"ops->or_("<<bottom.str()<<", "<<mid.str()<<");";
+    }
+
+    res = ret.str();
 }
 
 void delArgs(vector<string *> del) {
@@ -92,7 +115,7 @@ string pruneCond(string cond_str) {
                 return cond_str;
             curblock = "";
         }
-        else if(cur.find("if") == string::npos && cur.find("else") == string::npos)
+        else if((cur.find("if") == string::npos || cur[cur.find("if") + 1] != ' ') && cur.find("else") == string::npos)
             stmtcnt++;
 
         prevpos = nextpos + 1;
@@ -101,6 +124,8 @@ string pruneCond(string cond_str) {
 
     return "";
 }
+
+bool haswback = false;
 
 %}
 
@@ -164,8 +189,8 @@ string pruneCond(string cond_str) {
 %token		    UNKNOWN
 %token		    <strVal>    MEMORY
 
-%type           <strVal>  program datatype varname targ expr funccall args condblock decl cond asnmt bitmask blockdata srcreg
-%type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode deccondsrc
+%type           <strVal>  program datatype varname targ expr funccall args condblock decl cond asnmt bitmask blockdata srcreg bmaskend bmasksrc
+%type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode deccondsrc bmaskstart
 
 %{
 
@@ -247,6 +272,9 @@ declblock:  varname                     {
             ;
 
 varname:    IDENTIFIER                  {
+                                            if((*$1) == "wback")
+                                                haswback = true;
+
                                             if(Scanner::operandExtractorMap.find(*$1) != Scanner::operandExtractorMap.end())
                                                 $$ = STR(Scanner::operandExtractorMap[*$1]);
                                             else
@@ -284,11 +312,11 @@ asnmt:      targ SYMBOL_EQUAL asnmtsrc       {
                                                     $$ = STR(makeStr(args, &del));
                                                 }
                                             } |
-	        bitmask SYMBOL_EQUAL funccall   {
-                                                string var, expr;
+	        bitmask SYMBOL_EQUAL bmasksrc   {
+                                                string res;
 
-                                                parseBitPos(*$1, var, expr);
-                                                ARGS_VEC(var, " = ops->or_(", expr, ", ", *$3, ");\n");
+                                                parseBitPos(*$1, *$3, res);
+                                                ARGS_VEC(res, "\n");
                                                 DEL_VEC($1, $3);
 
                                                 $$ = STR(makeStr(args, &del));
@@ -304,6 +332,10 @@ asnmt:      targ SYMBOL_EQUAL asnmtsrc       {
                                             }
             ;
 
+bmasksrc:   funccall    {   $$ = $1;    } |
+            OPERAND     {   $$ = $1;    }
+            ;
+
 targ:       varname                                                             {   $$ = $1;    }  |
             SYMBOL_OPENROUNDED varname SYMBOL_COMMA varname SYMBOL_CLOSEROUNDED {   $$ = $2;    }  |
 	        REG									{
@@ -315,7 +347,12 @@ targ:       varname                                                             
                                                         case 't':
                                                         case 'd':regstr += "d->write(args[0])";
                                                             break;
-                                                        case 'n':regstr += "d->write(args[1])";
+                                                        case 'n':{
+                                                                if(!haswback)
+                                                                    regstr += "d->write(args[1])";
+                                                                else
+                                                                    regstr += "d->write(getWriteBackTarget(args[1]))";
+                                                            }
                                                             break;
                                                         case 's':regstr += "d->writeRegister(d->REG_SP)";
                                                             break;
@@ -368,18 +405,39 @@ srcreg:     REG     			{
                                 }
             ;
 
-bitmask:    varname SYMBOL_LT NUM SYMBOL_COLON NUM SYMBOL_GT	{	//add support for bit ranges not starting at 0 and for custom varname lengths
+bitmask:    varname SYMBOL_LT bmaskend SYMBOL_COLON bmaskstart SYMBOL_GT	{
+                                                                                stringstream out;
+                                                                                out<<*$1<<"|"<<*$3<<"|"<<*$5;
+                                                                                DEL_VEC($1, $3, $5);
+                                                                                delArgs(del);
 
-                                                                    int hibit = $3, lobit = $5, range = hibit - lobit + 1;
-                                                                    uint64_t mask = ~((1<<range) - 1);
-                                                                    stringstream out;
+                                                                                $$ = STR(out.str());
+                                                                           }
+	        ;
 
-                                                                    out<<*$1<<" = ops->and_("<<*$1<<", ops->number_(64, 0x"<<hex<<mask<<"))";
-                                                                    delete $1;
+bmaskend:   NUM                 {
+                                    stringstream out;
+                                    out<<$1;
 
-                                                                    $$ = STR(out.str());
-                                                                }
-	    ;
+                                    $$ = STR(out.str());
+                                } |
+            varname OPER NUM    {
+                                    stringstream out;
+                                    out<<*$1<<" + "<<$3;
+                                    delete $1;
+
+                                    $$ = STR(out.str());
+                                }
+            ;
+
+bmaskstart: NUM     {
+                        stringstream out;
+                        out<<$1;
+
+                        $$ = STR(out.str());
+                    } |
+            varname {   $$ = $1;    }
+            ;
 
 expr:       NUM                         {
                                             stringstream out;
@@ -457,14 +515,22 @@ args:       args SYMBOL_COMMA args      {
 
                                             $$ = STR(makeStr(args, &del));
                                         } |
-            varname                     {   $$ = $1;  } |
+            varname                     {   $$ = $1;    } |
             NUM                         {
                                             stringstream out;
                                             out<<$1;
 
                                             $$ = STR(out.str());
                                         } |
-            bitmask                     {   $$ = $1;    } |
+            bitmask                     {
+                                            string in(*$1), var, start, end;
+                                            getBitMaskParts(in, var, start, end);
+
+                                            stringstream out;
+                                            out<<"ops->extract("<<var<<", "<<start<<", "<<end<<" + 1)";
+
+                                            $$ = STR(out.str());
+                                        } |
             bitpos                      {   $$ = $1;    } |
 	        OPERAND			            {   $$ = $1;	} |
             FLAG_CARRY                  {   $$ = STR("d->readRegister(d->REG_C)"); }

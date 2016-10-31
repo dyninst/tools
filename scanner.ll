@@ -287,7 +287,11 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap["regsize"] = "d->getRegSize(raw)";
     operandExtractorMap["wback"] = "((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)";
     operandExtractorMap["inzero"] = "d->inzero(raw)";
+    operandExtractorMap["opcode"] = "EXTR(29, 30)";
     operandExtractorMap["extend"] = "d->extend(raw)";
+    operandExtractorMap["pos"] = "(EXTR(21, 22) << 4)";
+    operandExtractorMap["wmask"] = "d->getBitfieldMask(d->read(args[2]), d->read(args[3]), EXTR(22, 22), true, (EXTR(31, 31) + 1) * 32)";
+    operandExtractorMap["tmask"] = "d->getBitfieldMask(d->read(args[2]), d->read(args[3]), EXTR(22, 22), false, (EXTR(31, 31) + 1) * 32)";
 }
 
 void Scanner::initOperatorToFunctionMap() {
