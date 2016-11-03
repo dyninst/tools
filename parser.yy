@@ -2,10 +2,12 @@
 #include <iostream>
 #include <cstdio>
 #include <cassert>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <sstream>
 #include <stdint.h>
+#include "scanner.h"
 
 using namespace std;
 
@@ -13,6 +15,10 @@ using namespace std;
 #define ARGS_VEC(arglist...)    vector<string> args = {arglist}
 #define DEL_VEC(arglist...)     vector<string *> del = {arglist}
 #define DEL_VEC_ADD(arg)        del.push_back(arg)
+
+bool foundNewSymbol = false;
+vector<string> newSymbols;
+vector<string> symbols;
 
 void getBitMaskParts(string in, string &var, string &start, string &end) {
     size_t lbar = in.find("|"), rbar = in.find("|", lbar + 1);
@@ -71,7 +77,23 @@ string makeStr(vector<string> &args, vector<string *> *del) {
 }
 
 string *makeProgramBlock(string *arg1, string *arg2) {
-    ARGS_VEC(*arg1, *arg2);
+    stringstream out;
+    out<<"";
+
+    if(foundNewSymbol)
+    {
+        for(vector<string>::iterator i = newSymbols.begin(); i != newSymbols.end(); i++)
+        {
+            out<<Dyninst_aarch64::Scanner::newSymbolType[*i]<<" "<<*i;
+            if(Dyninst_aarch64::Scanner::newSymbolVal.count(*i))
+                out<<" = "<<Dyninst_aarch64::Scanner::newSymbolVal[*i]<<";\n";
+        }
+
+        foundNewSymbol = false;
+        newSymbols.clear();
+    }
+
+    ARGS_VEC(out.str(), *arg1, *arg2);
     DEL_VEC(arg1, arg2);
 
     return STR(makeStr(args, &del));
@@ -123,6 +145,40 @@ string pruneCond(string cond_str) {
     }
 
     return "";
+}
+
+void addSymbolMaybe(string str) {
+    str = str.substr(0, str.find(";"));
+    string varname = str;
+
+    if(str.find("=") != string::npos)
+    {
+        size_t fspace = str.find(" ");
+        varname = str.substr(0, fspace);
+    }
+
+    size_t commapos;
+    if((commapos = varname.find(",")) == string::npos)
+    {
+        if(find(symbols.begin(), symbols.end(), varname) == symbols.end())
+            symbols.push_back(varname);
+    }
+    else
+    {
+        vector<string> vars;
+        size_t prevpos = 0;
+        while(commapos != string::npos)
+        {
+            vars.push_back(varname.substr(prevpos, commapos - prevpos));
+            prevpos = commapos + 1;
+            commapos = varname.find(",", prevpos);
+        }
+        vars.push_back(varname.substr(prevpos));
+
+        for(vector<string>::iterator itr = vars.begin(); itr != vars.end(); itr++)
+            if(find(symbols.begin(), symbols.end(), *itr) == symbols.end())
+                symbols.push_back(*itr);
+    }
 }
 
 bool haswback = false;
@@ -194,8 +250,8 @@ bool haswback = false;
 
 %{
 
-#include "driver.h"
 #include "scanner.h"
+#include "driver.h"
 
 #undef yylex
 #define yylex driver.scanner->lex
@@ -211,6 +267,9 @@ insn:       INSN_START program INSN_END {
 
                                             delete $1;
                                             delete $2;
+
+                                            symbols.clear();
+                                            newSymbols.clear();
                                         }
             ;
 
@@ -227,12 +286,19 @@ program:    program decl     { $$ = makeProgramBlock($1, $2); } |
                              { $$ = STR("");                  }
             ;
 
-decl:       OPERAND                     {  $$ = $1; }   |
+decl:       OPERAND                     {
+                                            size_t spacepos = (*$1).find(" ");
+                                            addSymbolMaybe((*$1).substr(spacepos + 1));
+
+                                            $$ = $1;
+                                        }   |
             READ_PC                     {  $$ = STR("BaseSemantics::SValuePtr base = d->readRegister(d->REG_PC);\n");   } |
 	        SET_LR			            {  $$ = STR("if(EXTR(31, 31) == 1)\nd->writeRegister(d->findRegister(\"x30\", 64), ops->add(d->readRegister(d->REG_PC), ops->number_(32, 4)));\n");	} |
             datatype declblock          {
                                             if($2 != NULL)
                                             {
+                                                addSymbolMaybe(*$2);
+
                                                 ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool ":*$1), *$2);
                                                 DEL_VEC($1, $2);
                                                 $$ = STR(makeStr(args, &del));
@@ -275,7 +341,7 @@ varname:    IDENTIFIER                  {
                                             if((*$1) == "wback")
                                                 haswback = true;
 
-                                            if(Scanner::operandExtractorMap.find(*$1) != Scanner::operandExtractorMap.end())
+                                            if(Scanner::newSymbolType.count(*$1) == 0 && Scanner::operandExtractorMap.find(*$1) != Scanner::operandExtractorMap.end())
                                                 $$ = STR(Scanner::operandExtractorMap[*$1]);
                                             else
                                                 $$ = STR(*$1);
@@ -515,7 +581,16 @@ args:       args SYMBOL_COMMA args      {
 
                                             $$ = STR(makeStr(args, &del));
                                         } |
-            varname                     {   $$ = $1;    } |
+            varname                     {
+                                            string var = *$1;
+                                            if(find(symbols.begin(), symbols.end(), var) == symbols.end())
+                                            {
+                                                foundNewSymbol = true;
+                                                newSymbols.push_back(var);
+                                            }
+
+                                            $$ = $1;
+                                        } |
             NUM                         {
                                             stringstream out;
                                             out<<$1;

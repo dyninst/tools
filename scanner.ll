@@ -14,6 +14,9 @@ using namespace std;
 
 int labelPos;
 
+vector<string> extendInsns = {"uxtb", "uxth", "sxtb", "sxth", "sxtw"};
+bool isExtendInsn;
+
 %}
 
 %option c++
@@ -36,11 +39,20 @@ int labelPos;
 
 ##[a-z_]+   {
                 yylval->strVal = new string(yytext+2);
+
+                string subInsn = *(yylval->strVal);
+                subInsn = subInsn.substr(0, subInsn.find("_"));
+                if(find(extendInsns.begin(), extendInsns.end(), subInsn) != extendInsns.end())
+                    isExtendInsn = true;
+
                 labelPos = 0;
                 return token::INSN_START;
             }
 
-@@          {   return token::INSN_END;    }
+@@          {
+                isExtendInsn = false;
+                return token::INSN_END;
+            }
 
 
     /****************************************/
@@ -153,9 +165,19 @@ PC\[\]\ \+\ offset   {
 
 R|S                    {
                             stringstream out;
-                            out<<"d->read(args[";
-                            out<<2 + (yytext[0] - 'R');
-                            out<<"])";
+                            if(!isExtendInsn)
+                            {
+                                out<<"d->read(args[";
+                                out<<2 + (yytext[0] - 'R');
+                                out<<"])";
+                            }
+                            else
+                            {
+                                if(yytext[0] == 'R')
+                                    out<<"ops->number_(32, EXTR(16, 21))";
+                                else
+                                    out<<"ops->number_(32, EXTR(10, 15))";
+                            }
 
                             yylval->strVal = new string(out.str());
                             return token::OPERAND;
@@ -257,6 +279,7 @@ map<string, string> Scanner::operandExtractorMap;
 map<string, string> Scanner::operatorToFunctionMap;
 vector<string> Scanner::ignoreOperands;
 map<string, int> Scanner::operandPosMap;
+map<string, string> Scanner::newSymbolType, Scanner::newSymbolVal;
 
 Scanner::Scanner(istream* instream,
 		 ostream* outstream)
@@ -266,6 +289,7 @@ Scanner::Scanner(istream* instream,
     initOperatorToFunctionMap();
     initIgnoreOperands();
     initOperandPosMap();
+    initNewSymbolMaps();
 }
 
 Scanner::~Scanner()
@@ -290,8 +314,6 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap["opcode"] = "EXTR(29, 30)";
     operandExtractorMap["extend"] = "d->extend(raw)";
     operandExtractorMap["pos"] = "(EXTR(21, 22) << 4)";
-    operandExtractorMap["wmask"] = "d->getBitfieldMask(d->read(args[2]), d->read(args[3]), EXTR(22, 22), true, (EXTR(31, 31) + 1) * 32)";
-    operandExtractorMap["tmask"] = "d->getBitfieldMask(d->read(args[2]), d->read(args[3]), EXTR(22, 22), false, (EXTR(31, 31) + 1) * 32)";
 }
 
 void Scanner::initOperatorToFunctionMap() {
@@ -309,6 +331,14 @@ void Scanner::initIgnoreOperands() {
 void Scanner::initOperandPosMap() {
     operandPosMap["target"] = 0;
     operandPosMap["address"] = 1;
+}
+
+void Scanner::initNewSymbolMaps() {
+    newSymbolType["wmask"] = "BaseSemantics::SValuePtr";
+    newSymbolType["tmask"] = "BaseSemantics::SValuePtr";
+
+    newSymbolVal["wmask"] = "d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22), true, (EXTR(31, 31) + 1) * 32)";
+    newSymbolVal["tmask"] = "d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22), false, (EXTR(31, 31) + 1) * 32)";
 }
 
 }

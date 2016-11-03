@@ -48,6 +48,9 @@ namespace Dyninst_aarch64 {
         static void initOperandPosMap();
         static std::map<std::string, int> operandPosMap;
 
+        static void initNewSymbolMaps();
+        static std::map<std::string, std::string> newSymbolType, newSymbolVal;
+
     };
 
 }
