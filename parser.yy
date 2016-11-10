@@ -86,7 +86,8 @@ string *makeProgramBlock(string *arg1, string *arg2) {
         {
             out<<Dyninst_aarch64::Scanner::newSymbolType[*i]<<" "<<*i;
             if(Dyninst_aarch64::Scanner::newSymbolVal.count(*i))
-                out<<" = "<<Dyninst_aarch64::Scanner::newSymbolVal[*i]<<";\n";
+                out<<" = "<<Dyninst_aarch64::Scanner::newSymbolVal[*i];
+            out<<";\n";
         }
 
         foundNewSymbol = false;
@@ -238,7 +239,7 @@ bool haswback = false;
 %token          SYMBOL_COMMA
 %token		    SYMBOL_COLON
 %token          READ_PC
-%token          SET_NZCV
+%token          <strVal>    SET_NZCV
 %token		    SET_LR
 %token          FLAG_CARRY
 %token		    IGNORE
@@ -391,8 +392,21 @@ asnmt:      targ SYMBOL_EQUAL asnmtsrc       {
                                                 stringstream ret;
                                                 char flags[] = {'n', 'z', 'c', 'v'};
 
-                                                for(int idx = 0; idx < sizeof(flags)/sizeof(char); idx++)
-                                                    ret<<"d->writeRegister(d->REG_"<<(char)(flags[idx] - 32)<<", "<<flags[idx]<<");\n";
+                                                string srcval = *$1;
+                                                delete $1;
+
+                                                if(srcval == "nzcv")
+                                                {
+                                                    for(int idx = 0; idx < sizeof(flags)/sizeof(char); idx++)
+                                                        ret<<"d->writeRegister(d->REG_"<<(char)(flags[idx] - 32)<<", "<<flags[idx]<<");\n";
+                                                }
+                                                else
+                                                {
+                                                    ret<<"d->writeRegister(d->REG_N, ops->extract(result, result->get_width() - 1, result->get_width()));\n";
+                                                    ret<<"d->writeRegister(d->REG_Z, d->isZero(result));\n";
+                                                    ret<<"d->writeRegister(d->REG_C, ops->number_(1, 0));\n";
+                                                    ret<<"d->writeRegister(d->REG_V, ops->number_(1, 0));\n";
+                                                }
 
                                                 $$ = STR(ret.str());
                                             }
@@ -516,26 +530,24 @@ expr:       NUM                         {
             funccall                    {   $$ = $1;    } |
             varname                     {   $$ = $1;    } |
             bitpos                      {   $$ = $1;    } |
-            expr OPER expr              {   //FIXME
-                                            //$$ = STR(Scanner::operatorToFunctionMap[*$2] + "(" + string(*$1) + ", " + string(*$3) + ")");
+            expr OPER expr              {
                                             DEL_VEC($1, $2, $3);
+                                            map<string, string> logicalFuncs = {{"AND", "and_"}, {"OR", "or_"}, {"EOR", "xor_"}};
 
                                             if((*$2) == "+")
                                             {
                                                 string cur = *$3;
                                                 //NOTE: special case, if 'offset' is an argument replace it with the expression reading the third operand
-                                                //TODO don't replace if 'offset' has already been seen before as a declared variable
-                                                if(cur == "offset")
+                                                //Don't replace if it has already been declared though
+                                                if(cur == "offset" && find(symbols.begin(), symbols.end(), cur) == symbols.end())
                                                     cur = "d->read(args[2])";
 
                                                 ARGS_VEC("ops->add(", *$1, ", ", cur, ")");
                                                 $$ = STR(makeStr(args, &del));
                                             }
-                                            else if((*$2) == "AND" || (*$2) == "OR")
+                                            else if(logicalFuncs.count(*$2))
                                             {
-                                                string oper = *$2;
-                                                std::transform(oper.begin(), oper.end(), oper.begin(), ::tolower);
-                                                ARGS_VEC("ops->", oper, "_(", *$1, ", ", *$3, ")");
+                                                ARGS_VEC("ops->", logicalFuncs[*$2], "(", *$1, ", ", *$3, ")");
 
                                                 $$ = STR(makeStr(args, &del));
                                             }

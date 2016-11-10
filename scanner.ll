@@ -15,7 +15,8 @@ using namespace std;
 int labelPos;
 
 vector<string> extendInsns = {"uxtb", "uxth", "sxtb", "sxth", "sxtw"};
-bool isExtendInsn;
+vector<string> shiftInsns = {"lsl", "lsr", "asr"};
+bool isExtendInsn, isShiftInsn;
 
 %}
 
@@ -44,13 +45,15 @@ bool isExtendInsn;
                 subInsn = subInsn.substr(0, subInsn.find("_"));
                 if(find(extendInsns.begin(), extendInsns.end(), subInsn) != extendInsns.end())
                     isExtendInsn = true;
+                else if(find(shiftInsns.begin(), shiftInsns.end(), subInsn) != shiftInsns.end())
+                    isShiftInsn = true;
 
                 labelPos = 0;
                 return token::INSN_START;
             }
 
 @@          {
-                isExtendInsn = false;
+                isExtendInsn = isShiftInsn = false;
                 return token::INSN_END;
             }
 
@@ -97,17 +100,22 @@ bits\(64\)\ base\ =\ PC\[\];\n       {   return token::READ_PC;  }
 
 PSTATE[^<]C                          {   return token::FLAG_CARRY;   }
 
-PSTATE\.<[^\n]+                      {   return token::SET_NZCV;     }
+PSTATE\.<[^;]+                       {
+                                         string matched(yytext);
+                                         yylval->strVal = new string(matched.substr(matched.find("=") + 2));
+
+                                         return token::SET_NZCV;
+                                     }
 
 address\ =\ (SP|(X|W)\[[a-z]\])[^\n]+		     {
                                                     yylval->strVal = new string(yytext);
                                                     return token::IGNORE;
                                                  }
 
-ExtendReg\([^\)]+\)                 {
-                                        yylval->strVal = new string("d->read(args[2])");
-                                        return token::OPERAND;
-                                    }
+((Extend|Shift)Reg)\([^\)]+\)                 {
+                                                 yylval->strVal = new string("d->read(args[2])");
+                                                 return token::OPERAND;
+                                              }
 
     /****************************************/
     /*        Instruction Operands          */
@@ -167,9 +175,14 @@ R|S                    {
                             stringstream out;
                             if(!isExtendInsn)
                             {
-                                out<<"d->read(args[";
-                                out<<2 + (yytext[0] - 'R');
-                                out<<"])";
+                                if(isShiftInsn && yytext[0] == 'S')
+                                    out<<"ops->number_(32, EXTR(10, 15))";
+                                else
+                                {
+                                    out<<"d->read(args[";
+                                    out<<2 + (yytext[0] - 'R');
+                                    out<<"])";
+                                }
                             }
                             else
                             {
@@ -222,10 +235,10 @@ UNKNOWN	    {	return token::UNKNOWN;	}
 
 [ \t;\n]    ;
 
-!=|!|\+|==|&&|AND|OR	{
-                            yylval->strVal = new string(yytext);
-                            return token::OPER;
-                        }
+!=|!|\+|==|&&|AND|OR|EOR	{
+                                yylval->strVal = new string(yytext);
+                                return token::OPER;
+                            }
 
 Mem\[[^\]]+\] {
                 string matched(yytext);
@@ -298,7 +311,7 @@ Scanner::~Scanner()
 
 void Scanner::initOperandExtractorMap() {
     operandExtractorMap["sub_op"] = "(EXTR(30, 30) == 1)";
-    operandExtractorMap["setflags"] = "(EXTR(29, 29) == 1)";
+    operandExtractorMap["setflags"] = "d->setflags(raw)";
     operandExtractorMap["d"] = "EXTR(0, 4)";
     operandExtractorMap["n"] = "EXTR(5, 9)";
     operandExtractorMap["condition"] = "EXTR(0, 4)";
@@ -313,7 +326,9 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap["inzero"] = "d->inzero(raw)";
     operandExtractorMap["opcode"] = "EXTR(29, 30)";
     operandExtractorMap["extend"] = "d->extend(raw)";
-    operandExtractorMap["pos"] = "(EXTR(21, 22) << 4)";
+    operandExtractorMap["pos"] = "(EXTR(21, 22) << 4)";\
+    operandExtractorMap["op"] = "d->op(raw)";
+    operandExtractorMap["invert"] = "(EXTR(21, 21) == 1)";
 }
 
 void Scanner::initOperatorToFunctionMap() {
@@ -336,6 +351,7 @@ void Scanner::initOperandPosMap() {
 void Scanner::initNewSymbolMaps() {
     newSymbolType["wmask"] = "BaseSemantics::SValuePtr";
     newSymbolType["tmask"] = "BaseSemantics::SValuePtr";
+    newSymbolType["result"] = "BaseSemantics::SvaluePtr";
 
     newSymbolVal["wmask"] = "d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22), true, (EXTR(31, 31) + 1) * 32)";
     newSymbolVal["tmask"] = "d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22), false, (EXTR(31, 31) + 1) * 32)";
