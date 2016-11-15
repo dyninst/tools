@@ -18,7 +18,7 @@
  */
 
 #include <assert.h>
-
+#include <iostream>
 #include "Decoder.h"
 #include "MappedInst.h"
 
