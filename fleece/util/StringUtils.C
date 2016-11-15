@@ -40,6 +40,7 @@ bool signalsError(const char* token) {
       !strcmp(token, "undefined")       ||
       !strcmp(token, "nyi")             ||
       !strcmp(token, "invalid")         ||
+      !strcmp(token, ".long")           ||
       !strcmp(token, "%?")
    );
    return retval;
