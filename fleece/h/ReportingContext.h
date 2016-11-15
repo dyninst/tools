@@ -1,6 +1,7 @@
 #ifndef _REPORTING_CONTEXT_H_
 #define _REPORTING_CONTEXT_H_
 
+#include <list>
 #include <queue>
 #include <vector>
 #include "Alias.h"
@@ -64,15 +65,13 @@ private:
     /*
      * Reports a difference to the file that was passed at creation time.
      */
-    void reportDiff(const char** insns, int nInsns, const char* bytes, 
-            int nBytes, const char** reasmErrors);
+    void reportDiff(Report* report);
 
     /*
      * Examines the data already reported and decides if the incoming decodings
      * need to be reported as well.
      */
-    bool shouldReportDiff(const char* bytes, int nBytes, 
-        const char** insns, int nInsns);
+    bool shouldReportDiff(Report* report);
 
     /*
      * Makes comparisons and looks up aliases to determine if two decodings
@@ -96,7 +95,7 @@ private:
     /*
      * The record of different instruction decodings seen.
      */
-    std::map<char*, int, StringUtils::str_cmp>* diffMap;
+    std::map<char*, std::list<Report*>*, StringUtils::str_cmp>* diffMap;
 
     /*
      * The output dir for all reports (but not necessarily for summary data).

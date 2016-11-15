@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <iostream>
+#include "FieldList.h"
 #include "StringUtils.h"
 
 /*
@@ -13,6 +14,8 @@
 class Report {
 
 public:
+
+    Report(Report* r);
 
     /*
      * Creates a report from an array of disassembled instructions, the bytes
@@ -60,6 +63,12 @@ public:
      * Returns the number of instructions in this report.
      */
     size_t size() { return nInsns; }
+
+    /*
+     * Returns true if the two reports contain distinct differences between
+     * their fields.
+     */
+    bool isEquivalent(Report* report);
 
 private:
 

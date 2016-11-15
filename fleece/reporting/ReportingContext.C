@@ -3,7 +3,7 @@
 
 ReportingContext::ReportingContext(const char* outputDir, int flushFreq) {
   
-    diffMap = new std::map<char*, int, StringUtils::str_cmp>();
+    diffMap = new std::map<char*, std::list<Report*>*, StringUtils::str_cmp>();
     assert(diffMap != NULL && "Report hashcounter should not be null!");
 
     // Initialize summary data to all zeroes.
@@ -28,13 +28,15 @@ ReportingContext::~ReportingContext() {
     // as an already-opened FILE*, someone else is responsible.
     assert(diffMap != NULL && "Report difference map should not be null!");
 
+    for (auto it = diffMap->begin(); it != diffMap->end(); ++it) {
+        delete it->second;
+    }
     delete diffMap;
 }
 
-void ReportingContext::reportDiff(const char** insns, int nInsns, 
-        const char* bytes, int nBytes, const char** reasmErrors) {
+void ReportingContext::reportDiff(Report* report) {
   
-    reportQueue.push(new Report(insns, nInsns, bytes, nBytes, reasmErrors));
+    reportQueue.push(new Report(report));
     flushCount++;
     if (flushCount > flushFreq) {
         flushReportQueue();
@@ -62,21 +64,28 @@ void ReportingContext::flushReportQueue() {
         // one decoder. If not, we can add it to the no_obv_error file.
         bool issuedToDecoder = false;
 
-        // Issue reports to each decoder that interpreted an instruction as
-        // invalid.
         for (size_t i = 0; i < r->size(); i++) {
-            FieldList fl = FieldList(r->getInsn(i));
-            if (fl.hasError()) {
-                snprintf(filename, REPORT_FILENAME_BUF_LEN,
-                        "%s/%s/errors.txt", outputDir, decoderNames[i]);
-                r->issue(filename);
-                issuedToDecoder = true;
-            } else if (r->hasReasmError(i)) {
+            if (r->hasReasmError(i)) {
                 snprintf(filename, REPORT_FILENAME_BUF_LEN,
                         "%s/%s/%s.txt", outputDir, decoderNames[i],
                         asmErrorToFilename(r->getReasmError(i)).c_str());
                 r->issue(filename);
                 issuedToDecoder = true;
+            }
+        }
+
+        // If there were not reassembly errors, then any decoder reporting the
+        // instruction as invalid should have the instruction listed as a
+        // potential error.
+        if (!issuedToDecoder) {
+            for (size_t i = 0; i < r->size(); i++) {
+                FieldList fl = FieldList(r->getInsn(i));
+                if (fl.hasError()) {
+                    snprintf(filename, REPORT_FILENAME_BUF_LEN,
+                            "%s/%s/errors.txt", outputDir, decoderNames[i]);
+                    r->issue(filename);
+                    issuedToDecoder = true;
+                }
             }
         }
 
@@ -102,6 +111,7 @@ void ReportingContext::addDecoder(const char* name) {
 int ReportingContext::processDecodings(const char** insns, int nInsns, 
         const char* bytes, int nBytes) {
    
+    
     // Update summary data.
     nProcessed++;
 
@@ -148,7 +158,9 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
             }
         }
 
+        
         if (nAgreed == nInsns) {
+            /*
             FILE* sameF = fopen("same.txt", "a+");
             for (int i = 0; i < nInsns; i++) {
                 fprintf(sameF, "%s; ", insns[i]);
@@ -157,6 +169,7 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
             fprintf(sameF, "%s\n", reasmResults);
             //std::cout << "REASSEMBLY: " << reasmResults << "\n";
             fclose(sameF);
+            */
             allMatch = true;
         }
     }
@@ -165,11 +178,13 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
        nMatches++;
        return nBytes;
     }
+    
+    Report r = Report(insns, nInsns, bytes, nBytes, (const char**)reasmErrors);
 
     // Check if we need to report the difference and do so. Update summary data.
-    if (shouldReportDiff(bytes, nBytes, insns, nInsns)) {
+    if (shouldReportDiff(&r)) {
         nReports++;
-        reportDiff(insns, nInsns, bytes, nBytes, (const char**)&reasmErrors[0]);
+        reportDiff(&r);
     } else {
         nSuppressed++;
     }
@@ -211,8 +226,9 @@ unsigned int ReportingContext::getNumSuppressed() {
     return nSuppressed;
 }
 
-bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes, 
-        const char** insns, int nInsns) {
+bool ReportingContext::shouldReportDiff(Report* report) {
+
+    int nInsns = report->size();
 
     // Allocate buffers for the instruction templates and output.
     char** insnTemplates = (char**)malloc(nInsns * sizeof(char*));
@@ -225,7 +241,7 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
 
     int nFields;
     for (int i = 0; i < nInsns; i++) {
-        tLists.push_back(new FieldList(insns[i]));
+        tLists.push_back(new FieldList(report->getInsn(i)));
 
         // Strip the hex and dec numbersfrom each list.
         tLists[i]->stripHex();
@@ -279,9 +295,24 @@ bool ReportingContext::shouldReportDiff(const char* bytes, int nBytes,
     // Check if we have seen this value before (including this time) less
     // than the threshold. If so, we will say that the difference
     // should be reported.
+    
     if (diffMap->count(buf) == 0) {
         result = true;
-        diffMap->insert(std::make_pair(strdup(buf), 1));
+        std::list<Report*>* newList = new std::list<Report*>();
+        newList->push_back(new Report(report));
+        diffMap->insert(std::make_pair(strdup(buf), newList));
+    } else {
+        bool foundEquivalent = false;
+        std::list<Report*>* oldReports = (*(diffMap->find(buf))).second;
+        for (auto it = oldReports->begin(); it != oldReports->end(); ++it) {
+            if (report->isEquivalent(*it)) {
+                foundEquivalent = true;
+            }
+        }
+        if (!foundEquivalent) {
+            oldReports->push_back(new Report(report));
+            result = true;
+        }
     }
    
     // Free the buffer and templates used and delete the field lists.
