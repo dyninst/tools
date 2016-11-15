@@ -25,8 +25,6 @@
 #define BIT_TYPE_CAUSED_ERROR -2
 #define BIT_TYPE_UNUSED -1
 
-#define MAX_OPERANDS 4
-
 #define INST_LEN 15
 
 typedef int BitType;
