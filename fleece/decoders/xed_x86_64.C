@@ -250,27 +250,69 @@ void fixVexMaskOperations(char* buf, int bufLen) {
     *(opPos + opLen + 1) = ' ';
 }
 
-void xed_x86_64_norm(char* buf, int bufLen) {
-
-    cleanSpaces(buf, bufLen);
-    toLowerCase(buf, bufLen);
-    spaceAfterCommas(buf, bufLen);
-    fixStRegs(buf, bufLen);
-    fixMmxRegs(buf, bufLen);
-
+void fixExtraOpcodeDressing(char* buf, int bufLen) {
     replaceStr(buf, bufLen, "sdq ", "sd ");
     replaceStr(buf, bufLen, "sdl ", "sl ");
     replaceStr(buf, bufLen, "psq ", "ps ");
-    replaceStr(buf, bufLen, "fqq ", "fq ");
-    replaceStr(buf, bufLen, "sbb ", "sb ");
+    replaceStr(buf, bufLen, "fqq", "fq");
+    replaceStr(buf, bufLen, "insbb", "insb");
     replaceStr(buf, bufLen, "wdy ", "wd ");
     replaceStr(buf, bufLen, "psx ", "ps ");
     replaceStr(buf, bufLen, "sqq ", "sq ");
     replaceStr(buf, bufLen, "psy ", "ps ");
     replaceStr(buf, bufLen, "pdy ", "pd ");
     replaceStr(buf, bufLen, "sxd ", "slq ");
+    replaceStr(buf, bufLen, "iretd", "iretl");
+}
 
+void removeImplicitST0(char* buf, int bufLen) {
+    
+   std::string str(buf);
+  
+   removeOperand(str, "fadd", ", %st(0)");
+   removeOperand(str, "fld", ", %st(0)");
+   removeOperand(str, "fbld", ", %st(0)");
+   removeOperand(str, "fst", "%st(0), ");
+   removeOperand(str, "fbstp", "%st(0), ");
+   removeOperand(str, "fstpq", "%st(0), ");
+   //removeOperand(str, "fcmov", ", %st(0)"); // x
+   removeOperand(str, "fild", ", %st(0)");
+   removeOperand(str, "fist", "%st(0), ");
+   removeOperand(str, "fisub", ", %st(0)");
+   removeOperand(str, "fsub", ", %st(0)");
+
+   removeOperand(str, "fmul", ", %st(0)");
+   removeOperand(str, "fucom", ", %st(0)");
+   removeOperand(str, "fcom", ", %st(0)");
+   removeOperand(str, "fidiv", ", %st(0)");
+   removeOperand(str, "fdiv", ", %st(0)");
+   removeOperand(str, "fimul", ", %st(0)");
+   removeOperand(str, "fiadd", ", %st(0)");
+
+   removeOperand(str, "ficom", ", %st(0)");
+   removeOperand(str, "fsubrl", "%st(0), ");
+   removeOperand(str, "fbstp", "%st(0), ");
+   removeOperand(str, "fsqrt", " %st(0)");
+   removeOperand(str, "fxch", ", %st(0)");
+   removeOperand(str, "fptan", ", %st(0)");
+   
+   strncpy(buf, str.c_str(), bufLen);
+   if (buf[str.length() - 1] == ' ') {
+      buf[str.length() - 1] = 0;
+   }
+}
+
+void xed_x86_64_norm(char* buf, int bufLen) {
+
+    cleanSpaces(buf, bufLen);
+    toLowerCase(buf, bufLen);
+    spaceAfterCommas(buf, bufLen);
+
+    fixStRegs(buf, bufLen);
+    fixMmxRegs(buf, bufLen);
+    fixExtraOpcodeDressing(buf, bufLen);
     fixVexMaskOperations(buf, bufLen);
+    removeImplicitST0(buf, bufLen);
 
    /*trimHexZeroes(buf, bufLen);
    trimHexFs(buf, bufLen);
