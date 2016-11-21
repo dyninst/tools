@@ -81,16 +81,7 @@ void llvm_aarch64_norm(char* buf, int bufLen) {
     cleanSpaces(buf, bufLen);
     removeComments(buf, bufLen);
     toLowerCase(buf, bufLen);
-    //decToHexConstants(buf, bufLen);
-    //removePounds(buf, bufLen);
     trimBraceSpaces(buf, bufLen);
     aliasCsInsns(buf, bufLen);
-    /*aliasMovz(buf, bufLen);
-    aliasMovn(buf, bufLen);
-    aliasIns(buf, bufLen);
-    trimHexFs(buf, bufLen);
-    trimHexZeroes(buf, bufLen);
-    removeExtraZeroesFromFmovImm(buf, bufLen);
-    */
 }
 
