@@ -25,14 +25,25 @@ void addNumberedRegSet(const char* setName, const char* baseName,
 
 }
 
+void init_armv6() {
+    Architecture::name = "armv6";
+
+    addNumberedRegSet("rreg", "r", 0, 15);
+}
+
 void init_ppc() {
     Architecture::name = "ppc";
     
     addNumberedRegSet("rreg", "r", 0, 31);
     addNumberedRegSet("freg", "f", 0, 31);
+    addNumberedRegSet("fsrreg", "fsr", 0, 31);
+    addNumberedRegSet("fprreg", "fpr", 0, 31);
+    addNumberedRegSet("fcrreg", "fcr", 0, 31);
     addNumberedRegSet("crreg", "cr", 0, 31);
+    addNumberedRegSet("creg", "c", 0, 31);
     addNumberedRegSet("vreg", "v", 0, 31);
-    addNumberedRegSet("vsreg", "vs", 0, 31);
+    addNumberedRegSet("vsreg", "vs", 0, 63);
+    addNumberedRegSet("segreg", "seg", 0, 4);
 }
 
 void init_x86_64() {
@@ -551,6 +562,11 @@ void Architecture::init(const char* arch) {
         init_aarch64();
     } else if (!strcmp(arch, "ppc")) {
         init_ppc();
+    } else if (!strcmp(arch, "armv6")) {
+        init_armv6();
+    } else {
+        std::cerr << "UNKNOWN ARCHITECTURE: " << arch << "\n";
+        exit(-1);
     }
 }
 
