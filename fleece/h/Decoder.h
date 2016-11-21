@@ -22,6 +22,7 @@
 #define _DECODER_H_
 
 #define DECODING_BUFFER_SIZE 1024
+#define EXPERIMENTAL_DECODERS
 
 #include <vector>
 #include <ctype.h>
@@ -80,6 +81,9 @@ extern int  dyninst_aarch64_init(void);
 extern int  dyninst_ppc_decode(char*, int, char*, int);
 extern void dyninst_ppc_norm(char*, int);
 
+extern int  dyninst_armv6_decode(char*, int, char*, int);
+extern void dyninst_armv6_norm(char*, int);
+
 extern int  gnu_x86_64_decode(char*, int, char*, int);
 extern void gnu_x86_64_norm(char*, int);
 
@@ -97,6 +101,9 @@ extern void llvm_aarch64_norm(char*, int);
 
 extern int  llvm_ppc_decode(char*, int, char*, int);
 extern void llvm_ppc_norm(char*, int);
+
+extern int  llvm_armv6_decode(char*, int, char*, int);
+extern void llvm_armv6_norm(char*, int);
 
 extern int  capstone_x86_64_decode(char*, int, char*, int);
 extern void capstone_x86_64_norm(char*, int);
@@ -121,6 +128,7 @@ extern Decoder* dec_xed_x86_64;
 extern Decoder* dec_dyninst_x86_64;
 extern Decoder* dec_dyninst_aarch64;
 extern Decoder* dec_dyninst_ppc;
+extern Decoder* dec_dyninst_armv6;
 
 extern Decoder* dec_gnu_x86_64;
 extern Decoder* dec_gnu_aarch64;
@@ -128,6 +136,7 @@ extern Decoder* dec_gnu_aarch64;
 extern Decoder* dec_llvm_x86_64;
 extern Decoder* dec_llvm_aarch64;
 extern Decoder* dec_llvm_ppc;
+extern Decoder* dec_llvm_armv6;
 
 extern Decoder* dec_capstone_x86_64;
 extern Decoder* dec_capstone_aarch64;
