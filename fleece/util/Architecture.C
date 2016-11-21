@@ -1,6 +1,7 @@
 
 #include "Architecture.h"
 
+int Architecture::maxInsnLen;
 std::vector<RegisterSet*> regSets;
 std::string Architecture::name;
 
@@ -27,13 +28,15 @@ void addNumberedRegSet(const char* setName, const char* baseName,
 
 void init_armv6() {
     Architecture::name = "armv6";
-
+    Architecture::maxInsnLen = 4;
+    
     addNumberedRegSet("rreg", "r", 0, 15);
 }
 
 void init_ppc() {
     Architecture::name = "ppc";
-    
+    Architecture::maxInsnLen = 4;
+
     addNumberedRegSet("rreg", "r", 0, 31);
     addNumberedRegSet("freg", "f", 0, 31);
     addNumberedRegSet("fsrreg", "fsr", 0, 31);
@@ -49,6 +52,7 @@ void init_ppc() {
 void init_x86_64() {
 
     Architecture::name = "x86_64";
+    Architecture::maxInsnLen = 15;
 
     RegisterSet* gp_64bit = new RegisterSet("%gp_64bit");
 
@@ -181,6 +185,7 @@ void init_x86_64() {
 void init_aarch64() {
 
     Architecture::name = "aarch64";
+    Architecture::maxInsnLen = 4;
 
     addNumberedRegSet("wreg", "w", 0, 31);
     addNumberedRegSet("xreg", "x", 0, 31);
