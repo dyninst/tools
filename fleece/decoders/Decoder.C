@@ -26,12 +26,14 @@ Decoder* dec_xed_x86_64;
 Decoder* dec_dyninst_x86_64;
 Decoder* dec_dyninst_aarch64;
 Decoder* dec_dyninst_ppc;
+Decoder* dec_dyninst_armv6;
 Decoder* dec_gnu_x86_64;
 Decoder* dec_gnu_aarch64;
 Decoder* dec_gnu_ppc;
 Decoder* dec_llvm_x86_64;
 Decoder* dec_llvm_aarch64;
 Decoder* dec_llvm_ppc;
+Decoder* dec_llvm_armv6;
 Decoder* dec_capstone_x86_64;
 Decoder* dec_capstone_aarch64;
 Decoder* dec_capstone_ppc;
@@ -74,6 +76,8 @@ void Decoder::initAllDecoders()
             &dyninst_aarch64_init, &dyninst_aarch64_norm, "dyninst", "aarch64");
     dec_dyninst_ppc = new Decoder(&dyninst_ppc_decode, 
             NULL, &dyninst_ppc_norm, "dyninst", "ppc");
+    dec_dyninst_armv6 = new Decoder(&dyninst_armv6_decode, NULL,
+            &dyninst_armv6_norm, "dyninst", "armv6");
     dec_gnu_x86_64 = new Decoder(&gnu_x86_64_decode, NULL, 
             &gnu_x86_64_norm, "gnu", "x86_64");
     dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
@@ -86,6 +90,8 @@ void Decoder::initAllDecoders()
             &llvm_aarch64_norm, "llvm", "aarch64");
     dec_llvm_ppc = new Decoder(&llvm_ppc_decode, &LLVMInit, 
             &llvm_ppc_norm, "llvm", "ppc");
+    dec_llvm_armv6 = new Decoder(&llvm_armv6_decode, &LLVMInit,
+            &llvm_armv6_norm, "llvm", "armv6");
     dec_capstone_x86_64 = new Decoder(&capstone_x86_64_decode, NULL, 
             &capstone_x86_64_norm, "capstone", "x86_64");
     dec_capstone_aarch64 = new Decoder(&capstone_aarch64_decode, NULL, 
@@ -106,12 +112,14 @@ void Decoder::destroyAllDecoders()
     delete dec_dyninst_x86_64;
     delete dec_dyninst_aarch64;
     delete dec_dyninst_ppc;
+    delete dec_dyninst_armv6;
     delete dec_gnu_x86_64;
     delete dec_gnu_aarch64;
     delete dec_gnu_ppc;
     delete dec_llvm_x86_64;
     delete dec_llvm_aarch64;
     delete dec_llvm_ppc;
+    delete dec_llvm_armv6;
     delete dec_capstone_x86_64;
     delete dec_capstone_aarch64;
     delete dec_capstone_ppc;
@@ -125,12 +133,14 @@ std::vector<Decoder> Decoder::getAllDecoders() {
     dec.push_back(*dec_llvm_x86_64);
     dec.push_back(*dec_llvm_aarch64);
     dec.push_back(*dec_llvm_ppc);
+    dec.push_back(*dec_llvm_armv6);
     dec.push_back(*dec_gnu_x86_64);
     dec.push_back(*dec_gnu_aarch64);
     dec.push_back(*dec_gnu_ppc);
     dec.push_back(*dec_dyninst_x86_64);
     dec.push_back(*dec_dyninst_aarch64);
     dec.push_back(*dec_dyninst_ppc);
+    dec.push_back(*dec_dyninst_armv6);
     dec.push_back(*dec_xed_x86_64);
     dec.push_back(*dec_capstone_x86_64);
     dec.push_back(*dec_capstone_aarch64);
