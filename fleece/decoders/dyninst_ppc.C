@@ -37,4 +37,5 @@ int dyninst_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
 void dyninst_ppc_norm(char* buf, int bufLen) {
     toLowerCase(buf, bufLen);
+    removeCharacter(buf, bufLen, '%');
 }
