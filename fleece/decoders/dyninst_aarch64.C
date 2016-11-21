@@ -99,7 +99,9 @@ void formatShiftedConstants(char* buf, int bufLen) {
 }
 
 int dyninst_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
-   
+
+   //static ArmFormatter* formatter = new ArmFormatter();
+
    if (isAarch64SysRegInsn(inst, nBytes, buf, bufLen)) {
       return 0;
    }
@@ -117,6 +119,7 @@ void dyninst_aarch64_norm(char* buf, int bufLen) {
    
    //removeCharacter(buf, bufLen, ']');
    //removeCharacter(buf, bufLen, '[');
+   /*
    removeTrailing(buf, bufLen, ", pstate");
    removeTrailing(buf, bufLen, ", pc");
    removeFirst(buf, bufLen, "pc + ");
@@ -133,7 +136,7 @@ void dyninst_aarch64_norm(char* buf, int bufLen) {
    replaceStr(buf, bufLen, " ror", ", ror");
    
    buf[bufLen - 1] = 0;
-
+   */
 }
 
 void aliasRegisterSet(const char* prefix1, const char* suffix1, const char* prefix2, const char* suffix2) {
@@ -205,48 +208,6 @@ int dyninst_aarch64_init(void) {
    aliasRegisterSet("d", "", "v", ".8b");
    aliasRegisterSet("d", ",", "v", ".8b,");
 
-   Alias::addAlias("pldl1keep,", "0x0,");
-   Alias::addAlias("pldl1strm,", "0x1,");
-   Alias::addAlias("pldl2keep,", "0x2,");
-   Alias::addAlias("pldl2strm,", "0x3,");
-   Alias::addAlias("pldl3keep,", "0x4,");
-   Alias::addAlias("pldl3strm,", "0x5,");
-   Alias::addAlias("plil1keep,", "0x8,");
-   Alias::addAlias("plil1strm,", "0x9,");
-   Alias::addAlias("plil2keep,", "0xa,");
-   Alias::addAlias("plil2strm,", "0xb,");
-   Alias::addAlias("plil3keep,", "0xc,");
-   Alias::addAlias("plil3strm,", "0xd,");
-   Alias::addAlias("pstl1keep,", "0x10,");
-   Alias::addAlias("pstl1strm,", "0x11,");
-   Alias::addAlias("pstl2keep,", "0x12,");
-   Alias::addAlias("pstl2strm,", "0x13,");
-   Alias::addAlias("pstl3keep,", "0x14,");
-   Alias::addAlias("pstl3strm,", "0x15,");
-
-   Alias::addAlias("eq,", "0x0,");
-   Alias::addAlias("ne,", "0x1,");
-   Alias::addAlias("cs,", "0x2,");
-   Alias::addAlias("hs,", "0x2,");
-   Alias::addAlias("cc,", "0x3,");
-   Alias::addAlias("lo,", "0x3,");
-   Alias::addAlias("mi,", "0x4,");
-   Alias::addAlias("pl,", "0x5,");
-   Alias::addAlias("vs,", "0x6,");
-   Alias::addAlias("vc,", "0x7,");
-   Alias::addAlias("hi,", "0x8,");
-   Alias::addAlias("ls,", "0x9,");
-   Alias::addAlias("ge,", "0xa,");
-   Alias::addAlias("lt,", "0xb,");
-   Alias::addAlias("gt,", "0xc,");
-   Alias::addAlias("le,", "0xd,");
-   Alias::addAlias("al,", "0xe,");
-   Alias::addAlias("nv,", "0xf,");
-   
-   Alias::addAlias("wzr,", "zr,");
-   Alias::addAlias("wzr", "zr");
-   Alias::addAlias("xzr,", "zr,");
-   Alias::addAlias("xzr", "zr");
    */
 
        return 0;
