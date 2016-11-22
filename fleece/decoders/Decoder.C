@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include <iomanip>
 #include <iostream>
 #include "Decoder.h"
 #include "MappedInst.h"
@@ -40,6 +41,25 @@ Decoder* dec_capstone_ppc;
 Decoder* dec_null_x86_64;
 Decoder* dec_null_aarch64;
 Decoder* dec_null_ppc;
+
+Decoder* Decoder::curDecoder;
+int Decoder::curInsnLen;
+char* Decoder::curInsn;
+
+void Decoder::printErrorStatus() {
+    if (curDecoder == NULL) {
+        std::cerr << "Not currently decoding\n";
+        return;
+    }
+
+    std::cerr << "Current decoder = " << curDecoder->name << " " 
+              << curDecoder->arch << "\n";
+    for (int j = 0; j < curInsnLen; j++) {
+        std::cout << std::hex << std::setfill('0') << std::setw(2)
+            << (unsigned int)(unsigned char)curInsn[j] << " ";
+    }
+    std::cout << "\n" << std::dec;
+}
 
 Decoder::Decoder(
         int (*decodeFunc)(char*, int, char*, int),
@@ -175,6 +195,10 @@ void Decoder::normalize(char* buf, int bufLen) {
 
 int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen) {
     
+    curDecoder = this;
+    curInsnLen = nBytes;
+    curInsn = inst;
+
     totalDecodedInsns++;
 
     struct timespec startTime;
@@ -188,6 +212,8 @@ int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen) {
     totalDecodeTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                    (endTime.tv_nsec - startTime.tv_nsec);
  
+    curDecoder = NULL;
+    
     if (norm) {
         normalize(buf, bufLen);
     }
