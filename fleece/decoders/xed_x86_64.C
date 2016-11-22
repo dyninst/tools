@@ -238,7 +238,7 @@ void fixVexMaskOperations(char* buf, int bufLen) {
     // Copy the instruction starting at the end.
     cur = insnEnd + 2; // include space for the ", "
     *(cur + 1) = 0;
-    while (cur > opPos + copyOffset) {
+    while (cur >= opPos + copyOffset) {
         *cur = *(cur - copyOffset);
         cur--;
     }
@@ -311,6 +311,7 @@ void xed_x86_64_norm(char* buf, int bufLen) {
     fixStRegs(buf, bufLen);
     fixMmxRegs(buf, bufLen);
     fixExtraOpcodeDressing(buf, bufLen);
+
     fixVexMaskOperations(buf, bufLen);
     removeImplicitST0(buf, bufLen);
 
@@ -399,22 +400,22 @@ void xed_x86_64_norm(char* buf, int bufLen) {
 }
 
 int xed_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
-   xed_machine_mode_enum_t mmode = XED_MACHINE_MODE;
-   xed_address_width_enum_t stack_addr_width = XED_ADDRESS_WIDTH;
+    xed_machine_mode_enum_t mmode = XED_MACHINE_MODE;
+    xed_address_width_enum_t stack_addr_width = XED_ADDRESS_WIDTH;
 
-   xed_error_enum_t err;
-   xed_decoded_inst_t decoded_inst;
+    xed_error_enum_t err;
+    xed_decoded_inst_t decoded_inst;
 
-   xed_decoded_inst_zero(&decoded_inst);
-   xed_decoded_inst_set_mode(&decoded_inst, mmode, stack_addr_width);
-   err = xed_decode(&decoded_inst, (xed_uint8_t*)inst, nBytes);
-   if (err != XED_ERROR_NONE) {
-      return -1;
-   }
-   if (!xed_format_context(XED_SYNTAX_ATT, 
-          &decoded_inst, buf, bufLen, 0, 0, 0)) {
-      return -1;
-   }
-   return 0;
+    xed_decoded_inst_zero(&decoded_inst);
+    xed_decoded_inst_set_mode(&decoded_inst, mmode, stack_addr_width);
+    err = xed_decode(&decoded_inst, (xed_uint8_t*)inst, nBytes);
+    if (err != XED_ERROR_NONE) {
+        return -1;
+    }
+    if (!xed_format_context(XED_SYNTAX_ATT, 
+            &decoded_inst, buf, bufLen, 0, 0, 0)) {
+        return -1;
+    }
+    return 0;
 }
 
