@@ -154,6 +154,8 @@ int gnu_x86_64_norm(char* buf, int bufLen) {
     
     removeAtSubStr(result, "(, %riz, ", 11);
     removeAtSubStr(result, ", %riz, ", 9);
+    removeAtSubStr(result, "(, %eiz, ", 11);
+    removeAtSubStr(result, ", %eiz, ", 9);
 
     strncpy(buf, result.c_str(), bufLen);
     buf[bufLen - 1] = 0;
