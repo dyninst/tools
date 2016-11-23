@@ -51,6 +51,8 @@ public:
     const char* name;
     const char* arch;
 
+    static void printErrorStatus();
+
 private:
 
     void (*normFunc)(char*, int);
@@ -62,6 +64,10 @@ private:
     unsigned long totalNormTime;
 
     unsigned long totalDecodedInsns;
+
+    static Decoder* curDecoder;
+    static int curInsnLen;
+    static char* curInsn;
 
 };
 
