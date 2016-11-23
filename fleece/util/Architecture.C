@@ -131,6 +131,11 @@ void init_x86_64() {
     gp_8bit->addRegName("%bh");
     gp_8bit->addRegName("%bl");
 
+    gp_8bit->addRegName("%sil");
+    gp_8bit->addRegName("%dil");
+    gp_8bit->addRegName("%bpl");
+    gp_8bit->addRegName("%spl");
+
     gp_8bit->addRegName("%r8b");
     gp_8bit->addRegName("%r9b");
     gp_8bit->addRegName("%r10b");
@@ -179,6 +184,7 @@ void init_x86_64() {
     addNumberedRegSet("%ymm_reg", "%ymm", 0, 31);   
     addNumberedRegSet("%zmm_reg", "%zmm", 0, 31);   
     addNumberedRegSet("k_reg", "k", 0, 7);
+    addNumberedRegSet("%k_reg", "%k", 0, 7);
 
 }
 
