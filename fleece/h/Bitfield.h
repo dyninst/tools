@@ -21,19 +21,19 @@
 #ifndef _BITFIELD_H_
 #define _BITFIELD_H_
 
+#include <iostream>
+#include <list>
 #include "StringUtils.h"
 
 class Bitfield {
 public:
-   static Bitfield* create(char* str, char** endptr);
-   ~Bitfield();
-   bool matches(char* buf, int whichBit, int nBits);
-   int size();
-   int getBit(int bit);
+    static Bitfield* create(char* str);
+    ~Bitfield();
+    int matches(char* buf, int whichBit, int nBits);
+    void addPossibleEncodingValue(uint64_t val);
 private:
-   Bitfield(char* buf, int size);
-   char* bytes;
-   int sz; // size in bits.
+    Bitfield();
+    std::list<uint64_t>* vals;
 };
 
 #endif /* _BITFIELD_H_ */
