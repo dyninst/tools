@@ -59,7 +59,7 @@ public:
     /*
      * Returns true if the field list has the given field.
      */
-    bool hasField(char* field);
+    bool hasField(const char* field);
    
     /*
      * Returns a pointer to the null-terminated string stored at <index>
