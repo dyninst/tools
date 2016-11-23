@@ -35,6 +35,41 @@ static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType, 
 
 }
 
+bool wouldLlvmPpcInsnSig(char* insn, int nBytes) {
+    
+    if (nBytes < 4) {
+        return false;
+    }
+
+    if ((insn[0] == (char)0xFC || insn[0] == (char)0xFD || insn[0] ==
+            (char)0xFE || insn[0] == (char)0xFF) && 
+            (insn[3] == 0x0B || insn[3] == 0x0A || insn[3] == 0x4A)) {
+        return true;
+    }
+
+    if (insn[0] == 0x7C && (insn[3] == (char)0x9D || insn[3] ==
+            (char)0xDD || insn[3] == (char)0x5D || insn[3] == 0x1D)) {
+
+        return true;
+    }
+
+    if ((insn[0] == 0x7D || insn[0] == 0x7E || insn[0] == 0x7F) &&
+            (insn[3] = 0x1D || insn[3] == 0x5D || insn[3] ==
+            (char)0xDD)) {
+
+        return true;
+    }
+
+    if ((insn[0] >= 0x10 && insn[0] <= 0x13) && (insn[3] == 0x0D ||
+            insn[3] == 0x4D || insn[3] == (char)0x8D || insn[3] ==
+            (char)0xCD)) {
+
+        return true;
+    }
+
+    return false;
+}
+
 int llvm_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
     static LLVMDisasmContextRef disasm = LLVMCreateDisasm(
@@ -44,12 +79,18 @@ int llvm_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
             nullptr, 
             LLVMCallback);
 
+    if (wouldLlvmPpcInsnSig(inst, nBytes)) {
+        strncpy(buf, "would_sig", bufLen);
+        return 1;
+    }
+
+    /*
     for (int j = 0; j < nBytes; j++) {
         std::cout << std::hex << std::setfill('0') << std::setw(2)
             << (unsigned int)(unsigned char)inst[j] << " ";
     }
     std::cout << "\n" << std::dec;
-
+    //*/
 
     size_t bytesUsed = LLVMDisasmInstruction(
             disasm, 
