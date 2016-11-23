@@ -250,12 +250,38 @@ void fixVexMaskOperations(char* buf, int bufLen) {
     *(opPos + opLen + 1) = ' ';
 }
 
+void fixVexTrailingX(char* buf, int bufLen) {
+    char* cur = buf;
+    
+    while (*cur && !((cur == buf || *(cur - 1) == ' ') && 
+            *cur == 'v' /*&& *(cur + 2) == 'p'*/)) {
+        cur++;
+    }
+
+    if (!*cur) {
+        return;
+    }
+
+    while (*cur && *cur != ' ') {
+        cur++;
+    }
+
+    if (*(cur - 1) == 'x') {
+        while (*cur) {
+            *(cur - 1) = *cur;
+            cur++;
+        }
+        *(cur - 1) = '\0';
+    }
+}
+
 void fixExtraOpcodeDressing(char* buf, int bufLen) {
     replaceStr(buf, bufLen, "sdq ", "sd ");
     replaceStr(buf, bufLen, "sdl ", "sl ");
     replaceStr(buf, bufLen, "psq ", "ps ");
     replaceStr(buf, bufLen, "fqq", "fq");
-    replaceStr(buf, bufLen, "insbb", "insb");
+    replaceStr(buf, bufLen, "sbb", "sb");
+    replaceStr(buf, bufLen, "sww", "sw");
     replaceStr(buf, bufLen, "wdy ", "wd ");
     replaceStr(buf, bufLen, "psx ", "ps ");
     replaceStr(buf, bufLen, "sqq ", "sq ");
@@ -263,6 +289,24 @@ void fixExtraOpcodeDressing(char* buf, int bufLen) {
     replaceStr(buf, bufLen, "pdy ", "pd ");
     replaceStr(buf, bufLen, "sxd ", "slq ");
     replaceStr(buf, bufLen, "iretd", "iretl");
+
+    /*
+    replaceStr(buf, bufLen, "swx ", "swx ");
+    replaceStr(buf, bufLen, "bwx ", "bwx ");
+    replaceStr(buf, bufLen, "ubx ", "ub ");
+    replaceStr(buf, bufLen, "bdx ", "bd ");
+    replaceStr(buf, bufLen, "uby ", "ub ");
+    replaceStr(buf, bufLen, "pdx ", "pd ");
+    replaceStr(buf, bufLen, "qdx ", "qd ");
+    replaceStr(buf, bufLen, "sbx ", "sb ");
+    replaceStr(buf, bufLen, "dnx ", "dn ");
+    replaceStr(buf, bufLen, "orx ", "or ");
+    replaceStr(buf, bufLen, "ldx ", "ld ");
+    replaceStr(buf, bufLen, "dqx ", "dq ");
+    replaceStr(buf, bufLen, "bbx ", "bb ");
+    replaceStr(buf, bufLen, "bqx ", "bq ");
+    replaceStr(buf, bufLen, "ddy ", "dd ");
+    */
 }
 
 void removeImplicitST0(char* buf, int bufLen) {
@@ -295,6 +339,33 @@ void removeImplicitST0(char* buf, int bufLen) {
    removeOperand(str, "fsqrt", " %st(0)");
    removeOperand(str, "fxch", ", %st(0)");
    removeOperand(str, "fptan", ", %st(0)");
+
+   removeOperand(str, "fprem1", "%st(1), %st(0)");
+   removeOperand(str, "fprem", "%st(1), %st(0)");
+   removeOperand(str, "fscale", "%st(1), %st(0)");
+   removeOperand(str, "fxtract", "%st(1), %st(0)");
+   removeOperand(str, "fpatan", "%st(1), %st(0)");
+   removeOperand(str, "fsincos", "%st(1), %st(0)");
+   removeOperand(str, "fchs", "%st(0)");
+   removeOperand(str, "fldz", "%st(0)");
+   removeOperand(str, "fldpi", "%st(0)");
+   removeOperand(str, "ftst", "%st(0)");
+   removeOperand(str, "fcompp", "%st(1)");
+   removeOperand(str, "fucompp", "%st(1)");
+   removeOperand(str, "fptan", "%st(1)");
+   removeOperand(str, "fld1", "%st(0)");
+   removeOperand(str, "fsin", "%st(0)");
+   removeOperand(str, "fabs", "%st(0)");
+   removeOperand(str, "fcos", "%st(0)");
+   removeOperand(str, "frndint", "%st(0)");
+   removeOperand(str, "fdld2t", "%st(0)");
+   removeOperand(str, "fxam", "%st(0)");
+   removeOperand(str, "fdln2", "%st(0)");
+   removeOperand(str, "fldlg2", "%st(0)");
+   removeOperand(str, "fldl2e", "%st(0)");
+   removeOperand(str, "fyl2xp1", "%st(1), %st(0)");
+   removeOperand(str, "fyl2x", "%st(1), %st(0)");
+   removeOperand(str, "f2xm1", "%st(1), %st(0)");
    
    strncpy(buf, str.c_str(), bufLen);
    if (buf[str.length() - 1] == ' ') {
@@ -311,6 +382,7 @@ void xed_x86_64_norm(char* buf, int bufLen) {
     fixStRegs(buf, bufLen);
     fixMmxRegs(buf, bufLen);
     fixExtraOpcodeDressing(buf, bufLen);
+    fixVexTrailingX(buf, bufLen);
 
     fixVexMaskOperations(buf, bufLen);
     removeImplicitST0(buf, bufLen);
