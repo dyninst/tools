@@ -195,7 +195,7 @@ int main(int argc, char **argv)
     fingerprint = new Fingerprint(db, mode, relPath, oneSymbol, verbose);
 
     SymtabAPI::Module * defmod = NULL;
-    if(!symtab->findModuleByName(defmod,"DEFAULT_MODULE")) {
+    if(!symtab->findModuleByName(defmod,BIN_FILE)) {
         fprintf(stderr,"can't find default module\n");
         exit(1);
     }
