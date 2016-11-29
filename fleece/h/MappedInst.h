@@ -51,7 +51,7 @@ public:
 private:
    bool* confirmed;
    char* bytes;
-   unsigned int nBytes;
+   size_t nBytes;
    bool isError;
    BitType* bitTypes;
    FieldList* fields;
@@ -59,8 +59,9 @@ private:
    void map(void);
    void mapBitTypes(BitType* bitTypes);
    void makeSimpleMap(BitType* bTypes, FieldList* fields);
-   bool isFirstByteRemovablePrefix();
-   void deleteRemovablePrefixes();
+   bool isByteOptional(size_t whichByte);
+   void deleteOptionalBytes();
+   void trimUnusedEnd();
    //int findOperandValue(BitType* bitTypes, char* val, int operandNum, int bitCount);
    //void confirmHexOperand(BitType* bitTypes, char* operand, int operandNum);
    //void confirmHexBits(BitType* bitTypes, char* decInsn);

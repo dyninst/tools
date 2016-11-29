@@ -40,62 +40,169 @@ std::ostream& operator<<(std::ostream& s, MappedInst& m){
    return s;
 }
 
-bool MappedInst::isFirstByteRemovablePrefix() {
+bool MappedInst::isByteOptional(size_t whichByte) {
     
+    //std::cout << "testing byte " << whichByte << "\n";
+
     char newBuf[DECODING_BUFFER_SIZE];
     char* newStr = &newBuf[0];
 
-    bool success = !decoder->decode(bytes + 1, nBytes - 1, newStr, 
+    char newBytes[nBytes - 1];
+    int j = 0;
+    for (size_t i = 0; i < nBytes; i++) {
+        if (i != whichByte) {
+            newBytes[j] = bytes[i];
+            j++;
+        }
+    }
+
+    bool success = !decoder->decode(newBytes, nBytes - 1, newStr, 
             DECODING_BUFFER_SIZE);
 
     if (!success) {
+        //std::cout << "Decoding failed, byte not optional\n";
         return false;
     }
 
     FieldList new_fields = FieldList(newStr);
+    if (new_fields.hasError()) {
+        //std::cout << "Decoding produced error, byte not optional\n";
+        return false;
+    }
+
+    /*        
+    std::cout << "Comparing isntructions:\n";
+    std::cout << "new: " << newStr << "\n\tTO\n";
+    fields->print(stdout);
+    */
+
     for (size_t i = 0; i < new_fields.size(); i++) {
-        if (!fields->hasField(new_fields.getField(i))) {
+        const char* curField = new_fields.getField(i);
+        bool foundField = true;
+        if (!fields->hasField(curField)) {
+            foundField = false;
+            if (*curField == '0' && *(curField + 1) == 'x') {
+                double d = atof(curField);
+                for (size_t j = 0; j < fields->size(); j++) {
+                     const char* oldField = fields->getField(j);
+                     if (d == atof(oldField) - 1) {
+                        foundField = true;
+                     }
+                }
+            }
+        }
+        if (!foundField) {
             return false;
         }
     }
 
+    //std::cout << "byte is optional!\n";
     return true;
 }
 
-void MappedInst::deleteRemovablePrefixes() {
-    char* baseBytes = bytes;
-    while (isFirstByteRemovablePrefix()) {
-        bytes++;
-        nBytes--;
-        char newBuf[DECODING_BUFFER_SIZE];
-        char* newStr = &newBuf[0];
-        decoder->decode(bytes, nBytes, newStr, DECODING_BUFFER_SIZE);
-        delete fields;
-        fields = new FieldList(newStr);
+void MappedInst::deleteOptionalBytes() {
+    for (size_t i = 0; i < nBytes; i++) {
+        if (isByteOptional(i)) {
+
+            for (size_t j = i; j < nBytes - 1; j++) {
+                bytes[j] = bytes[j + 1];
+            }
+            nBytes--;
+            i--;
+            char newBuf[DECODING_BUFFER_SIZE];
+            char* newStr = &newBuf[0];
+            decoder->decode(bytes, nBytes, newStr, DECODING_BUFFER_SIZE);
+            delete fields;
+            fields = new FieldList(newStr);
+
+            //std::cout << "Byte " << i + 1 << " is optional.\n";
+        }
     }
-    if (bytes == baseBytes) {
+   
+    /*
+    std::cout << "Final bytes:\n\t";
+    for (size_t j = 0; j < nBytes; j++) {
+        std::cout << std::hex << std::setfill('0') << std::setw(2)
+            << (unsigned int)(unsigned char)bytes[j] << " ";
+    }
+    std::cout << "\n";
+    exit(-1);
+    */
+}
+
+void MappedInst::trimUnusedEnd() {
+    
+    char oldBuf[DECODING_BUFFER_SIZE];
+    char* oldStr = &oldBuf[0];
+    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE);
+
+    if (!success) {
         return;
     }
 
-    char* newStartBytes = bytes;
-    bytes = (char*)malloc(nBytes);
-    assert(bytes != NULL);
-    
-    memcpy(bytes, newStartBytes, nBytes);
-    free(baseBytes);
+    char newBuf[DECODING_BUFFER_SIZE];
+    char* newStr = &newBuf[0];
+
+    for (size_t i = 0; i < nBytes; i++) {
+        int newSuc = !decoder->decode(bytes, i, newStr, DECODING_BUFFER_SIZE);
+        if (newSuc && !strcmp(newStr, oldStr)) {
+            nBytes = i;
+            //std::cout << "|-- UNUSED TRIMMED (len = " << nBytes << ") --|\n";
+            return;
+        }
+    }
 }
    
 void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
-  
+    /*
+    std::cout << "\n\n|---- BEGINNING QUEUEING ----|\n\n";
+    std::cout << "Bytes before removal:\n";
+    for (size_t j = 0; j < nBytes; j++) {
+        std::cout << std::hex << std::setfill('0') << std::setw(2)
+            << (unsigned int)(unsigned char)bytes[j] << " ";
+    }
+    std::cout << "\n" << std::dec;
+    */
+
     char oldNBytes = nBytes;
     char oldBytes[nBytes];
+    
+    char oldBuf[DECODING_BUFFER_SIZE];
+    char* oldStr = &oldBuf[0];
+    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE);
+    if (!success) {
+        return;
+    }
+    
+    //std::cout << "Before trim: " << oldStr << "\n";
+    
     memcpy(oldBytes, bytes, nBytes);
-    //deleteRemovablePrefixes();
+    trimUnusedEnd();
+    
+    /*
+    std::cout << "Bytes after trim:\n";
+    for (size_t j = 0; j < nBytes; j++) {
+        std::cout << std::hex << std::setfill('0') << std::setw(2)
+            << (unsigned int)(unsigned char)bytes[j] << " ";
+    }
+    std::cout << "\n" << std::dec;
+    */
+
+    FieldList* oldFields = fields;
+    fields = new FieldList(oldStr);
+    deleteOptionalBytes();
+    delete fields;
+    fields = oldFields;
+    
+    //success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE);
+    //assert(success);
+    
+    //std::cout << "After optional removal: " << oldStr << "\n";
 
     char decBuf[DECODING_BUFFER_SIZE];
     char* decStr = &decBuf[0];
 
-    bool success = !decoder->decode(bytes,
+    success = !decoder->decode(bytes,
                                     nBytes,
                                     decStr, 
                                     DECODING_BUFFER_SIZE);
@@ -113,9 +220,28 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 
             if (hc->insert(std::make_pair(hcString, 1)).second) {
              
-                //std::cout << decoder->getName() << " queue: " << hcString 
-                //        << "\n";
-                char* queuedBytes = (char*)malloc(nBytes);
+                
+                std::cout << decoder->getName() << " queue: " << hcString 
+                        << "\n";
+                /*
+                if (strstr(decStr, "addr32") != NULL) {
+                    for (size_t j = 0; j < nBytes; j++) {
+                        std::cout << std::hex << std::setfill('0') << std::setw(2)
+                            << (unsigned int)(unsigned char)bytes[j] << " ";
+                    }
+                    std::cout << "\n" << std::dec;
+                    for (size_t j = 0; j < Architecture::maxInsnLen; j++) {
+                        std::cout << std::hex << std::setfill('0') << std::setw(2)
+                            << (unsigned int)(unsigned char)oldBytes[j] << " ";
+                    }
+                    std::cout << "\n" << std::dec;
+                    
+                    exit(-1);
+                }
+                */
+                char* queuedBytes = (char*)malloc(Architecture::maxInsnLen);
+                assert(queuedBytes != NULL);
+                randomizeBuffer(queuedBytes, Architecture::maxInsnLen);
                 bcopy(bytes, queuedBytes, nBytes);
                 queue->push(queuedBytes);
             } else {
@@ -137,9 +263,18 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
         return;
     }
 
-    int nBits = 8 * nBytes;
+    size_t nBits = 8 * nBytes;
 
-    for (int i = 0; i < nBits; i++) {
+    for (size_t i = 0; i < nBits; i++) {
+        if (bitTypes[i] != BIT_TYPE_SWITCH) {
+            continue;
+        }
+        flipBufferBit(bytes, i);
+        enqueueInsnIfNew(queue, hc);
+        flipBufferBit(bytes, i);
+    }
+
+    for (size_t i = 0; i < nBits; i++) {
 
         if (bitTypes[i] != BIT_TYPE_SWITCH) {
             continue;
@@ -147,7 +282,7 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
 
         flipBufferBit(bytes, i);
         
-        for (int j = i + 1; j < nBits; j++) {
+        for (size_t j = i + 1; j < nBits; j++) {
             if (bitTypes[j] != BIT_TYPE_SWITCH) {
                 continue;
             }
@@ -160,26 +295,17 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
         flipBufferBit(bytes, i);
     }
 
-    for (int i = 0; i < nBits; i++) {
-        if (bitTypes[i] != BIT_TYPE_SWITCH) {
-            continue;
-        }
-        flipBufferBit(bytes, i);
-        enqueueInsnIfNew(queue, hc);
-        flipBufferBit(bytes, i);
-    }
-
     char startBytes[nBytes];
     memcpy(bytes, startBytes, nBytes);
     for (size_t i = 0; i < fields->size(); i++) {
-        for (int j = 0; j < nBits; j++) {
-            if (bitTypes[j] == i) {
+        for (size_t j = 0; j < nBits; j++) {
+            if (bitTypes[j] == (int)i) {
                 setBufferBit(bytes, i, 0);
             }
         }
         enqueueInsnIfNew(queue, hc);
-        for (int j = 0; j < nBits; j++) {
-            if (bitTypes[j] == i) {
+        for (size_t j = 0; j < nBits; j++) {
+            if (bitTypes[j] == (int)i) {
                 setBufferBit(bytes, i, 1);
             }
         }
@@ -199,6 +325,11 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
                                    decodedInstruction, 
                                    DECODING_BUFFER_SIZE);
    
+    fields = new FieldList(decodedInstruction);
+    if (success && fields->hasError()) {
+        success = false;
+    }
+    
     isError = !success;
     if (isError) {
         return;
@@ -218,16 +349,17 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
     for (unsigned int i = 0; i < nBytes; i++) {
         this->bytes[i] = bytes[i];
     }
-   
-    fields = new FieldList(decodedInstruction);
+  
+    trimUnusedEnd();
+    deleteOptionalBytes();
     this->map();
 }
 
 MappedInst::~MappedInst() {
+    delete fields;
     if (isError) {
         return;
     }
-    delete fields;
     free(bytes);
     free(bitTypes);
     free(confirmed);
@@ -244,9 +376,11 @@ int MappedInst::getNumUsedBytes() {
 }
 
 void MappedInst::print() {
-   for (size_t i = 0; i < fields->size(); i++) {
-      printf("%s ", fields->getField(i));
-   }
+    fields->print(stdout);
+    for (size_t i = 0; i < 8 * nBytes; i++) {
+        std::cout << bitTypes[i];
+    }
+    std::cout << "\n";
 }
 
 void MappedInst::map() {
@@ -264,88 +398,74 @@ void MappedInst::makeSimpleMap(BitType* bTypes, FieldList* tkns) {
    char decStr[DECODING_BUFFER_SIZE];
    int consecutiveUnused = 0;
 
-   
+   decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE);
+   FieldList startFields = FieldList(decStr);
    std::vector<Bitfield*> bitfields;
+   for (size_t j = 0; j < startFields.size(); j++) {
+      bitfields.push_back(Bitfield::create(startFields.getField(j)));
+   }
    
-   /*
-   std::cout << "Mapping: ";
-   for (i = 0; i < tkns->size(); i++) {
-      std::cout << tkns->getField(i) << " ";
-   }
-   std::cout << "\n";
-
-   
-   std::cout << "Insn bits = " << "\n";
-   for (j = 0; j < nBits; j++) {
-      if (j % 8 == 0) {
-         std::cout << "\n\t";
-      }
-      std::cout << (int)getBufferBit(bytes, j) << " ";
-   }
-   std::cout << "\n\n";
-   */
-
-   for (i = 0; i < tkns->size(); i++) {
-      bitfields.push_back(Bitfield::create(tkns->getField(i), NULL));
-   }
-
    // Iterate over each bit, flipping it. Update the bit types with each 
    // test. This is a first pass over the data. This will be a first pass
    // at the instruction. The second pass will try to identify operand
    // switches that don't alter multiple operands at once.
    for (i = 0; consecutiveUnused < CONSECUTIVE_UNUSED_THRESHOLD && i < nBits; i++) {
+      if (confirmed[i]) {
+          //std::cout << decStr << " " << bTypes[i] << "(C) \n";
+          continue;
+      }
       flipBufferBit(bytes, i);
-        
       success = !decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE);
+      FieldList newFields = FieldList(decStr);
 
       // Default the bit type to unused.
       bTypes[i] = BIT_TYPE_UNUSED;
-      if (success) {
-         bTypes[i] = getBitTypeByChanges(tkns, decStr);
-
-         //std::cout << decStr << " // BitTypes[" << i << "] = " << bTypes[i] << "\n";
+      if (success && !newFields.hasError()) {
+         FieldList newFields = FieldList(decStr);
+         bTypes[i] = getBitTypeByChanges(&startFields, decStr);
 
          if (bTypes[i] >= 0) {
 
             Bitfield* bf = bitfields[bTypes[i]];
             if (bf != NULL) {
-   
-
                flipBufferBit(bytes, i); 
-
-               if (bf->matches(bytes, i, nBits)) {
+               
+               int matchLen = bf->matches(bytes, i, nBits);
+               if (matchLen > 0) {
+                  Bitfield* newBf =
+                  Bitfield::create(newFields.getField(bTypes[i]));
                   flipBufferBit(bytes, i);
-                  
-                  //std::cout << "Found bitfield!\n";
+                  if (newBf != NULL) {
+                      int newMatchLen = newBf->matches(bytes, i, nBits);
+                      if (newMatchLen == matchLen) {
 
-                  confirmed[i] = true;
-                  for (int j = 1; j < bf->size(); j++) {
-                     confirmed[i + j] = true;
-                     bTypes[i + j] = bTypes[i];
+                          
+                          confirmed[i] = true;
+                          for (int j = 1; j < matchLen; j++) {
+                             confirmed[i + j] = true;
+                             bTypes[i + j] = bTypes[i];
+                          }
+                      }
                   }
-
-                  i += bf->size() - 1;
                } else {
                   flipBufferBit(bytes, i);
                }
             }
          }
-                     
       } else {
          if (isError) {
             bTypes[i] = BIT_TYPE_UNUSED;
          } else {
             bTypes[i] = BIT_TYPE_CAUSED_ERROR;
          }
-         //std::cout << decStr << " // BitTypes[" << i << "] = " << bTypes[i] << "\n";
       }
+
+      //std::cout << decStr << " " << bTypes[i] << "\n";
 
       consecutiveUnused++;
       if (bTypes[i] != BIT_TYPE_UNUSED) {
          consecutiveUnused = 0;
       }
-
-      //printf("%s %d\n", decStr, bitTypes[i]);
       flipBufferBit(bytes, i);
    }
 
@@ -356,13 +476,18 @@ void MappedInst::makeSimpleMap(BitType* bTypes, FieldList* tkns) {
       i++;
    }
 
-   // Get rid of the bitfields.
-   while(bitfields.size() > 0) {
-      Bitfield* bf = bitfields.back();
-      if (bf != NULL) {
-         delete bf;
+    /*
+    for (int j = 0; j < nBits; j++) {
+        std::cout << bTypes[j];
+    }
+    std::cout << "\n";
+    exit(-1);
+    */
+
+   for (auto it = bitfields.begin(); it != bitfields.end(); ++it) {
+      if (*it != NULL) {
+         delete *it;
       }
-      bitfields.pop_back();
    }
 }
 
@@ -377,7 +502,6 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
     BitType* newBitTypes = &newBitTypeBuf[0];
    
    makeSimpleMap(bitTypes, fields);
-   
    // Next, iterate over every bit and select those which previously
    // altered one operand but not multiple. To determine if the bit is an
    // operand switch, remake the bit type vector and check if the size of
@@ -439,6 +563,14 @@ void MappedInst::mapBitTypes(BitType* bitTypes) {
    }
 
    memcpy(bitTypes, newBitTypes, nBits * sizeof(BitType));
+
+    /*
+    for (int i = 0; i < 8 * nBytes; i++) {
+        std::cout << bitTypes[i];
+    }
+    std::cout << "\n";
+    exit(-1);
+    */
 }
 
 int getBitTypeByChanges(FieldList* startFields, char* decStr) {
