@@ -45,7 +45,22 @@
 #define FLUSH_FREQ 100
 #define DIR_ACCESS_PERMS S_IRUSR | S_IWUSR | S_IXUSR
 
+
+void signalHandler(int sig) {
+    if (sig == SIGSEGV) {
+        std::cerr << "SEGFAULT\n";
+    }
+    if (sig == SIGABRT) {
+        std::cerr << "ABORT\n";
+    }
+    Decoder::printErrorStatus();
+    exit(-1);
+}
+
 int main(int argc, char** argv) {
+
+    signal(SIGSEGV, &signalHandler);
+    signal(SIGABRT, &signalHandler);
 
     /***********************************************************************/
     /*                     PARSING COMMAND LINE ARGS                       */
@@ -85,24 +100,25 @@ int main(int argc, char** argv) {
         srand(strtoul(strSeed, NULL, 10));
     }
 
-    // Determine the instruction length. The default value is 15 bytes.
-    unsigned long insnLen = 15;
-    const char* strInsnLen = Options::get("-len=");
-    if (strInsnLen != NULL) {
-        insnLen = strtoul(strInsnLen, NULL, 10);
-    }
-
     // Check which architecture was specified.
     const char* archStr = Options::get("-arch=");
     if (!archStr) {
         std::cerr << "FLEECE FATAL: Must specify architecture!\n";
         exit(1);
     }
+    
+    // Initialize the architecture with the command line name.
+    Architecture::init(archStr);
+    
+    // Determine the instruction length. The default value is 15 bytes.
+    unsigned long insnLen = Architecture::maxInsnLen;
+    const char* strInsnLen = Options::get("-len=");
+    if (strInsnLen != NULL) {
+        insnLen = strtoul(strInsnLen, NULL, 10);
+    }
 
     /* Initialize our decoders */
     Decoder::initAllDecoders();
-    // Initialize the architecture with the command line name.
-    Architecture::init(archStr);
 
     // Get a list of all decoders that should be used, from the comma separated
     // list of names on the command line
@@ -182,10 +198,10 @@ int main(int argc, char** argv) {
     }
 
     /* Generation testing code */
-    /*
+    /*    
     std::ofstream gen_stream("generations.txt", std::ofstream::out);
     for (int test_num = 0; test_num < 30; test_num++) {
-    */
+    //*/
     
     // Instantiate a reporting context with the chosen output file.
     ReportingContext* repContext = new ReportingContext(outputDir, FLUSH_FREQ);
@@ -253,12 +269,12 @@ int main(int argc, char** argv) {
             if (cur_generation == 6) {
                 gen_stream << "\n";
             } else {
-                gen_stream << "; ";
+                gen_stream << ", ";
             }
             next_generation = i + remainingInsns.size();
             cur_generation++;
         }
-        */
+        //*/
         i++;
 
         // If it has been 10 seconds, output a new line to std::cerr with data.
@@ -287,10 +303,6 @@ int main(int argc, char** argv) {
 
             // Fill the buffer then apply the mask.
             randomizeBuffer(curInsn, insnLen);
-            if (hasMask) {
-                mask->apply(curInsn, insnLen);
-                mask->increment();
-            }
         } else if (pipe) {
          
             // Read from stdin if we're in pipe mode.
@@ -303,6 +315,10 @@ int main(int argc, char** argv) {
             // If insns are not random, take them from the queue.
             curInsn = remainingInsns.front();
             remainingInsns.pop();
+        }
+        if (hasMask) {
+            mask->apply(curInsn, insnLen);
+            mask->increment();
         }
 
         // If the user selected to see the instruction before decode, print it
