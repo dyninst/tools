@@ -22,7 +22,7 @@
 #define _DECODER_H_
 
 #define DECODING_BUFFER_SIZE 1024
-#define EXPERIMENTAL_DECODERS
+//#define EXPERIMENTAL_DECODERS
 
 #include <vector>
 #include <ctype.h>
