@@ -226,7 +226,6 @@ bool haswback = false;
 %token		    SWITCH_WHEN
 %token		    SWITCH_OF
 %token          <strVal>    OPER
-%token          <strVal>    FUNCNAME
 %token          <strVal>    REG
 %token          <intVal>    NUM
 %token          <strVal>    BOOLVAL
@@ -327,14 +326,19 @@ declblock:  varname                     {
                                             $$ = STR(makeStr(args, &del));    
                                         } |
             asnmt                       {
-                                            string ret = *$1;
-
-                                            if(ret.find("if\n") != string::npos)
+                                            if($1 != NULL)
                                             {
-                                               $$ = STR(makeDeclCondAsnmt(ret));
+                                                string ret = *$1;
+
+                                                if(ret.find("if\n") != string::npos)
+                                                {
+                                                   $$ = STR(makeDeclCondAsnmt(ret));
+                                                }
+                                                else
+                                                   $$ = $1;
                                             }
                                             else
-                                               $$ = $1;
+                                                $$ = NULL;
                                         }
             ;
 
@@ -466,19 +470,13 @@ asnmtsrc:   expr		        {  $$ = $1;	} |
 
 srcreg:     REG     			{
                                     DEL_VEC($1);
-                                    string regstr = "";
+                                    map<char, string> reglettermap = {{'d', "0"}, {'t', "0"}, {'n', "1"}, {'m', "2"}, {'a', "3"}};
+                                    string regstr = "d->read(args[";
+                                    if(reglettermap.count((*$1)[0]) > 0)
+                                        regstr += reglettermap[(*$1)[0]] + "])";
+                                    else
+                                        assert("appears to be an invalid source register.");
 
-                                    switch((*$1)[0])
-                                    {
-                                        case 'd':
-                                        case 't':regstr += "d->read(args[0])";
-                                            break;
-                                        case 'n':regstr += "d->read(args[1])";
-                                            break;
-                                        case 'm':regstr += "d->read(args[2])";
-                                            break;
-                                        default: assert("appears to be an invalid source register.");
-                                    }
                                     delArgs(del);
 
                                     $$ = STR(regstr);
@@ -570,7 +568,7 @@ bitpos:     varname SYMBOL_LT OPERAND SYMBOL_GT {
                                                 }
             ;
 
-funccall:   FUNCNAME SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
+funccall:   varname SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
                                                                         DEL_VEC($1, $3);
 
                                                                         if((*$1) == "AddWithCarry")

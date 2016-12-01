@@ -235,10 +235,10 @@ UNKNOWN	    {	return token::UNKNOWN;	}
 
 [ \t;\n]    ;
 
-!=|!|\+|==|&&|AND|OR|EOR	{
-                                yylval->strVal = new string(yytext);
-                                return token::OPER;
-                            }
+!=|!|\+|==|\-|\*|&&|AND|OR|EOR	{
+                                    yylval->strVal = new string(yytext);
+                                    return token::OPER;
+                                }
 
 Mem\[[^\]]+\] {
                 string matched(yytext);
@@ -250,11 +250,6 @@ Mem\[[^\]]+\] {
 
                 return token::MEMORY;
               }
-
-AddWithCarry|Zeros|NOT|BranchTo|ConditionHolds|IsZero|SignExtend|ZeroExtend|Prefetch|ROR|Replicate	      {
-                                                                                                            yylval->strVal = new string(yytext);
-                                                                                                            return token::FUNCNAME;
-                                                                                                          }
 
 bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {  return token::DTYPE_BITS;   }
 
@@ -270,6 +265,7 @@ bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {  return token::DTYPE_BITS;
 
 [A-Za-z_]+[0-9]* {
                     string *ret = new string(yytext);
+
                     /*//FIXME should probably have a table of IDs seen so far and perform a join-like check
                     if(*ret == "offset")
                         *ret = "d->read(args[2])";*/
