@@ -84,10 +84,13 @@ string *makeProgramBlock(string *arg1, string *arg2) {
     {
         for(vector<string>::iterator i = newSymbols.begin(); i != newSymbols.end(); i++)
         {
-            out<<Dyninst_aarch64::Scanner::newSymbolType[*i]<<" "<<*i;
-            if(Dyninst_aarch64::Scanner::newSymbolVal.count(*i))
-                out<<" = "<<Dyninst_aarch64::Scanner::newSymbolVal[*i];
-            out<<";\n";
+            if(Dyninst_aarch64::Scanner::newSymbolType.count(*i))
+            {
+                out<<Dyninst_aarch64::Scanner::newSymbolType[*i]<<" "<<*i;
+                if(Dyninst_aarch64::Scanner::newSymbolVal.count(*i))
+                    out<<" = "<<Dyninst_aarch64::Scanner::newSymbolVal[*i];
+                out<<";\n";
+            }
         }
 
         foundNewSymbol = false;
@@ -212,8 +215,7 @@ bool haswback = false;
 }
 
 %token		    END	     0	"end of file"
-%token          DTYPE_BITS
-%token          DTYPE_BOOLEAN
+%token          <strVal>    DTYPE
 %token          <strVal>    INSN_START
 %token          INSN_END
 %token          <strVal>    OPERAND
@@ -231,7 +233,9 @@ bool haswback = false;
 %token          <strVal>    BOOLVAL
 %token          <strVal>    IDENTIFIER
 %token          SYMBOL_OPENROUNDED
+%token          SYMBOL_OPENSQUARE
 %token          SYMBOL_CLOSEROUNDED
+%token          SYMBOL_CLOSESQUARE
 %token		    SYMBOL_LT
 %token		    SYMBOL_GT
 %token          SYMBOL_EQUAL
@@ -243,10 +247,10 @@ bool haswback = false;
 %token          FLAG_CARRY
 %token		    IGNORE
 %token		    UNKNOWN
-%token		    <strVal>    MEMORY
+%token		    MEMORY
 
 %type           <strVal>  program datatype varname targ expr funccall args condblock decl cond asnmt bitmask blockdata srcreg bmaskend bmasksrc
-%type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode deccondsrc bmaskstart
+%type           <strVal>  bitpos declblock switch whenblocks whenblock condshalf condterm condelsif asnmtsrc blockcode deccondsrc bmaskstart memory
 
 %{
 
@@ -299,7 +303,7 @@ decl:       OPERAND                     {
                                             {
                                                 addSymbolMaybe(*$2);
 
-                                                ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool ":*$1), *$2);
+                                                ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool":*$1), " ", *$2);
                                                 DEL_VEC($1, $2);
                                                 $$ = STR(makeStr(args, &del));
                                             }
@@ -315,8 +319,7 @@ deccondsrc: funccall    { $$ = $1; } |
             varname     { $$ = $1; }
             ;
 
-datatype:   DTYPE_BITS                  {  $$ = STR("BaseSemantics::SValuePtr ");   }   |
-            DTYPE_BOOLEAN               {  $$ = STR("bool ");    }
+datatype:   DTYPE                  {  $$ = $1;   }
             ;
 
 declblock:  varname                     {  
@@ -428,7 +431,11 @@ targ:       varname                                                             
 
                                                     switch((*$1)[0])
                                                     {
-                                                        case 't':
+                                                        case 't': {
+                                                                string argnum = ((*$1).length() == 2 && (*$1)[1] == '2')?"1":"0";
+                                                                regstr += "d->write(args[" + argnum + "])";
+                                                            }
+                                                            break;
                                                         case 'd':regstr += "d->write(args[0])";
                                                             break;
                                                         case 'n':{
@@ -446,11 +453,15 @@ targ:       varname                                                             
 
                                                     $$ = STR(regstr);
 			        							} |
-			MEMORY                              { $$ = STR("d->writeMemory(address, 0x8 << EXTR(30, 31), "); }
+            memory                              {
+                                                    string out = "d->writeMemory(" + *$1 + ", ";
+                                                    delete $1;
+                                                    $$ = STR(out);
+                                                }
             ;
 
 asnmtsrc:   expr		        {  $$ = $1;	} |
-            DTYPE_BITS UNKNOWN	{  $$ = STR("ops->unspecified_(1)");   } |
+            DTYPE UNKNOWN   	{  $$ = STR("ops->unspecified_(1)");   } |
             COND_IF expr COND_THEN deccondsrc COND_ELSE deccondsrc  {
                                                                         DEL_VEC($2, $4, $6);
 
@@ -459,21 +470,56 @@ asnmtsrc:   expr		        {  $$ = $1;	} |
                                                                         delArgs(del);
                                                                     } |
             srcreg     			{  $$ = $1; } |
-            MEMORY              {
-                                    DEL_VEC($1);
-
-                                    $$ = STR(string("d->readMemory(address, ") + string((((*$1) == "size")?"d->ldStrLiteralAccessSize(raw))":"0x8 << EXTR(30, 31))")));
-
-                                    delArgs(del);
+            memory              {
+                                    string out = "d->readMemory(" + *$1 + ")";
+                                    delete $1;
+                                    $$ = STR(out);
                                 }
+            ;
+
+memory:     MEMORY SYMBOL_OPENSQUARE args SYMBOL_CLOSESQUARE {
+                                                                        vector<string> params;
+                                                                        string argsstr(*$3);
+
+                                                                        size_t startpos = 0, nextcompos = argsstr.find(",", startpos);
+                                                                        while(nextcompos != string::npos)
+                                                                        {
+                                                                            params.push_back(argsstr.substr(startpos, nextcompos - startpos));
+                                                                            startpos = nextcompos + 1;
+                                                                            nextcompos = argsstr.find(",", startpos);
+                                                                        }
+                                                                        params.push_back(argsstr.substr(startpos));
+                                                                        params.pop_back();
+
+                                                                        string firstparam = params[0];
+                                                                        size_t pluspos;
+                                                                        if((pluspos = firstparam.find("+")) != string::npos)
+                                                                        {
+                                                                            string lhs = firstparam.substr(0, pluspos);
+                                                                            string rhs = firstparam.substr(pluspos + 1);
+                                                                            params[0] = "ops->add(" + lhs + ", ops->number_(32, " + rhs + "))";
+                                                                        }
+
+                                                                        stringstream out;
+                                                                        for(int idx = 0; idx < params.size(); idx++)
+                                                                        {
+                                                                            out<<params[idx];
+                                                                            if(idx != params.size() - 1)
+                                                                                out<<",";
+                                                                        }
+
+                                                                        delete $3;
+                                                                        $$ = STR(out.str());
+                                                             }
             ;
 
 srcreg:     REG     			{
                                     DEL_VEC($1);
-                                    map<char, string> reglettermap = {{'d', "0"}, {'t', "0"}, {'n', "1"}, {'m', "2"}, {'a', "3"}};
+
+                                    map<string, string> reglettermap = {{"d", "0"}, {"t", "0"}, {"t2", "1"}, {"n", "1"}, {"m", "2"}, {"a", "3"}};
                                     string regstr = "d->read(args[";
-                                    if(reglettermap.count((*$1)[0]) > 0)
-                                        regstr += reglettermap[(*$1)[0]] + "])";
+                                    if(reglettermap.count(*$1) > 0)
+                                        regstr += reglettermap[*$1] + "])";
                                     else
                                         assert("appears to be an invalid source register.");
 
@@ -543,6 +589,11 @@ expr:       NUM                         {
                                                 ARGS_VEC("ops->add(", *$1, ", ", cur, ")");
                                                 $$ = STR(makeStr(args, &del));
                                             }
+                                            else if((*$2) == "/")
+                                            {
+                                                ARGS_VEC(*$1, *$2, *$3);
+                                                $$ = STR(makeStr(args, &del));
+                                            }
                                             else if(logicalFuncs.count(*$2))
                                             {
                                                 ARGS_VEC("ops->", logicalFuncs[*$2], "(", *$1, ", ", *$3, ")");
@@ -606,6 +657,18 @@ args:       args SYMBOL_COMMA args      {
                                             out<<$1;
 
                                             $$ = STR(out.str());
+                                        } |
+            expr OPER expr              {
+                                            DEL_VEC($1, $2, $3);
+
+                                            if((*$2) == "+" || (*$2) == "/")
+                                            {
+                                                ARGS_VEC(*$1, *$2, *$3);
+                                                $$ = STR(makeStr(args, &del));
+                                            }
+                                            else
+                                                assert(!"invalid operator in expression as argument for memory access!");
+
                                         } |
             bitmask                     {
                                             string in(*$1), var, start, end;

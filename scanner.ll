@@ -62,7 +62,10 @@ bool isExtendInsn, isShiftInsn;
     /*           bool declarations          */
     /****************************************/
 
-boolean              {  return token::DTYPE_BOOLEAN;    }
+boolean              {
+                        yylval->strVal = new string("bool");
+                        return token::DTYPE;
+                     }
 
 TRUE|FALSE           {
                         string matched(yytext);
@@ -84,15 +87,15 @@ if\ branch_type[^_]+_CALL[^\n]+\n    {	 return token::SET_LR;   }
     /* This can probably be merged with a generic declaration detection case. */
 bits\(64\)\ base\ =\ PC\[\];\n       {   return token::READ_PC;  }
 
-(SP|W|X)\[[a-z]?\]                   { 
+(SP|W|X)\[[a-z]?[2]?\]                   {
                                          string matched(yytext);
 
                                          if(matched.find("SP") != string::npos)
                                             yylval->strVal = new string("s");
                                          else
                                          {
-                                            int startpos = matched.find("[");
-                                            yylval->strVal = new string(matched.substr(startpos + 1, 1));
+                                            int startpos = matched.find("["), endpos = matched.find("]");
+                                            yylval->strVal = new string(matched.substr(startpos + 1, endpos - startpos - 1));
                                          }
 
                                          return token::REG;
@@ -227,32 +230,36 @@ of	        {	return token::SWITCH_OF;    }
 
 \(          {   return token::SYMBOL_OPENROUNDED;  }
 
+\[          {   return token::SYMBOL_OPENSQUARE; }
+
+\]          {   return token::SYMBOL_CLOSESQUARE;   }
+
 \)          {   return token::SYMBOL_CLOSEROUNDED; }
 
 ,           {   return token::SYMBOL_COMMA;    }
 
 UNKNOWN	    {	return token::UNKNOWN;	}
 
+Mem         {   return token::MEMORY;   }
+
 [ \t;\n]    ;
 
-!=|!|\+|==|\-|\*|&&|AND|OR|EOR	{
-                                    yylval->strVal = new string(yytext);
-                                    return token::OPER;
-                                }
+!=|!|\+|==|\/|\-|\*|&&|\|\||AND|OR|EOR  	{
+                                                yylval->strVal = new string(yytext);
+                                                return token::OPER;
+                                            }
 
-Mem\[[^\]]+\] {
-                string matched(yytext);
 
-                string args = matched.substr(matched.find("["), matched.length() - 1);
-                size_t firstcompos = args.find(",");
-                string sizearg = args.substr(firstcompos + 2, args.find(",", firstcompos + 1) - firstcompos - 2);
-                yylval->strVal = new string(sizearg);
 
-                return token::MEMORY;
-              }
+bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {
+                                                        yylval->strVal = new string("BaseSemantics::SValuePtr");
+                                                        return token::DTYPE;
+                                                    }
 
-bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {  return token::DTYPE_BITS;   }
-
+(constant\ )?integer    {
+                            yylval->strVal = new string("int");
+                            return token::DTYPE;
+                        }
 
     /****************************************/
     /*        Variables and literals        */
@@ -325,6 +332,7 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap["pos"] = "(EXTR(21, 22) << 4)";\
     operandExtractorMap["op"] = "d->op(raw)";
     operandExtractorMap["invert"] = "(EXTR(21, 21) == 1)";
+    operandExtractorMap["datasize"] = "d->getDatasize(raw)";
 }
 
 void Scanner::initOperatorToFunctionMap() {
