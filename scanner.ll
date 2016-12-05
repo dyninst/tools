@@ -315,8 +315,9 @@ Scanner::~Scanner()
 void Scanner::initOperandExtractorMap() {
     operandExtractorMap["sub_op"] = "(EXTR(30, 30) == 1)";
     operandExtractorMap["setflags"] = "d->setflags(raw)";
-    operandExtractorMap["d"] = "EXTR(0, 4)";
+    operandExtractorMap["d"] = operandExtractorMap["t"] = "EXTR(0, 4)";
     operandExtractorMap["n"] = "EXTR(5, 9)";
+    operandExtractorMap["t2"] = "EXTR(10, 14)";
     operandExtractorMap["condition"] = "EXTR(0, 4)";
     operandExtractorMap["page"] = "(EXTR(31, 31) == 1)";
     operandExtractorMap["postindex"] = "(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)";

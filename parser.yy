@@ -442,7 +442,7 @@ targ:       varname                                                             
                                                                 if(!haswback)
                                                                     regstr += "d->write(args[1])";
                                                                 else
-                                                                    regstr += "d->write(getWriteBackTarget(args[1]))";
+                                                                    regstr += "d->write(d->getWriteBackTarget(args[1]))";
                                                             }
                                                             break;
                                                         case 's':regstr += "d->writeRegister(d->REG_SP)";
