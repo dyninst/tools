@@ -353,32 +353,17 @@ int main(int argc, char** argv) {
                                      (endTime.tv_nsec - startTime.tv_nsec);
 
         clock_gettime(CLOCK_MONOTONIC, &startTime);
+
+        std::vector<Assembly*> asmList;
+
         // Use each decoder to decode the instruction.
         for (j = 0; j < decCount; j++) {
-            bcopy(curInsn, tempInsn, insnLen);
-
-            int retval = decoders[j].decode(
-                tempInsn, 
-                insnLen, 
-                decBufs[j], 
-                DECODED_BUFFER_LEN
-            );
-
-            // We want to make sure that all decoders were at least able to come
-            // up with some kind of decoding, otherwise we'll fill it with a
-            // defaul bad value to be used later as an error indicator.
-            if (retval != 0) {
-                strcpy(decBufs[j], "decoding_error");
-            }
-       }
+            asmList.push_back(new Assembly(curInsn, insnLen, &decoders[j]));
+        }
 
         // Process the resulting decoding and report it if necessary
-        repContext->processDecodings(
-            (const char**)decBufs, 
-            decCount, 
-            curInsn, 
-            insnLen
-        );
+        repContext->processDecodings(asmList);
+
         clock_gettime(CLOCK_MONOTONIC, &endTime);
 
         totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +

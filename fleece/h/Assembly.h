@@ -38,6 +38,7 @@ public:
     Assembly(const Assembly& other);
     Assembly(const char* bytes, size_t nBytes, Decoder* decoder);
     ~Assembly();
+    bool isEquivalent(Assembly* other);
     const char* getString();
     const char* getTemplate();
     const char* getBytes();
@@ -68,6 +69,7 @@ private:
     char* asmBytes;
     size_t nAsmBytes;
 
+    bool isReasmEqual(Assembly* other);
     void makeString();
     void makeTemplate();
     void makeAsmResult();

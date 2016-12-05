@@ -27,7 +27,7 @@
 
 class Bitfield {
 public:
-    static Bitfield* create(char* str);
+    static Bitfield* create(const char* str);
     ~Bitfield();
     int matches(char* buf, int whichBit, int nBits);
     void addPossibleEncodingValue(uint64_t val);

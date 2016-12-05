@@ -129,7 +129,7 @@ FieldList::~FieldList() {
     free(separators);
 }
 
-unsigned int FieldList::size() {
+unsigned int FieldList::size() const {
     return nFields;
 }
 
@@ -170,7 +170,7 @@ void FieldList::fillBuf(char* buf, unsigned int len) {
     *buf = '\0';
 }
 
-bool FieldList::hasField(const char* field) {
+bool FieldList::hasField(const char* field) const {
     for (size_t i = 0; i < nFields; i++) {
         if (!strcmp(field, fields[i])) {
             return true;
@@ -179,11 +179,11 @@ bool FieldList::hasField(const char* field) {
     return false;
 }
 
-char* FieldList::getField(unsigned int index) {
+const char* FieldList::getField(unsigned int index) const {
     if (index >= nFields) {
         return NULL;
     }
-    return fields[index];
+    return (const char*)fields[index];
 }
     
 void FieldList::setField(unsigned int index, const char* newField) {

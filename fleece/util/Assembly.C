@@ -21,18 +21,32 @@
 #include "Assembly.h"
 
 Assembly::Assembly(const Assembly& other) {
-    Assembly(other.bytes, other.nBytes, other.decoder);
+    decError = other.decError;
+
+    decStr = other.decStr == NULL ? NULL : strdup(other.decStr);
+    templateStr = other.templateStr == NULL ? NULL : strdup(other.templateStr);
+
+    fields = NULL;
+    
+    asmResult = other.asmResult;
+    asmError = other.asmError == NULL ? NULL : strdup(other.asmError);
+    asmBytes = other.asmBytes == NULL ? NULL : strdup(other.asmBytes);
+    nAsmBytes = other.nAsmBytes;
+    
+    nBytes = other.nBytes;
+    bytes = new char[nBytes];
+    memcpy(bytes, other.bytes, nBytes);
+    decoder = other.decoder;
 }
 
 Assembly::Assembly(const char* bytes, size_t nBytes, Decoder* decoder) {
     
     decStr = NULL;
     templateStr = NULL;
-    bytes = NULL;
     asmError = NULL;
     asmBytes = NULL;
 
-    this->nBytes =nBytes;
+    this->nBytes = nBytes;
     this->bytes = new char[nBytes];
     memcpy(this->bytes, bytes, nBytes);
     this->decoder = decoder;
@@ -41,6 +55,44 @@ Assembly::Assembly(const char* bytes, size_t nBytes, Decoder* decoder) {
 Assembly::~Assembly() {
     invalidate();
     delete [] bytes;
+}
+
+bool Assembly::isEquivalent(Assembly* other) {
+    assert(other != NULL);
+    
+    // If both are errors, they are equivalent.
+    if (isError() && other->isError()) {
+        return true;
+    }
+
+    // If one is an error and the other is not, they cannot be equivalent.
+    if (isError() != other->isError()) {
+        return false;
+    }
+
+    // If both have the same string, they are equivalent.
+    if (!strcmp(getString(), other->getString())) {
+        return true;
+    }
+
+    // If they do not have the same reassembly result, they are not equivalent.
+    if (getAsmResult() != other->getAsmResult()) {
+        return false;
+    }
+
+    // If they do not assmeble to the same num of bytes, they are not equivalent
+    if (getNAsmBytes() != other->getNAsmBytes()) {
+        return false;
+    }
+
+    // If they assemble to the same bytes, they are equivalent.
+    if (!memcmp(getAsmBytes(), other->getAsmBytes(), getNAsmBytes())) {
+        return true;
+    }
+
+    // In this case, the instructions have different strings, and they
+    // assembled to different bytes, so they are not equivalent.
+    return false;
 }
 
 const char* Assembly::getString() {
@@ -119,7 +171,10 @@ void Assembly::setBit(size_t whichBit, int newValue) {
 
 void Assembly::makeString() {
     decStr = new char[DECODING_BUFFER_SIZE];
-    decError = !decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE);
+    decError = decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE);
+    if (decError) {
+        strncpy(decStr, "decoding_error", DECODING_BUFFER_SIZE);
+    }
 }
 
 void Assembly::makeTemplate() {
@@ -163,10 +218,6 @@ void Assembly::invalidate() {
     if (templateStr != NULL) {
         delete[] templateStr;
         templateStr = NULL;
-    }
-    if (bytes != NULL) {
-        delete[] bytes;
-        bytes = NULL;
     }
     if (asmError != NULL) {
         delete[] asmError;

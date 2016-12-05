@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <iostream>
+#include <vector>
+#include "Assembly.h"
 #include "FieldList.h"
 #include "StringUtils.h"
 
@@ -21,8 +23,7 @@ public:
      * Creates a report from an array of disassembled instructions, the bytes
      * that caused these outputs and an array of errors from disassembly.
      */
-    Report(const char** insns, int nInsns, const char* bytes, int nBytes,
-            const char** reasmErrors);
+    Report(std::vector<Assembly*>& asmList);
 
     /*
      * Destroys a report, freeing all acquired memory.
@@ -42,14 +43,15 @@ public:
     /*
      * Returns an instruction according to an index into this report.
      */
-    const char* getInsn (int index) { return insns[index]; }
+    const char* getInsn (int index) { return asmList[index]->getString(); }
 
     /*
      * Returns true if there is a non-empty string for the reassembly error of
      * an index. If true, this means that the instruction at the given index
      * produced an error during the reassembly phase.
      */
-    bool hasReasmError(int index) { return *reasmErrors[index] != '\0'; }
+    bool hasReasmError(int index) { 
+            return asmList[index]->getAsmResult() == 'E'; }
     
     /*
      * Returns a c-style string containing the assembly error at a given index.
@@ -57,47 +59,23 @@ public:
      *
      * Does NOT perform bounds checking.
      */
-    const char* getReasmError(int index) { return reasmErrors[index]; }
+    const char* getReasmError(int index) { 
+            return asmList[index]->getAsmError(); }
 
     /*
      * Returns the number of instructions in this report.
      */
-    size_t size() { return nInsns; }
+    size_t size() { return asmList.size(); }
 
     /*
      * Returns true if the two reports contain distinct differences between
      * their fields.
      */
-    bool isEquivalent(Report* report);
+    bool isEquivalent(Report* r);
 
 private:
 
-    /*
-     * The decoded instructions in this report.
-     */
-    char** insns;
-
-    /*
-     * The number of decoded instructions in this report.
-     */
-    int nInsns;
-
-    /*
-     * The raw bytes that produced the above assembly.
-     */
-    char* bytes;
-
-    /*
-     * The number of bytes in this input.
-     */
-    int nBytes;
-
-    /*
-     * Any errors produced by reassembly. Each pointer must point to a valid,
-     * readable memory address. If that location contains an empty string,
-     * there is no reassembly error for that instruction.
-     */
-    char** reasmErrors;
+    std::vector<Assembly*> asmList;
 
 };
 

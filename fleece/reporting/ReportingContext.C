@@ -35,7 +35,7 @@ ReportingContext::~ReportingContext() {
 }
 
 void ReportingContext::reportDiff(Report* report) {
-  
+    Report* queuedReport = new Report(report);
     reportQueue.push(new Report(report));
     flushCount++;
     if (flushCount > flushFreq) {
@@ -58,6 +58,7 @@ void ReportingContext::flushReportQueue() {
         // All reports are issued to the all_reports.txt file.
         snprintf(filename, REPORT_FILENAME_BUF_LEN, "%s/all_reports.txt",
                 outputDir);
+
         r->issue(filename);
 
         // We need to track whether or not a report has been issued to at least
@@ -108,8 +109,8 @@ void ReportingContext::addDecoder(const char* name) {
     decoderNames.push_back(strdup(name));
 }
 
-int ReportingContext::processDecodings(const char** insns, int nInsns, 
-        const char* bytes, int nBytes) {
+int ReportingContext::processDecodings(std::vector<Assembly*>&
+asmList) {
    
     
     // Update summary data.
@@ -118,68 +119,21 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
     // Check if every instruction matches the first. If they are all 
     // equivalent, there is no more processing to do, simply return.
     bool allMatch = true;
-    for (int i = 1; allMatch && i < nInsns; i++) {
-        allMatch = doesDecodingMatch(insns[0], insns[i]);
-    }
-
-    char reasmResults[nInsns + 1];
-    char reasmErrorBufs[nInsns][REASM_ERROR_BUF_LEN];
-    char* reasmErrors[nInsns];
-    for (int i = 0; i < nInsns; i++) {
-        reasmErrors[i] = &reasmErrorBufs[i][0];
-    }
-    if (!allMatch) {
-        int nAgreed = 0;
-        char reasmDiffBuf[15];
-        reasmResults[nInsns] = 0;
-        for (int i = 0; i < nInsns; i++) {
-        
-            reasmErrors[i][0] = '\0';
-            FieldList f = FieldList(insns[i]);
-            char reasmBuf[15];
-            int reasmLen = 0;
-            if (f.hasError()) {
-                reasmResults[i] = 'N';
-            } else {
-                reasmResults[i] = reassemble(bytes, nBytes, insns[i], NULL, 
-                    REASM_FILENAME, &reasmBuf[0], 15, &reasmLen,
-                    &reasmErrors[i][0], REASM_ERROR_BUF_LEN);
-
-                if (reasmResults[i] != 'E') {
-                    if (i == 0) {
-                        nAgreed++;
-                        memcpy(reasmDiffBuf, reasmBuf, reasmLen);
-                    } else {
-                        if (!memcmp(reasmBuf, reasmDiffBuf, reasmLen)) {
-                            nAgreed++;
-                        }
-                    }
-                }
-            }
-        }
-
-        
-        if (nAgreed == nInsns) {
-            /*
-            FILE* sameF = fopen("same.txt", "a+");
-            for (int i = 0; i < nInsns; i++) {
-                fprintf(sameF, "%s; ", insns[i]);
-                //std::cout << insns[i] << "\n";
-            }
-            fprintf(sameF, "%s\n", reasmResults);
-            //std::cout << "REASSEMBLY: " << reasmResults << "\n";
-            fclose(sameF);
-            */
-            allMatch = true;
-        }
-    }
-
-    if (allMatch) {
-       nMatches++;
-       return nBytes;
+    auto asmIt = asmList.begin();
+    assert(asmIt != asmList.end());
+    Assembly* asm1 = *asmIt;
+    ++asmIt;
+    while (allMatch && asmIt != asmList.end()) {
+        allMatch = asm1->isEquivalent(*asmIt);
+        ++asmIt;
     }
     
-    Report r = Report(insns, nInsns, bytes, nBytes, (const char**)reasmErrors);
+    if (allMatch) {
+       nMatches++;
+       return asm1->getNBytes();
+    }
+    
+    Report r = Report(asmList);
 
     // Check if we need to report the difference and do so. Update summary data.
     if (shouldReportDiff(&r)) {
@@ -189,7 +143,8 @@ int ReportingContext::processDecodings(const char** insns, int nInsns,
         nSuppressed++;
     }
 
-    return nBytes;
+    return asm1->getNBytes();
+
 }
 
 void ReportingContext::printSummary(FILE* outf) {
@@ -208,22 +163,6 @@ void ReportingContext::printSummary(FILE* outf) {
     fprintf(outf, "\t%d resulted in unique reports\n", nReports);
     fprintf(outf, "\t%d resulted in duplicate reports\n", nSuppressed);
     */
-}
-
-unsigned int ReportingContext::getNumReports() {
-    return nReports;
-}
-
-unsigned int ReportingContext::getNumMatches() {
-    return nMatches;
-}
-
-unsigned int ReportingContext::getNumProcessed() {
-    return nProcessed;
-}
-
-unsigned int ReportingContext::getNumSuppressed() {
-    return nSuppressed;
 }
 
 bool ReportingContext::shouldReportDiff(Report* report) {
@@ -325,61 +264,3 @@ bool ReportingContext::shouldReportDiff(Report* report) {
 
     return result;
 }
-
-
-bool ReportingContext::doesDecodingMatch(const char* insn1, const char* insn2) {
-   
-    // If the two strings are the same, the decodings match. Since this happens
-    // often, we should check it first.
-    if (!strcmp(insn1, insn2)) {
-        return true;
-    }
-
-    FieldList tList1(insn1);
-    FieldList tList2(insn2);
-
-    /*
-     * First, determine if either of the decoded results produced any fields
-     * that signal an error during decoding. Errors are assumed to be
-     * equivalent.
-     */
-    bool errIn1 = tList1.hasError();
-    bool errIn2 = tList2.hasError();
-
-    /*
-     * Either both must be an error, or both must not. Otherwise, the decodings
-     * do not match.
-     */
-    if (errIn1 && errIn2) {
-        return true;
-    } else if (errIn1 || errIn2) {
-        return false;
-    }
-
-    /*
-     * If the number of fields in the lists are different, the decodings do not
-     * match.
-     */
-    if (tList1.size() != tList2.size()) {
-        return false;
-    }
-
-    /*
-     * If any of the fields are NOT aliases of the corresponding field in the
-     * other list, then the decodings do not match.
-     */
-    for (unsigned int i = 0; i < tList1.size(); i++) {
-        if (strcmp(tList1.getField(i), tList2.getField(i)) &&
-             !Alias::isAlias(tList1.getField(i), tList2.getField(i))) {
-            return false;
-        }
-    }
-
-    /*
-     * If we're here, it means that the decodings have the same number of
-     * fields, and those fields are either identical, or they are aliases of
-     * eachother.
-     */
-    return true;
-}
-

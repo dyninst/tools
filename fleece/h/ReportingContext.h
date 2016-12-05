@@ -6,6 +6,7 @@
 #include <vector>
 #include "Alias.h"
 #include "Architecture.h"
+#include "Assembly.h"
 #include "FieldList.h"
 #include "Reassemble.h"
 #include "Report.h"
@@ -44,8 +45,7 @@ public:
      * Takes an array of decoded instructions, and the bytes and produces a
      * report, if one should be produced based on what was previously seen.
      */
-    int processDecodings(const char** insns, int nInsns, const char* bytes, 
-            int nBytes);
+    int processDecodings(std::vector<Assembly*>& asmList);
 
     /*
      * Prints data about the activity of the reporting context.
@@ -53,12 +53,12 @@ public:
     void printSummary(FILE* outf);
 
     /*
-     * Accessors for numerical data about the reporting activity.
+     * Accessors for numerical data about reporting.
      */
-    unsigned int getNumReports();
-    unsigned int getNumMatches();
-    unsigned int getNumProcessed();
-    unsigned int getNumSuppressed();
+    unsigned int getNumReports() { return nReports; }
+    unsigned int getNumMatches() { return nMatches; }
+    unsigned int getNumProcessed() { return nProcessed; }
+    unsigned int getNumSuppressed() { return nSuppressed; }
 
 private:
    
@@ -72,12 +72,6 @@ private:
      * need to be reported as well.
      */
     bool shouldReportDiff(Report* report);
-
-    /*
-     * Makes comparisons and looks up aliases to determine if two decodings
-     * match eachother.
-     */
-    bool doesDecodingMatch(const char* insn1, const char* insn2);
 
     /*
      * Writes all waiting reports out to files.

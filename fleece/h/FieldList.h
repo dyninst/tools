@@ -54,18 +54,18 @@ public:
     /*
      * Gives the number of fields in the list.
      */
-    unsigned int size();
+    unsigned int size() const;
 
     /*
      * Returns true if the field list has the given field.
      */
-    bool hasField(const char* field);
+    bool hasField(const char* field) const;
    
     /*
      * Returns a pointer to the null-terminated string stored at <index>
      * location in the list of fields.
      */
-    char* getField(unsigned int index);
+    const char* getField(unsigned int index) const;
 
     /*
      * Replaces the field at a given index with a new value. This value will be

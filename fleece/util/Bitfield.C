@@ -20,7 +20,7 @@
 
 #include "Bitfield.h"
 
-Bitfield* Bitfield::create(char* str) {
+Bitfield* Bitfield::create(const char* str) {
    
     unsigned long long int val;
     char* endPtr;

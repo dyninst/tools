@@ -1,48 +1,24 @@
 
 #include "Report.h"
 
-Report::Report(Report* r) {
-    this->nInsns = r->nInsns;
-    this->nBytes = r->nBytes;
-
-    this->insns = (char**)malloc(nInsns * sizeof(*(this->insns)));
-    this->reasmErrors = (char**)malloc(nInsns * sizeof(*(this->reasmErrors)));
-    assert(this->insns != NULL);
-    for (int i = 0; i < nInsns; i++) {
-        this->insns[i] = strdup(r->insns[i]);
-        this->reasmErrors[i] = strdup(r->reasmErrors[i]);
-    }
-
-    this->bytes = (char*)malloc(nBytes);
-    memcpy(this->bytes, r->bytes, nBytes);
+Report::Report(Report* r) : Report(r->asmList) {
 }
 
-Report::Report(const char** insns, int nInsns, const char* bytes, int nBytes,
-        const char** reasmErrors) {
+Report::Report(std::vector<Assembly*>& asmList) {
+    
+    assert(asmList.size() >= 2);
+    
+    this->asmList = std::vector<Assembly*>();
 
-    this->nInsns = nInsns;
-    this->nBytes = nBytes;
-
-    this->insns = (char**)malloc(nInsns * sizeof(*(this->insns)));
-    this->reasmErrors = (char**)malloc(nInsns * sizeof(*(this->reasmErrors)));
-    assert(this->insns != NULL);
-    for (int i = 0; i < nInsns; i++) {
-        this->insns[i] = strdup(insns[i]);
-        this->reasmErrors[i] = strdup(reasmErrors[i]);
+    for (auto it = asmList.begin(); it != asmList.end(); ++it) {
+        this->asmList.push_back(new Assembly(**it));
     }
-
-    this->bytes = (char*)malloc(nBytes);
-    memcpy(this->bytes, bytes, nBytes);
 }
 
 Report::~Report() {
-    for (int i = 0; i < nInsns; i++) {
-        free(insns[i]);
-        free(reasmErrors[i]);
+    for (auto it = asmList.begin(); it != asmList.end(); ++it) {
+        delete *it;
     }
-    free(insns);
-    free(reasmErrors);
-    free(bytes);
 }
 
 void Report::issue(const char* filename) {
@@ -53,14 +29,18 @@ void Report::issue(const char* filename) {
         exit(-1);
     }
     assert(f != NULL);
-    for (int i = 0; i < nInsns; i++) {
-        fprintf(f, "%s", insns[i]);
-        if (*reasmErrors[i] != '\0') {
-            fprintf(f, ": ERROR: %s", reasmErrors[i]);
+    assert(asmList.size() >= 2);
+    for (auto it = asmList.begin(); it != asmList.end(); ++it) {
+        Assembly* curAsm = *it;
+        fprintf(f, "%s", curAsm->getString());
+        if (curAsm->getAsmResult() == 'E') {
+            fprintf(f, ": ERROR: %s", curAsm->getAsmError());
         }
         fprintf(f, ";");
     }
-    for (int i = 0; i < nBytes; i++) {
+    Assembly* asm1 = *(asmList.begin());
+    const char* bytes = asm1->getBytes();
+    for (size_t i = 0; i < asm1->getNBytes(); i++) {
         fprintf(f, "%x ", 0xFF & bytes[i]);
     }
     fprintf(f, "\n");
@@ -68,42 +48,67 @@ void Report::issue(const char* filename) {
 }
 
 bool Report::isEquivalent(Report* r) {
-    if (r->nInsns != nInsns) {
+    if (r->asmList.size() != asmList.size()) {
+        std::cout << "first:\n";
+        for (auto it = asmList.begin(); it != asmList.end();
+        ++it) {
+            std::cout << (*it)->getString() << "\n";
+        }
+        std::cout << "second:\n";
+        for (auto it = r->asmList.begin(); it != r->asmList.end();
+        ++it) {
+            std::cout << (*it)->getString() << "\n";
+        }
         std::cout << "REPORTS NOT EQUIVALENT!\n";
+        exit(-1);
         return false;
     }
 
-    for (int i = 0; i < nInsns; i++) {
-        FieldList oldFields1 = FieldList(getInsn(i));
-        FieldList newFields1 = FieldList(r->getInsn(i));
-        
-        if (oldFields1.size() != newFields1.size()) {
-            std::cout << "REPORTS NOT EQUIVALENT!\n";
+    auto it1 = asmList.begin();
+    auto it2 = r->asmList.begin();
+
+    while (it1 != asmList.end()) {
+
+        const FieldList* baseFields1 = (*it1)->getFields();
+        const FieldList* baseFields2 = (*it2)->getFields();
+
+        if (baseFields1->size() != baseFields2->size()) {
             return false;
         }
 
-        for (int j = i + 1; j < nInsns; j++) {
-            FieldList oldFields2 = FieldList(getInsn(j));
-            FieldList newFields2 = FieldList(r->getInsn(j));
+        auto innerIt1 = it1;
+        auto innerIt2 = it2;
 
-            if (oldFields2.size() != newFields2.size()) {
-                std::cout << "REPORTS NOT EQUIVALENT!\n";
+        ++innerIt1;
+        ++innerIt2;
+        while (innerIt1 != asmList.end()) {
+
+            const FieldList* cmpFields1 = (*innerIt1)->getFields();
+            const FieldList* cmpFields2 = (*innerIt2)->getFields();
+
+            if (cmpFields1->size() != cmpFields2->size()) {
                 return false;
             }
 
-            int minFields = oldFields2.size() > oldFields1.size() ?
-                oldFields1.size() : oldFields2.size();
+            int numBaseFields = baseFields1->size();
+            int numCmpFields = cmpFields1->size();
+
+            int minFields = numCmpFields > numBaseFields ? 
+                numBaseFields : numCmpFields;
 
             for (int f = 0; f < minFields; f++) {
-                if (oldFields1.getField(f) == oldFields2.getField(f) &&
-                    newFields1.getField(f) != newFields2.getField(f)) {
-
-                    std::cout << "REPORTS NOT EQUIVALENT!\n";
+                if (baseFields1->getField(f) == baseFields2->getField(f) &&
+                    cmpFields1->getField(f) != cmpFields2->getField(f)) {
                     return false;
                 }
             }
             
+            ++innerIt1;
+            ++innerIt2;
         }
+
+        ++it1;
+        ++it2;
     }
 
     return true;
