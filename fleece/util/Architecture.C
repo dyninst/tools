@@ -47,6 +47,16 @@ void init_ppc() {
     addNumberedRegSet("vreg", "v", 0, 31);
     addNumberedRegSet("vsreg", "vs", 0, 63);
     addNumberedRegSet("segreg", "seg", 0, 4);
+
+    RegisterSet conditions = new RegisterSet("COND");
+
+    conditions->addRegName("eq");
+    conditions->addRegName("gt");
+    conditions->addRegName("lt");
+    conditions->addRegName("so");
+    conditions->addRegName("eq");
+
+    regSets.push_back(conditions);
 }
 
 void init_x86_64() {
@@ -54,7 +64,7 @@ void init_x86_64() {
     Architecture::name = "x86_64";
     Architecture::maxInsnLen = 15;
 
-    RegisterSet* gp_64bit = new RegisterSet("%gp_64bit");
+    RegisterSet* gp_64bit = new RegisterSet("%gp8");
 
     gp_64bit->addRegName("%rax");
     gp_64bit->addRegName("%rcx");
@@ -76,7 +86,7 @@ void init_x86_64() {
 
     regSets.push_back(gp_64bit);
 
-    RegisterSet* gp_32bit = new RegisterSet("%gp_32bit");
+    RegisterSet* gp_32bit = new RegisterSet("%gp4");
 
     gp_32bit->addRegName("%eax");
     gp_32bit->addRegName("%ecx");
@@ -98,7 +108,7 @@ void init_x86_64() {
 
     regSets.push_back(gp_32bit);
 
-    RegisterSet* gp_16bit = new RegisterSet("%gp_16bit");
+    RegisterSet* gp_16bit = new RegisterSet("%gp2");
 
     gp_16bit->addRegName("%ax");
     gp_16bit->addRegName("%cx");
@@ -120,7 +130,7 @@ void init_x86_64() {
 
     regSets.push_back(gp_16bit);
 
-    RegisterSet* gp_8bit = new RegisterSet("%gp_8bit");
+    RegisterSet* gp_8bit = new RegisterSet("%gp1");
 
     gp_8bit->addRegName("%ah");
     gp_8bit->addRegName("%al");
@@ -147,7 +157,7 @@ void init_x86_64() {
 
     regSets.push_back(gp_8bit);
 
-    RegisterSet* seg_regs = new RegisterSet("%seg_reg");
+    RegisterSet* seg_regs = new RegisterSet("%seg");
 
     seg_regs->addRegName("%cs");
     seg_regs->addRegName("%ds");
@@ -158,7 +168,7 @@ void init_x86_64() {
 
     regSets.push_back(seg_regs);
 
-    RegisterSet* mmx_regs = new RegisterSet("%mmx_reg");
+    RegisterSet* mmx_regs = new RegisterSet("%mmx_r");
 
     mmx_regs->addRegName("%mm0");
     mmx_regs->addRegName("%mm1");
@@ -180,11 +190,11 @@ void init_x86_64() {
 
     regSets.push_back(mmx_regs);
 
-    addNumberedRegSet("%xmm_reg", "%xmm", 0, 31);   
-    addNumberedRegSet("%ymm_reg", "%ymm", 0, 31);   
-    addNumberedRegSet("%zmm_reg", "%zmm", 0, 31);   
-    addNumberedRegSet("k_reg", "k", 0, 7);
-    addNumberedRegSet("%k_reg", "%k", 0, 7);
+    addNumberedRegSet("%xmm_r", "%xmm", 0, 31);   
+    addNumberedRegSet("%ymm_r", "%ymm", 0, 31);   
+    addNumberedRegSet("%zmm_r", "%zmm", 0, 31);   
+    addNumberedRegSet("k_r", "k", 0, 7);
+    addNumberedRegSet("%k_r", "%k", 0, 7);
 
 }
 
