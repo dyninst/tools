@@ -48,7 +48,7 @@ void init_ppc() {
     addNumberedRegSet("vsreg", "vs", 0, 63);
     addNumberedRegSet("segreg", "seg", 0, 4);
 
-    RegisterSet conditions = new RegisterSet("COND");
+    RegisterSet* conditions = new RegisterSet("COND");
 
     conditions->addRegName("eq");
     conditions->addRegName("gt");
