@@ -41,6 +41,7 @@ bool signalsError(const char* token) {
       !strcmp(token, "nyi")             ||
       !strcmp(token, "invalid")         ||
       !strcmp(token, ".long")           ||
+      !strcmp(token, ".byte")           ||
       !strcmp(token, "%?")              ||
       !strcmp(token, "would_sig")
    );
