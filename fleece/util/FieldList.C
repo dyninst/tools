@@ -22,7 +22,7 @@
 #include "FieldList.h"
 
 bool FieldList::isSeparator(char c) {
-    static std::string sepString = " ,\t[]{}():$#*+-\n";
+    static std::string sepString = " ,\t[]{}():$#*+\n";
 
     return sepString.find(c) != std::string::npos;
 }
@@ -202,15 +202,35 @@ bool FieldList::hasError() {
 }
 
 void FieldList::stripDigits() {
-   for (size_t i = 0; i < nFields; i++) {
-      strStripDigits(fields[i]);
-   }
+    for (size_t i = 0; i < nFields; i++) {
+        char* endPtr;
+        strtod(fields[i], &endPtr);
+        if (*endPtr == '\0') {
+            if (strlen(fields[i]) >= 3) {
+                strncpy(fields[i], "IMM", 4);
+            } else {
+                free(fields[i]);
+                fields[i] = strdup("IMM");
+            }
+        }
+    }
 }
 
 void FieldList::stripHex() {
-   for (size_t i = 0; i < nFields; i++) {
-      strStripHex(fields[i]);
-   }
+    for (size_t i = 0; i < nFields; i++) {
+        char* field = fields[i];
+        if (*field == '-') {
+            ++field;
+        }
+        if (*field == '0' && *(field + 1) == 'x') {
+            if (strlen(fields[i]) >= 3) {
+                strncpy(fields[i], "IMM", 4);
+            } else {
+                free(fields[i]);
+                fields[i] = strdup("IMM");
+            }
+        }
+    }
 }
 
 void FieldList::print(FILE* f) {
