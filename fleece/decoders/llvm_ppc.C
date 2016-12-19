@@ -41,6 +41,12 @@ bool wouldLlvmPpcInsnSig(char* insn, int nBytes) {
         return false;
     }
 
+    if (insn[0] == (char)0x7C && insn[1] == (char)0x10 &&
+        insn[2] == (char)0x01 && insn[3] == (char)0x20) {
+        
+        return true;
+    }
+
     if ((insn[0] == (char)0xFC || insn[0] == (char)0xFD || insn[0] ==
             (char)0xFE || insn[0] == (char)0xFF) && 
             (insn[3] == 0x0B || insn[3] == 0x0A || insn[3] == 0x4A)) {
