@@ -33,7 +33,7 @@ void Report::issue(const char* filename) {
     for (auto it = asmList.begin(); it != asmList.end(); ++it) {
         Assembly* curAsm = *it;
         fprintf(f, "%s", curAsm->getString());
-        if (curAsm->getAsmResult() == 'E') {
+        if (!curAsm->isError() && curAsm->getAsmResult() == 'E') {
             fprintf(f, ": ERROR: %s", curAsm->getAsmError());
         }
         fprintf(f, ";");

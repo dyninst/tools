@@ -51,7 +51,7 @@ public:
      * produced an error during the reassembly phase.
      */
     bool hasReasmError(int index) { 
-            return asmList[index]->getAsmResult() == 'E'; }
+            return !asmList[index]->isError() && asmList[index]->getAsmResult() == 'E'; }
     
     /*
      * Returns a c-style string containing the assembly error at a given index.
@@ -72,6 +72,8 @@ public:
      * their fields.
      */
     bool isEquivalent(Report* r);
+
+    Assembly* getAsm(int index) { return asmList[index]; }
 
 private:
 
