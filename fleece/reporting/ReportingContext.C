@@ -35,7 +35,6 @@ ReportingContext::~ReportingContext() {
 }
 
 void ReportingContext::reportDiff(Report* report) {
-    Report* queuedReport = new Report(report);
     reportQueue.push(new Report(report));
     flushCount++;
     if (flushCount > flushFreq) {
@@ -80,8 +79,7 @@ void ReportingContext::flushReportQueue() {
         // potential error.
         if (!issuedToDecoder) {
             for (size_t i = 0; i < r->size(); i++) {
-                FieldList fl = FieldList(r->getInsn(i));
-                if (fl.hasError()) {
+                if (r->getAsm(i)->isError()) {
                     snprintf(filename, REPORT_FILENAME_BUF_LEN,
                             "%s/%s/errors.txt", outputDir, decoderNames[i]);
                     r->issue(filename);
