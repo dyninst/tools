@@ -115,10 +115,6 @@ address\ =\ (SP|(X|W)\[[a-z]\])[^\n]+		     {
                                                     return token::IGNORE;
                                                  }
 
-((Extend|Shift)Reg)\([^\)]+\)                 {
-                                                 yylval->strVal = new string("d->read(args[2])");
-                                                 return token::OPERAND;
-                                              }
 
     /****************************************/
     /*        Instruction Operands          */
@@ -244,17 +240,17 @@ Mem         {   return token::MEMORY;   }
 
 [ \t;\n]    ;
 
-!=|!|\+|==|\/|\-|\*|&&|\|\||AND|OR|EOR  	{
+!=|!|\+|==|\/|\-|\*|&&|\|\||AND|OR|EOR|MOD 	{
                                                 yylval->strVal = new string(yytext);
                                                 return token::OPER;
                                             }
 
 
 
-bit(s\(((datasize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {
-                                                        yylval->strVal = new string("BaseSemantics::SValuePtr");
-                                                        return token::DTYPE;
-                                                    }
+bit(s\(((datasize|destsize|[0-9]+)|([a-z]+\*[0-9]+))\))?     {
+                                                                 yylval->strVal = new string("BaseSemantics::SValuePtr");
+                                                                 return token::DTYPE;
+                                                             }
 
 (constant\ )?integer    {
                             yylval->strVal = new string("int");
@@ -318,7 +314,7 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap["d"] = operandExtractorMap["t"] = "EXTR(0, 4)";
     operandExtractorMap["n"] = "EXTR(5, 9)";
     operandExtractorMap["t2"] = "EXTR(10, 14)";
-    operandExtractorMap["condition"] = "EXTR(0, 4)";
+    operandExtractorMap["condition"] = "d->getConditionVal(raw)";
     operandExtractorMap["page"] = "(EXTR(31, 31) == 1)";
     operandExtractorMap["postindex"] = "(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)";
     operandExtractorMap["iszero"] = "(EXTR(24, 24) == 0)";
@@ -328,12 +324,15 @@ void Scanner::initOperandExtractorMap() {
     operandExtractorMap["regsize"] = "d->getRegSize(raw)";
     operandExtractorMap["wback"] = "((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)";
     operandExtractorMap["inzero"] = "d->inzero(raw)";
-    operandExtractorMap["opcode"] = "EXTR(29, 30)";
+    operandExtractorMap["opcode"] = "d->opcode(raw)";
     operandExtractorMap["extend"] = "d->extend(raw)";
     operandExtractorMap["pos"] = "(EXTR(21, 22) << 4)";\
     operandExtractorMap["op"] = "d->op(raw)";
     operandExtractorMap["invert"] = "(EXTR(21, 21) == 1)";
-    operandExtractorMap["datasize"] = "d->getDatasize(raw)";
+    operandExtractorMap["datasize"] = operandExtractorMap["destsize"] = "d->getDatasize(raw)";
+    operandExtractorMap["shift_type"] = "d->getShiftType(raw)";
+    operandExtractorMap["else_inv"] = "(EXTR(30, 30) == 1)";
+    operandExtractorMap["else_inc"] = "(EXTR(10, 10) == 1)";
 }
 
 void Scanner::initOperatorToFunctionMap() {

@@ -474,6 +474,14 @@ asnmtsrc:   expr		        {  $$ = $1;	} |
                                     string out = "d->readMemory(" + *$1 + ")";
                                     delete $1;
                                     $$ = STR(out);
+                                } |
+            bitmask             {   string in(*$1), var, start, end;
+                                    getBitMaskParts(in, var, start, end);
+
+                                    stringstream out;
+                                    out<<"ops->extract("<<var<<", "<<start<<", "<<end<<" + 1)";
+
+                                    $$ = STR(out.str());
                                 }
             ;
 
@@ -547,7 +555,7 @@ bmaskend:   NUM                 {
                                 } |
             varname OPER NUM    {
                                     stringstream out;
-                                    out<<*$1<<" + "<<$3;
+                                    out<<*$1<<*$2<<$3;
                                     delete $1;
 
                                     $$ = STR(out.str());
@@ -576,9 +584,10 @@ expr:       NUM                         {
             bitpos                      {   $$ = $1;    } |
             expr OPER expr              {
                                             DEL_VEC($1, $2, $3);
-                                            map<string, string> logicalFuncs = {{"AND", "and_"}, {"OR", "or_"}, {"EOR", "xor_"}};
+                                            map<string, string> logicalFuncs = {{"AND", "and_"}, {"OR", "or_"}, {"EOR", "xor_"}, {"MOD", "unsignedModulo"}};
+                                            map<string, string> arithFuncs = {{"+", "add"}, {"*", "unsignedMultiply"}, {"-", "add"}};
 
-                                            if((*$2) == "+")
+                                            if(arithFuncs.count(*$2))
                                             {
                                                 string cur = *$3;
                                                 //NOTE: special case, if 'offset' is an argument replace it with the expression reading the third operand
@@ -586,7 +595,21 @@ expr:       NUM                         {
                                                 if(cur == "offset" && find(symbols.begin(), symbols.end(), cur) == symbols.end())
                                                     cur = "d->read(args[2])";
 
-                                                ARGS_VEC("ops->add(", *$1, ", ", cur, ")");
+                                                bool isRhsNum = true;
+                                                for(int idx = 0; idx < cur.length(); idx++)
+                                                    if(cur[idx] < 48 || cur[idx] > 57)
+                                                    {
+                                                        isRhsNum = false;
+                                                        break;
+                                                    }
+
+                                                if(isRhsNum)
+                                                    cur = "ops->number_(32, " + cur + ")";
+
+                                                if((*$2) == "-")
+                                                    cur = "ops->add(ops->number_(32, 1), ops->negate(" + cur + "))";
+
+                                                ARGS_VEC("ops->", arithFuncs[*$2], "(", *$1, ", ", cur, ")");
                                                 $$ = STR(makeStr(args, &del));
                                             }
                                             else if((*$2) == "/")
@@ -602,6 +625,7 @@ expr:       NUM                         {
                                             }
                                             else
                                             {
+                                                if((*$2) == "-") cout<<"xxx"<<endl;
                                                 ARGS_VEC(*$1, " ", *$2, " ", *$3);
                                                 $$ = STR(makeStr(args, &del));
                                             }
@@ -627,6 +651,11 @@ funccall:   varname SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
                                                                             ARGS_VEC("d->doAddOperation(", *$3, ", ops->boolean_(false), n, z, c, v)");
                                                                             $$ = STR(makeStr(args, &del));
                                                                         }
+                                                                        else if((*$1) == "ConditionHolds")
+                                                                        {
+                                                                            ARGS_VEC("isTrue(d->", *$1, "(ops->number_(32, ", *$3, ")))");
+                                                                            $$ = STR(makeStr(args, &del));
+                                                                        }
                                                                         else
                                                                         {
                                                                             ARGS_VEC("d->", *$1, "(", *$3, ")");
@@ -650,7 +679,10 @@ args:       args SYMBOL_COMMA args      {
                                                 newSymbols.push_back(var);
                                             }
 
-                                            $$ = $1;
+                                            if(var == "EXTR(5, 9)")
+                                                var = "d->read(args[1])";
+
+                                            $$ = STR(var);
                                         } |
             NUM                         {
                                             stringstream out;
@@ -664,6 +696,11 @@ args:       args SYMBOL_COMMA args      {
                                             if((*$2) == "+" || (*$2) == "/")
                                             {
                                                 ARGS_VEC(*$1, *$2, *$3);
+                                                $$ = STR(makeStr(args, &del));
+                                            }
+                                            else if((*$2) == "MOD")
+                                            {
+                                                ARGS_VEC("ops->unsignedModulo(", *$1, ", ops->number_(32, ", *$3, "))");
                                                 $$ = STR(makeStr(args, &del));
                                             }
                                             else
@@ -681,7 +718,8 @@ args:       args SYMBOL_COMMA args      {
                                         } |
             bitpos                      {   $$ = $1;    } |
 	        OPERAND			            {   $$ = $1;	} |
-            FLAG_CARRY                  {   $$ = STR("d->readRegister(d->REG_C)"); }
+            FLAG_CARRY                  {   $$ = STR("d->readRegister(d->REG_C)"); } |
+            funccall                    {   $$ = $1;    }
             ;
 
 cond:	    COND_IF expr COND_THEN condblock condshalf      {
