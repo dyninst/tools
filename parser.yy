@@ -607,7 +607,7 @@ expr:       NUM                         {
                                                     cur = "ops->number_(32, " + cur + ")";
 
                                                 if((*$2) == "-")
-                                                    cur = "ops->add(ops->number_(32, 1), ops->negate(" + cur + "))";
+                                                    cur = "ops->negate(" + cur + ")";
 
                                                 ARGS_VEC("ops->", arithFuncs[*$2], "(", *$1, ", ", cur, ")");
                                                 $$ = STR(makeStr(args, &del));

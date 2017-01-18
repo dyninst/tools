@@ -309,7 +309,7 @@ Scanner::~Scanner()
 }
 
 void Scanner::initOperandExtractorMap() {
-    operandExtractorMap["sub_op"] = "(EXTR(30, 30) == 1)";
+    operandExtractorMap["sub_op"] = "d->subop(raw)";
     operandExtractorMap["setflags"] = "d->setflags(raw)";
     operandExtractorMap["d"] = operandExtractorMap["t"] = "EXTR(0, 4)";
     operandExtractorMap["n"] = "EXTR(5, 9)";
