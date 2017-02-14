@@ -68,6 +68,32 @@ Bitfield::~Bitfield() {
 int getValMatchLen(uint64_t val, char* bytes, int whichBit, 
         int nBits) {
 
+    /*
+    std::cout << "Finding match for field: " << val << "\n";
+    std::cout << "Val = ";
+    for (size_t i = 1; i <= 64; ++i) {
+        if (val & ((uint64_t)0x1 << (64 - i))) {
+            std::cout << "1";
+        } else {
+            std::cout << "0";
+        }
+    }
+    std::cout << "\n";
+    
+    std::cout << "Imm = ";
+    for (size_t i = 0; i < 64 - nBits + whichBit; ++i) {
+        std::cout << " ";
+    }
+    for (size_t i = 0; i < nBits - whichBit; ++i) {
+        if (getBufferBit(bytes, whichBit + i)) {
+            std::cout << "1";
+        } else {
+            std::cout << "0";
+        }
+    }
+    std::cout << "\n";
+    */
+
     // Determine if the highest order bit is 1.
     bool topValIsOne = (val & ((uint64_t)0x1 << 63));
 
@@ -106,8 +132,10 @@ int getValMatchLen(uint64_t val, char* bytes, int whichBit,
     //                       ^^^^^^^^^^
     // We are matching these bits.
     int curShift = firstFlip;
-    while (curShift >= 0 && ((bool)getBufferBit(bytes, whichBit + nMatched) ==
-            (bool)(val & ((uint64_t)0x1 << curShift))) && whichBit + nMatched < nBits) {
+    while (whichBit + nMatched < nBits && curShift >= 0 && 
+            ((bool)getBufferBit(bytes, whichBit + nMatched) == 
+            (bool)(val & ((uint64_t)0x1 << curShift)))) {
+
         nMatched++;
         curShift--;
     }
@@ -121,10 +149,13 @@ int getValMatchLen(uint64_t val, char* bytes, int whichBit,
     if (curShift == -1) {
         return nMatched;
     }
+    return 0;
     
+    // Below code returns matches of incorrect length.
+    /*
     // Here, we match bits even if the endianness of the value and the bytes
     // are different.
-    for (int i = 0; 8 * i < firstFlip; i++) {
+    for (int i = 0; i < nBits - whichBit && 8 * i < firstFlip; i++) {
         for (int j = 7; j >= 0; j--) {
             if ((bool)getBufferBit(bytes, whichBit + nMatched) == 
                 (bool)(val & ((uint64_t)0x1 << (8 * i + j)))) {
@@ -135,8 +166,10 @@ int getValMatchLen(uint64_t val, char* bytes, int whichBit,
             }
         }
     }
-   
+  
+    std::cout << "nBits = " << nBits << ", whichBit = " << whichBit << "\n";
     return nMatched;
+    */
 }
 
 int Bitfield::matches(char* bytes, int whichBit, int nBits) {

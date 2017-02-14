@@ -20,51 +20,66 @@
 
 #include "RegisterSet.h"
 
-
 RegisterSet::RegisterSet(const char* symbol) {
-   sym = (char*)malloc(strlen(symbol) + 1);
-   assert(sym != NULL);
+   sym = new char[strlen(symbol) + 1];
    strcpy(sym, symbol);
 }
 
 RegisterSet::~RegisterSet() {
    
-   while(!regNames.empty()) {
-      char* regName = regNames.back();
-      regNames.pop_back();
-      free(regName);
-   }
+    for (auto it = names.begin(); it != names.end(); ++it) {
+        delete [] (*it).first;
+    }
 
-   free(sym);
+    /*
+    while(!regNames.empty()) {
+       char* regName = regNames.back();
+       regNames.pop_back();
+       free(regName);
+    }
+    */
+
+   delete [] sym;
 }
 
 void RegisterSet::addRegName(const char* regName) {
-   char* newName = (char*)malloc(strlen(regName) + 1);
-   assert(newName != NULL);
-   strcpy(newName, regName);
+    /*
+    char* newName = (char*)malloc(strlen(regName) + 1);
+    regNames.push_back(newName);
+    */
+    size_t len = strlen(regName) + 1;
+    char* name = new char[len];
+    strncpy(name, regName, len);
 
-   regNames.push_back(newName);
+    names.insert(std::make_pair(name, sym));
 }
    
 void RegisterSet::replaceRegNamesWithSymbol(FieldList& fl) {
     for (unsigned int i = 0; i < fl.size(); i++) {
-        bool replaced = false;
+        auto name = names.find((char*)fl.getField(i));
+        if (name != names.end()) {
+            fl.setField(i, name->second);
+            /*
+            size_t nameLen = strlen(name.first);
+            if (strlen(field) == nameLen) {
+                fl.setField(i, sym);
+            } else if (field[nameLen] == '.') {
+                int fieldLen = strlen(field);
+                char newField[fieldLen - nameLen + strlen(sym)];
+                snprintf(newField, fieldLen - nameLen + strlen(sym), 
+                        "%s%s", sym, (field + nameLen));
+                fl.setField(i, newField);
+                replaced = true;
+            }
+            */
+        }       
+
+        /*
         for (size_t j = 0; !replaced && j < regNames.size(); j++) {
-            size_t nameLen = strlen(regNames[j]);
             const char* field = fl.getField(i);
             if (!strncmp(field, regNames[j], nameLen)) {
-                if (strlen(field) == nameLen) {
-                    fl.setField(i, sym);
-                    replaced = true;
-                } else if (field[nameLen] == '.') {
-                    int fieldLen = strlen(field);
-                    char newField[fieldLen - nameLen + strlen(sym)];
-                    snprintf(newField, fieldLen - nameLen + strlen(sym), 
-                            "%s%s", sym, (field + nameLen));
-                    fl.setField(i, strdup(newField));
-                    replaced = true;
-                }
             }
         }
+        */
     }
 }

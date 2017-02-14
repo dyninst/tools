@@ -28,100 +28,14 @@ extern "C" {
 
 #include <iomanip>
 #include <iostream>
-#include "Alias.h"
 #include "Normalization.h"
 #include "StringUtils.h"
 
 #define XED_MACHINE_MODE XED_MACHINE_MODE_LONG_64
 #define XED_ADDRESS_WIDTH XED_ADDRESS_WIDTH_64b
 
-void aliasSizes(const char* base) {
-   int baseLen = strlen(base);
-   char* withSize = (char*)malloc(baseLen + 2);
-   strcpy(withSize, base);
-   withSize[baseLen + 1] = 0;
-
-   
-   withSize[baseLen] = 'w';
-   Alias::addAlias(withSize, base);
-
-   withSize[baseLen] = 'l';
-   Alias::addAlias(withSize, base);
-   
-   withSize[baseLen] = 'b';
-   Alias::addAlias(withSize, base);
-
-   withSize[baseLen] = 'q';
-   Alias::addAlias(withSize, base);
-
-   free(withSize);
-}
-
 int xedInit(void) {
    xed_tables_init(); 
-
-   Alias::addAlias("%mmx0", "%mm0");
-   Alias::addAlias("%mmx1", "%mm1");
-   Alias::addAlias("%mmx2", "%mm2");
-   Alias::addAlias("%mmx3", "%mm3");
-   Alias::addAlias("%mmx4", "%mm4");
-   Alias::addAlias("%mmx5", "%mm5");
-   Alias::addAlias("%mmx6", "%mm6");
-   Alias::addAlias("%mmx7", "%mm7");
-
-   Alias::addAlias("%mmx0,", "%mm0,");
-   Alias::addAlias("%mmx1,", "%mm1,");
-   Alias::addAlias("%mmx2,", "%mm2,");
-   Alias::addAlias("%mmx3,", "%mm3,");
-   Alias::addAlias("%mmx4,", "%mm4,");
-   Alias::addAlias("%mmx5,", "%mm5,");
-   Alias::addAlias("%mmx6,", "%mm6,");
-   Alias::addAlias("%mmx7,", "%mm7,");
-   
-   aliasSizes("or");
-   aliasSizes("adc");
-   aliasSizes("sub");
-   aliasSizes("and");
-   aliasSizes("xor");
-   aliasSizes("lea");
-   aliasSizes("lar");
-   aliasSizes("mov");
-   aliasSizes("add");
-   aliasSizes("sbb");
-   aliasSizes("cmp");
-   aliasSizes("str");
-   aliasSizes("pop");
-   aliasSizes("push");
-   aliasSizes("shrd");
-   aliasSizes("xchg");
-   aliasSizes("imul");
-   aliasSizes("setb");
-   aliasSizes("sets");
-   aliasSizes("pand");
-   aliasSizes("test");
-   aliasSizes("seto");
-   aliasSizes("cmovl");
-   aliasSizes("cmovo");
-   aliasSizes("cmovp");
-   aliasSizes("fimul");
-   aliasSizes("paddw");
-   aliasSizes("pslld");
-   aliasSizes("psllq");
-   aliasSizes("pandn");
-   aliasSizes("psadbw");
-   aliasSizes("paddsw");
-   aliasSizes("pmulhw");
-   aliasSizes("pminsw");
-   aliasSizes("pmaxsw");
-   aliasSizes("pmulhuw");
-   aliasSizes("pcmpgtd");
-   aliasSizes("pcmpgtb");
-   aliasSizes("ucomiss");
-   aliasSizes("punpckldq");
-   aliasSizes("packssdwq");
-   aliasSizes("punpckhwd");
-
-   return 0;
 }
 
 void fixStRegs(char* buf, int bufLen) {
@@ -158,7 +72,6 @@ void fixStRegs(char* buf, int bufLen) {
 }
 
 void fixMmxRegs(char* buf, int bufLen) {
-
 
     // We are looking for the 'x' in 'mmx', so the string must be at least 3
     // letters, and we can skip the first two.
@@ -276,20 +189,26 @@ void fixVexTrailingX(char* buf, int bufLen) {
 }
 
 void fixExtraOpcodeDressing(char* buf, int bufLen) {
-    replaceStr(buf, bufLen, "sdq ", "sd ");
-    replaceStr(buf, bufLen, "sdl ", "sl ");
-    replaceStr(buf, bufLen, "psq ", "ps ");
+    if (strstr(buf, "sd") != NULL) {
+        replaceStr(buf, bufLen, "sdq ", "sd ");
+        replaceStr(buf, bufLen, "sdl ", "sl ");
+    }
+    if (strstr(buf, "ps") != NULL) {
+        replaceStr(buf, bufLen, "psq ", "ps ");
+        replaceStr(buf, bufLen, "psx ", "ps ");
+        replaceStr(buf, bufLen, "psy ", "ps ");
+    }
+
     replaceStr(buf, bufLen, "fqq", "fq");
     replaceStr(buf, bufLen, "sbb", "sb");
     replaceStr(buf, bufLen, "sww", "sw");
     replaceStr(buf, bufLen, "wdy ", "wd ");
-    replaceStr(buf, bufLen, "psx ", "ps ");
     replaceStr(buf, bufLen, "sqq ", "sq ");
-    replaceStr(buf, bufLen, "psy ", "ps ");
     replaceStr(buf, bufLen, "pdy ", "pd ");
     replaceStr(buf, bufLen, "sxd ", "slq ");
     replaceStr(buf, bufLen, "iretd", "iretl");
 
+    // Need to verify that the below are necessary.
     /*
     replaceStr(buf, bufLen, "swx ", "swx ");
     replaceStr(buf, bufLen, "bwx ", "bwx ");
@@ -311,8 +230,13 @@ void fixExtraOpcodeDressing(char* buf, int bufLen) {
 
 void removeImplicitST0(char* buf, int bufLen) {
     
-   std::string str(buf);
-  
+   std::string str = std::string(buf);
+    
+    if (*buf != 'f' && str.find(" f") == std::string::npos) {
+        return;
+    }
+    
+
    removeOperand(str, "fadd", ", %st(0)");
    removeOperand(str, "fld", ", %st(0)");
    removeOperand(str, "fbld", ", %st(0)");
@@ -374,101 +298,15 @@ void removeImplicitST0(char* buf, int bufLen) {
 }
 
 void xed_x86_64_norm(char* buf, int bufLen) {
-
     cleanSpaces(buf, bufLen);
     toLowerCase(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
-
     fixStRegs(buf, bufLen);
     fixMmxRegs(buf, bufLen);
     fixExtraOpcodeDressing(buf, bufLen);
     fixVexTrailingX(buf, bufLen);
-
     fixVexMaskOperations(buf, bufLen);
     removeImplicitST0(buf, bufLen);
-
-   /*trimHexZeroes(buf, bufLen);
-   trimHexFs(buf, bufLen);
-
-   std::string str(buf);
-  
-   removeOperand(str, "fadd", ", %st0");
-   removeOperand(str, "faddb", ", %st0");
-   removeOperand(str, "faddw", ", %st0");
-   removeOperand(str, "faddl", ", %st0");
-   removeOperand(str, "faddq", ", %st0");
-
-   removeOperand(str, "fldl", ", %st0");
-   removeOperand(str, "fldq", ", %st0");
-   removeOperand(str, "fld", ", %st0");
-   removeOperand(str, "fbld", ", %st0");
-   removeOperand(str, "fst", "%st0, ");
-   removeOperand(str, "fstp", "%st0, ");
-   removeOperand(str, "fstpl", "%st0, ");
-   removeOperand(str, "fbstp", "%st0, ");
-   removeOperand(str, "fstpq", "%st0, ");
-   removeOperand(str, "fcmovu", ", %st0");
-   removeOperand(str, "fcmovnu", ", %st0");
-   removeOperand(str, "fildw", ", %st0");
-   removeOperand(str, "fildq", ", %st0");
-   removeOperand(str, "fistw", "%st0, ");
-   removeOperand(str, "fistpl", "%st0, ");
-   removeOperand(str, "fistpq", "%st0, ");
-   removeOperand(str, "fistpw", "%st0, ");
-   removeOperand(str, "fisttpw", "%st0, ");
-   removeOperand(str, "fisubw", ", %st0");
-   removeOperand(str, "fisubl", ", %st0");
-   removeOperand(str, "fsubq", ", %st0");
-   removeOperand(str, "fsubrq", ", %st0");
-   removeOperand(str, "fsubl", ", %st0");
-
-   removeOperand(str, "fmull", ", %st0");
-   removeOperand(str, "fucom", ", %st0");
-   removeOperand(str, "fcom", ", %st0");
-   removeOperand(str, "fcomp", ", %st0");
-   removeOperand(str, "fcoml", ", %st0");
-   removeOperand(str, "fcompl", ", %st0");
-   removeOperand(str, "fidivw", ", %st0");
-   removeOperand(str, "fdivl", ", %st0");
-   removeOperand(str, "fdivrl", ", %st0");
-   removeOperand(str, "fsubrl", ", %st0");
-   removeOperand(str, "fisubrw", ", %st0");
-   removeOperand(str, "fisubrl", ", %st0");
-   removeOperand(str, "fidivrw", ", %st0");
-   removeOperand(str, "fidivrl", ", %st0");
-   removeOperand(str, "ficomw", ", %st0");
-   removeOperand(str, "ficompw", ", %st0");
-   removeOperand(str, "ficomu", ", %st0");
-   removeOperand(str, "ficoml", ", %st0");
-   removeOperand(str, "ficompl", ", %st0");
-   removeOperand(str, "ficompw", ", %st0");
-   removeOperand(str, "fimulw", ", %st0");
-   removeOperand(str, "fimull", ", %st0");
-   removeOperand(str, "fiaddl", ", %st0");
-
-   removeOperand(str, "fcoml", "%st0, ");
-   removeOperand(str, "ficoml", "%st0, ");
-   removeOperand(str, "fmull", "%st0, ");
-   removeOperand(str, "fimull", "%st0, ");
-   removeOperand(str, "fiaddl", "%st0, ");
-   removeOperand(str, "fistl", ", %st0");
-   removeOperand(str, "fstl", ", %st0");
-   removeOperand(str, "fstpl", ", %st0");
-   removeOperand(str, "fldl", "%st0, ");
-   removeOperand(str, "fbldl", "%st0, ");
-   removeOperand(str, "fildl", "%st0, ");
-   removeOperand(str, "fsubrl", "%st0, ");
-   removeOperand(str, "fsubrwl", ", %st0");
-   removeOperand(str, "fisubl", "%st0, ");
-   removeOperand(str, "fbstpl", "%st0, ");
-   removeOperand(str, "fisttpl", "%st0, ");
-   removeOperand(str, "fsqrtl", " %st0");
-   
-   strncpy(buf, str.c_str(), bufLen);
-   if (buf[str.length() - 1] == ' ') {
-      buf[str.length() - 1] = 0;
-   }
-   */
 }
 
 int xed_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {

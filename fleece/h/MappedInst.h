@@ -23,6 +23,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <queue>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,42 +33,65 @@
 #include "Decoder.h"
 #include "FieldList.h"
 #include "StringUtils.h"
+#include "SimpleInsnMap.h"
 
 class Decoder;
 
 class MappedInst {
 public:
-   MappedInst(char* bytes, unsigned int nBytes, Decoder* dec);
-   ~MappedInst();
-   int getNumUsedBytes();
-   void print();
-   FieldList* getFields();
-   BitType*     getBitTypes() {return bitTypes;}
-   unsigned int getNumBytes() {return nBytes;  }
-   char*        getRawBytes() {return bytes;   }
-   unsigned long getBitTypeHash() {return hashBitTypes(bitTypes, 8 * nBytes);}
-   void queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc);
+    MappedInst(char* bytes, unsigned int nBytes, Decoder* dec);
+    MappedInst(MappedInst* toCopy);
+    ~MappedInst();
+    FieldList* getFields() { return fields; }
+    BitType    getBitType(size_t whichBit) const;
+    size_t     getNumBytes() { return nBytes; }
+    size_t     getNumBytesUsed() { return nBytesUsed; }
+    char*      getRawBytes() { return bytes; }
+    Decoder*   getDecoder() { return decoder; }
+    void queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc);
+    
+    struct insn_cmp {
+        bool operator()(const MappedInst* a, const MappedInst* b) const {
+            if (a->nBytes < b->nBytes) {
+                return true;
+            } else if (b->nBytes < a->nBytes) {
+                return false;
+            }
+
+            for (size_t i = 0; i < a->nBytes * 8; i++) {
+                if (a->getBitType(i) != b->getBitType(i)) {
+                    if (a->getBitType(i) == BIT_TYPE_SWITCH) {
+                        return true;
+                    } else if (b->getBitType(i) == BIT_TYPE_SWITCH) {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+    };
+    static std::map<MappedInst*, MappedInst*, MappedInst::insn_cmp> uniqueMaps;
 
 private:
-   bool* confirmed;
-   char* bytes;
-   size_t nBytes;
-   bool isError;
-   BitType* bitTypes;
-   FieldList* fields;
-   Decoder* decoder;
-   void map(void);
-   void mapBitTypes(BitType* bitTypes);
-   void makeSimpleMap(BitType* bTypes, FieldList* fields);
-   bool isByteOptional(size_t whichByte);
-   void deleteOptionalBytes();
-   void trimUnusedEnd();
-   //int findOperandValue(BitType* bitTypes, char* val, int operandNum, int bitCount);
-   //void confirmHexOperand(BitType* bitTypes, char* operand, int operandNum);
-   //void confirmHexBits(BitType* bitTypes, char* decInsn);
-   void enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc);
-};
+    char* bytes;
+    size_t nBytes;
+    size_t nBytesUsed;
+    bool isError;
+    FieldList* fields;
+    Decoder* decoder;
+    SimpleInsnMap* map;
+    void mapBitTypes();
+    //void makeSimpleMap(BitType* bTypes, FieldList* fields);
+    bool isByteOptional(size_t whichByte);
+    void deleteDownToNOptionalBytes(size_t numOptionalBytes);
+    void trimUnusedEnd();
+    void enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc);
 
-std::ostream& operator<<(std::ostream& s, MappedInst& m);
+    /*
+     * Determines the minimum number of bytes in the instruction that result in the same decoding
+     * as all of the bytes (any more bytes would be unnecessary).
+     */
+    size_t findNumBytesUsed(char* bytes, size_t nBytes, Decoder* dec);
+};
 
 #endif /* _MAPPEDINST_H_ */

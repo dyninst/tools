@@ -54,7 +54,7 @@ public:
     /*
      * Gives the number of fields in the list.
      */
-    unsigned int size() const;
+    size_t size() const;
 
     /*
      * Returns true if the field list has the given field.
@@ -65,13 +65,13 @@ public:
      * Returns a pointer to the null-terminated string stored at <index>
      * location in the list of fields.
      */
-    const char* getField(unsigned int index) const;
+    const char* getField(size_t index) const;
 
     /*
      * Replaces the field at a given index with a new value. This value will be
      * copied from the supplied string.
      */
-    void setField(unsigned int index, const char* newField);
+    void setField(size_t index, const char* newField);
 
     /*
      * Removes all digits from all fields. Each contiguous set of digits is
@@ -88,20 +88,20 @@ public:
      * Returns the total number of bytes used in the fields (includes null
      * termination).
      */
-    unsigned int getTotalBytes(void);
+    size_t getTotalBytes(void);
 
     /*
      * Fills the buffer with a character array representation of the fields. It
      * will null-terminate the buffer (at len), even if that means cutting off 
      * characters.
      */
-    void fillBuf(char* buf, unsigned int len);
+    void fillBuf(char* buf, size_t len) const;
 
     /*
      * Returns true if one of the fields in the list appears to represent an
      * error in the disassembly.
      */
-    bool hasError();
+    bool hasError() const;
 
     /*
      * Returns true if the character is a separator character.
@@ -109,31 +109,50 @@ public:
     static bool isSeparator(char c);
     
     /*
-     * Prints the field list to a file.
+     * Prints the field list as a set of fields and separators.
      */
     void print(FILE* f);
 
+    /*
+     * Prints the instruction that was used to construct this field list.
+     */
+    void printInsn(FILE* f);
+
 private:
 
+     /*
+      * The number of fields in the list. This is one more than the number of 
+      * separators.
+      */
+    size_t nFields;
+
     /*
-     * The number of fields in the list. This is one more than the number of 
-     * separators.
+     * An array of c-style strings, each representing a single field of an
+     * instruction. Prefixes and opcodes are considered fields.
      */
-   unsigned int nFields;
+    char** fields;
 
-   /*
-    * An array of c-style strings, each representing a single field of an
-    * instruction. Prefixes and opcodes are considered fields.
-    */
-   char** fields;
+    /*
+     * An array of c-style strings, each holding the characters between two
+     * fields. Most commonly, separators are ", ", but they can be a string of
+     * any characters in the list of separators.
+     */
+    char** separators;
 
-   /*
-    * An array of c-style strings, each holding the characters between two
-    * fields. Most commonly, separators are ", ", but they can be a string of
-    * any characters in the list of separators.
-    */
-   char** separators;
+    /*
+     * Determines the number of fields in a c-string.
+     */
+    size_t detectNumFields(const char* buf);
+
+    /*
+     * Uses the value in nFields to allocate c-strings for the fields and separators.
+     */
+    void allocateFieldsAndSeparators();
+
+    /*
+     * Parses the string into fields and separators.
+     */
+    void initFieldsAndSeparators(const char* buf);
 
 };
-
 #endif /* _FIELD_LIST_H_ */

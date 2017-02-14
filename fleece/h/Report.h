@@ -75,6 +75,8 @@ public:
 
     Assembly* getAsm(int index) { return asmList[index]; }
 
+    void printDebug();
+
 private:
 
     std::vector<Assembly*> asmList;

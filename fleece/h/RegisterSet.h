@@ -24,8 +24,9 @@
 #include <assert.h>
 #include <string.h>
 #include <iostream>
-#include <vector>
+#include <unordered_map>
 #include "FieldList.h"
+#include "StringUtils.h"
 
 class RegisterSet {
 public:
@@ -35,7 +36,8 @@ public:
    void replaceRegNamesWithSymbol(FieldList& fl);
 private:
    char* sym;
-   std::vector<char*> regNames;
+   std::unordered_map<char*, char*, StringUtils::str_hash, StringUtils::str_eq> names;
+   //std::vector<char*> regNames;
 };
 
 #endif // _REGISTER_SET_H_

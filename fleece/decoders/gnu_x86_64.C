@@ -119,21 +119,16 @@ int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
     return !rc;
 }
 
-int gnu_x86_64_norm(char* buf, int bufLen) {
-
-    cleanSpaces(buf, bufLen);
-    toLowerCase(buf, bufLen);
-    spaceAfterCommas(buf, bufLen);
-    /*
-    trimHexZeroes(buf, bufLen);
-    trimHexFs(buf, bufLen);
-    trimSegRegs(buf, bufLen);
-    */
+void removeRexPrinting(char* buf, int bufLen) {
     std::string result(buf);
    
+    if (result.find("rex") == std::string::npos) {
+        return;
+    }
+
     // Remove rex prefixes. These are printed if the bytes exist and applied if
     // they are actually used. XED doesn't print them if they are unused.
-    
+
     removeAtSubStr(result, "rex.wrxb", 8);
     removeAtSubStr(result, "rex.rxb", 7);
     removeAtSubStr(result, "rex.wrb", 7);
@@ -152,14 +147,36 @@ int gnu_x86_64_norm(char* buf, int bufLen) {
     removeAtSubStr(result, "rex.b", 5);
     removeAtSubStr(result, "rex", 3);
     
+    strncpy(buf, result.c_str(), bufLen);
+    buf[bufLen - 1] = 0;
+}
+
+void removeIzRegister(char* buf, int bufLen) {
+    std::string result(buf);
+   
+    if (result.find("iz") == std::string::npos) {
+        return;
+    }
+
+    // Remove references to the %eiz and %riz registers. They are not used anyway.
+
     removeAtSubStr(result, "(, %riz, ", 11);
     removeAtSubStr(result, ", %riz, ", 9);
     removeAtSubStr(result, "(, %eiz, ", 11);
     removeAtSubStr(result, ", %eiz, ", 9);
-
+    
     strncpy(buf, result.c_str(), bufLen);
     buf[bufLen - 1] = 0;
+    
+}
 
+int gnu_x86_64_norm(char* buf, int bufLen) {
+
+    cleanSpaces(buf, bufLen);
+    toLowerCase(buf, bufLen);
+    spaceAfterCommas(buf, bufLen);
+    removeRexPrinting(buf, bufLen);
+    removeIzRegister(buf, bufLen);
     cleanSpaces(buf, bufLen);
     return 0;
 }

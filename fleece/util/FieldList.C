@@ -22,118 +22,147 @@
 #include "FieldList.h"
 
 bool FieldList::isSeparator(char c) {
-    static std::string sepString = " ,\t[]{}():$#*+\n";
-
-    return sepString.find(c) != std::string::npos;
+    static std::string separators = " ,\t[]{}():$#*+-\n";
+    return separators.find(c) != std::string::npos;
 }
 
-FieldList::FieldList(const char* buf) {
-    nFields = 0;
-
-    const char* cur = buf;
-    bool inField = !isSeparator(*cur);
-
-    // Iterate over the string counting the number of non-empty fields separated
-    // by spaces.
-    while (*cur) {
-        if (isSeparator(*cur)) {
+size_t FieldList::detectNumFields(const char* buf) {
+    size_t nFields = 0;
+    
+    // The string does not start in a field if the first character is a separator.
+    bool inField = !isSeparator(*buf);
+    
+    // Iterate over the string counting the number of fields with at least one separator between 
+    // each.
+    while (*buf) {
+        if (isSeparator(*buf)) {
             if (inField) {
-                nFields++;
+                ++nFields;
             }
             inField = false;
         } else {
             inField = true;
         }
-        cur++;
+        ++buf;
     }
    
-    // If we ended without a space and hit at least one non-space character,
-    // then we need to count the last field as well.
+    // If we ended without a space and hit at least one non-space character, then we need to count
+    // the last field as well.
     if (inField) {
-        nFields++;
-     }
-
-    // Now that we know how many fields we will have, we can properly allocate
-    // pointers to each.
-    fields = (char**)malloc(nFields * sizeof(*fields));
-    assert(fields != NULL);
-    separators = (char**)malloc((nFields + 1) * sizeof(*separators));
-    assert(separators != NULL);
-
-    for (unsigned int i = 0; i < nFields; i++) {
-        fields[i] = NULL;
-        separators[i] = NULL;
+        ++nFields;
     }
-    separators[nFields] = NULL;
 
-    // Iterate through the string again, making an array of all the fields.
-    cur = buf;
-    int curField = 0;
-    const char* curStart = buf;
-    inField = !isSeparator(*cur);
+    return nFields;
+}
+
+void FieldList::allocateFieldsAndSeparators() {
+    fields = new char*[nFields];
+    separators = new char*[nFields + 1];
+    assert(fields != NULL && separators != NULL);
+}
+
+bool shouldFieldIncludeDash(const char* strStart, const char* strEnd) {
+    char* endPtr;
+    strtod(strStart, &endPtr);
+    return endPtr == strEnd;
+}
+
+void FieldList::initFieldsAndSeparators(const char* buf) {
+    size_t curField = 0;
+    const char* cur = buf;
+    const char* strStart = buf;
+    bool inField = !isSeparator(*buf);
+    char* lastSepChar;
+
+    // If we start out the game in a field, the first separator will be and empty string.
+    if (inField) {
+        separators[0] = new char[1];
+        assert(separators[0] != NULL);
+        separators[0][0] = '\0';
+        lastSepChar = &(separators[0][0]);
+    }
+
+    // Iterate through the string, filling the allocated fields and separators.
     while (*cur) {
+
         bool isSep = isSeparator(*cur);
+
+        // If we change between in a field or in a separator, we just finished a field or
+        // separator, so we need to allocate one and copy it.
         if (isSep == inField) {
-            int strLen = cur - curStart;
-            char* newStr = (char*)malloc(strLen + 1);
-            assert(newStr != NULL);
-            strncpy(newStr, curStart, strLen);
-            newStr[strLen] = '\0';
             if (inField) {
+                if (*lastSepChar == '-' && shouldFieldIncludeDash(strStart, cur)) {
+                    --strStart;
+                    *lastSepChar = '\0';
+                }
+                int len = cur - strStart;
+                char* newStr = new char[len + 1];
+                strncpy(newStr, strStart, len);
+                newStr[len] = '\0'; // This should be redundant, but it's good to be safe.
                 fields[curField] = newStr;
                 curField++;
             } else {
+                int len = cur - strStart;
+                char* newStr = new char[len + 1];
+                strncpy(newStr, strStart, len);
+                newStr[len] = '\0'; // This should be redundant, but it's good to be safe.
                 separators[curField] = newStr;
+                lastSepChar = &(separators[curField][len - 1]);
             }
-            curStart = cur;
+            strStart = cur;
         }
         inField = !isSep;
-        cur++;
+        ++cur;
     }
-
-    int strLen = cur - curStart;
-    char* newStr = (char*)malloc(strLen + 1);
-    assert(newStr != NULL);
-    strncpy(newStr, curStart, strLen);
-    newStr[strLen] = '\0';
     
+    // If we ended our parsing in a field, we need to allocate an empty string for the last
+    // separator,
     if (inField) {
+        if (*lastSepChar == '-' && shouldFieldIncludeDash(strStart, cur)) {
+            --strStart;
+            *lastSepChar = '\0';
+        }
+        int len = cur - strStart;
+        char* newStr = new char[len + 1];
+        strncpy(newStr, strStart, len);
+        newStr[len] = '\0';
         fields[curField] = newStr;
+        separators[nFields] = new char[1];
+        assert(separators[nFields] != NULL);
+        separators[nFields][0] = '\0';
     } else {
+        int len = cur - strStart;
+        char* newStr = new char[len + 1];
+        strncpy(newStr, strStart, len);
+        newStr[len] = '\0';
         separators[curField] = newStr;
     }
 
-    if (separators[0] == NULL) {
-        separators[0] = (char*)malloc(1);
-        assert(separators[0] != NULL);
-        separators[0][0] = '\0';
-    }
-
-    if (separators[nFields] == NULL) {
-        separators[nFields] = (char*)malloc(1);
-        assert(separators[nFields] != NULL);
-        separators[nFields][0] = '\0';
-    }
     //std::cout << "Field list from: " << buf << "\n";
     //print(stdout);
 }
 
-FieldList::~FieldList() {
-    for (size_t i = 0; i < nFields; i++) {
-        free(fields[i]);
-        free(separators[i]);
-    }
-    free(separators[nFields]);
-
-    free(fields);
-    free(separators);
+FieldList::FieldList(const char* buf) {
+    nFields = detectNumFields(buf);
+    allocateFieldsAndSeparators();
+    initFieldsAndSeparators(buf);
 }
 
-unsigned int FieldList::size() const {
+FieldList::~FieldList() {
+    for (size_t i = 0; i < nFields; i++) {
+        delete [] fields[i];
+        delete [] separators[i];
+    }
+    delete [] separators[nFields];
+    delete [] fields;
+    delete [] separators;
+}
+
+size_t FieldList::size() const {
     return nFields;
 }
 
-unsigned int FieldList::getTotalBytes() {
+size_t FieldList::getTotalBytes() {
     unsigned int totalBytes = 1; // Start at 1 to include the null terminator.
     for (unsigned int i = 0; i < nFields; i++) {
         totalBytes += strlen(fields[i]);
@@ -143,7 +172,7 @@ unsigned int FieldList::getTotalBytes() {
     return totalBytes;
 }
 
-void FieldList::fillBuf(char* buf, unsigned int len) {
+void FieldList::fillBuf(char* buf, size_t len) const {
     char* bufEnd = buf + len - 1;
     char* cur;
     for (unsigned int i = 0; i < nFields && buf < bufEnd; i++) {
@@ -179,20 +208,22 @@ bool FieldList::hasField(const char* field) const {
     return false;
 }
 
-const char* FieldList::getField(unsigned int index) const {
+const char* FieldList::getField(size_t index) const {
     if (index >= nFields) {
         return NULL;
     }
     return (const char*)fields[index];
 }
     
-void FieldList::setField(unsigned int index, const char* newField) {
+void FieldList::setField(size_t index, const char* newField) {
     assert(index < nFields);
-    free(fields[index]);
-    fields[index] = strdup(newField);
+    int len = strlen(newField) + 1;
+    delete [] fields[index];
+    fields[index] = new char [len];
+    strncpy(fields[index], newField, len);
 }
 
-bool FieldList::hasError() {
+bool FieldList::hasError() const {
     for (size_t i = 0; i < nFields; i++) {
         if (signalsError(fields[i])) {
             return true;
@@ -206,12 +237,11 @@ void FieldList::stripDigits() {
         char* endPtr;
         strtod(fields[i], &endPtr);
         if (*endPtr == '\0') {
-            if (strlen(fields[i]) >= 3) {
-                strncpy(fields[i], "IMM", 4);
-            } else {
-                free(fields[i]);
-                fields[i] = strdup("IMM");
+            if (strlen(fields[i]) < 3) {
+                delete [] fields[i];
+                fields[i] = new char[4];
             }
+            strncpy(fields[i], "IMM", 4);
         }
     }
 }
@@ -223,12 +253,11 @@ void FieldList::stripHex() {
             ++field;
         }
         if (*field == '0' && *(field + 1) == 'x') {
-            if (strlen(fields[i]) >= 3) {
-                strncpy(fields[i], "IMM", 4);
-            } else {
-                free(fields[i]);
-                fields[i] = strdup("IMM");
+            if (strlen(fields[i]) < 3) {
+                delete [] fields[i];
+                fields[i] = new char[4];
             }
+            strncpy(fields[i], "IMM", 4);
         }
     }
 }
@@ -242,4 +271,11 @@ void FieldList::print(FILE* f) {
     for (unsigned int i = 0; i <= nFields; i++) {
         fprintf(f, "\t%s\n", separators[i]);
     }
+}
+
+void FieldList::printInsn(FILE* f) {
+    for (unsigned int i = 0; i < nFields; i++) {
+        fprintf(f, "%s%s", separators[i], fields[i]);
+    }
+    fprintf(f, "%s", separators[nFields]);
 }

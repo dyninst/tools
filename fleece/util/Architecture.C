@@ -1,18 +1,38 @@
 
+#include <stdio.h>
 #include "Architecture.h"
 
 int Architecture::maxInsnLen;
 std::vector<RegisterSet*> regSets;
 std::string Architecture::name;
 
-void addNumberedRegSet(const char* setName, const char* baseName, 
+RegisterSet* addFormattedRegSet(const char* setName, const char* baseName, 
         int lowerBound, int upperBound) {
 
     // Make a buffer with enough room for any reasonable register numbers (up to
     // 30 digits).
     int bufLen = strlen(baseName) + 30;
-    char* buf = (char*)malloc(bufLen);
-    assert(buf != NULL);
+    char buf[bufLen];
+
+    RegisterSet* regs = new RegisterSet(setName);
+
+    for (int i = upperBound; i >= lowerBound; i--) {
+       snprintf(buf, bufLen, baseName, i);
+       regs->addRegName(buf);
+    }
+
+    regSets.push_back(regs);
+    return regs;
+
+}
+
+RegisterSet* addNumberedRegSet(const char* setName, const char* baseName, 
+        int lowerBound, int upperBound) {
+
+    // Make a buffer with enough room for any reasonable register numbers (up to
+    // 30 digits).
+    int bufLen = strlen(baseName) + 30;
+    char buf[bufLen];
 
     RegisterSet* regs = new RegisterSet(setName);
 
@@ -22,7 +42,7 @@ void addNumberedRegSet(const char* setName, const char* baseName,
     }
 
     regSets.push_back(regs);
-    free(buf);
+    return regs;
 
 }
 
@@ -47,6 +67,7 @@ void init_ppc() {
     addNumberedRegSet("vreg", "v", 0, 31);
     addNumberedRegSet("vsreg", "vs", 0, 63);
     addNumberedRegSet("segreg", "seg", 0, 4);
+    addNumberedRegSet("fslreg", "fsl", 0, 31);
 
     RegisterSet* conditions = new RegisterSet("COND");
 
@@ -203,8 +224,14 @@ void init_aarch64() {
     Architecture::name = "aarch64";
     Architecture::maxInsnLen = 4;
 
-    addNumberedRegSet("wreg", "w", 0, 31);
-    addNumberedRegSet("xreg", "x", 0, 31);
+    RegisterSet* regs;
+
+    regs = addNumberedRegSet("wreg", "w", 0, 31);
+    regs->addRegName("wzr");
+    regs->addRegName("wsp");
+    regs = addNumberedRegSet("xreg", "x", 0, 31);
+    regs->addRegName("xzr");
+    regs->addRegName("sp");
     addNumberedRegSet("sreg", "s", 0, 31);
     addNumberedRegSet("breg", "b", 0, 31);
     addNumberedRegSet("dreg", "d", 0, 31);
@@ -212,186 +239,134 @@ void init_aarch64() {
     addNumberedRegSet("hreg", "h", 0, 31);
     addNumberedRegSet("vreg", "v", 0, 31);
 
-    Alias::addAlias("zr", "xzr");
-    Alias::addAlias("zr,", "xzr,");
+    addFormattedRegSet("vreg.1d", "v%d.1d", 0, 31);
+    addFormattedRegSet("vreg.2d", "v%d.2d", 0, 31);
+    addFormattedRegSet("vreg.2s", "v%d.2s", 0, 31);
+    addFormattedRegSet("vreg.4h", "v%d.4h", 0, 31);
+    addFormattedRegSet("vreg.4s", "v%d.4s", 0, 31);
+    addFormattedRegSet("vreg.8h", "v%d.8h", 0, 31);
+    addFormattedRegSet("vreg.8b", "v%d.8b", 0, 31);
+    addFormattedRegSet("vreg.16b", "v%d.16b", 0, 31);
+    addFormattedRegSet("vreg.d", "v%d.d", 0, 31);
+    addFormattedRegSet("vreg.s", "v%d.s", 0, 31);
+    addFormattedRegSet("vreg.h", "v%d.h", 0, 31);
+    addFormattedRegSet("vreg.b", "v%d.b", 0, 31);
 
-    /* General system registers */
-    Alias::addAlias("s3_0_c1_c0_1", "actlr_el1");
-    Alias::addAlias("s3_4_c1_c0_1", "actlr_el2");
-    Alias::addAlias("s3_6_c1_c0_1", "actlr_el3");
-    Alias::addAlias("s3_0_c5_c1_0", "afsr0_el1");
-    Alias::addAlias("s3_4_c5_c1_0", "afsr0_el2");
-    Alias::addAlias("s3_6_c5_c1_0", "afsr0_el3");
-    Alias::addAlias("s3_0_c5_c1_1", "afsr1_el1");
-    Alias::addAlias("s3_4_c5_c1_1", "afsr1_el2");
-    Alias::addAlias("s3_6_c5_c1_1", "afsr1_el3");
-    Alias::addAlias("s3_1_c0_c0_7", "aidr_el1");
-    Alias::addAlias("s3_0_c10_c3_0", "amair_el1");
-    Alias::addAlias("s3_4_c10_c3_0", "amair_el2");
-    Alias::addAlias("s3_6_c10_c3_0", "amair_el3");
-    Alias::addAlias("s3_1_c0_c0_0", "ccsidr_el1");
-    Alias::addAlias("s3_1_c0_c0_1", "clidr_el1");
-    Alias::addAlias("s3_0_c11_c0_1", "contextidr_el1");
-    Alias::addAlias("s3_0_c1_c0_2", "cpacr_el1");
-    Alias::addAlias("s3_4_c1_c1_2", "cptr_el2");
-    Alias::addAlias("s3_6_c1_c1_2", "cptr_el3");
-    Alias::addAlias("s3_2_c0_c0_0", "csselr_el1");
-    Alias::addAlias("s3_3_c0_c0_1", "ctr_el0");
-    Alias::addAlias("s3_4_c3_c0_0", "dacr32_el2");
-    Alias::addAlias("s3_3_c0_c0_7", "dczid_el0");
-    Alias::addAlias("s3_0_c5_c2_0", "esr_el1");
-    Alias::addAlias("s3_4_c5_c2_0", "esr_el2");
-    Alias::addAlias("s3_6_c5_c2_0", "esr_el3");
-    Alias::addAlias("s3_0_c6_c0_0", "far_el1");
-    Alias::addAlias("s3_4_c6_c0_0", "far_el2");
-    Alias::addAlias("s3_4_c5_c3_0", "fpexc32_el2");
-    Alias::addAlias("s3_4_c1_c1_7", "hacr_el2");
-    Alias::addAlias("s3_4_c1_c1_0", "hcr_el2");
-    Alias::addAlias("s3_4_c6_c0_4", "hpfar_el2");
-    Alias::addAlias("s3_4_c1_c1_3", "hstr_el2");
-    Alias::addAlias("s3_0_c0_c5_4", "id_aa64afr0_el1");
-    Alias::addAlias("s3_0_c0_c5_5", "id_aa64afr1_el1");
-    Alias::addAlias("s3_0_c0_c5_0", "id_aa64dfr0_el1");
-    Alias::addAlias("s3_0_c0_c5_1", "id_aa64dfr1_el1");
-    Alias::addAlias("s3_0_c0_c6_0", "id_aa64isar0_el1");
-    Alias::addAlias("s3_0_c0_c6_1", "id_aa64isar1_el1");
-    Alias::addAlias("s3_0_c0_c7_0", "id_aa64mmfr0_el1");
-    Alias::addAlias("s3_0_c0_c7_1", "id_aa64mmfr1_el1");
-    Alias::addAlias("s3_0_c0_c4_0", "id_aa64pfr0_el1");
-    Alias::addAlias("s3_0_c0_c4_1", "id_aa64pfr1_el1");
-    Alias::addAlias("s3_0_c0_c1_3", "id_afr0_el1");
-    Alias::addAlias("s3_0_c0_c1_2", "id_dfr0_el1");
-    Alias::addAlias("s3_0_c0_c2_0", "id_isar0_el1");
-    Alias::addAlias("s3_0_c0_c2_1", "id_isar1_el1");
-    Alias::addAlias("s3_0_c0_c2_2", "id_isar2_el1");
-    Alias::addAlias("s3_0_c0_c2_3", "id_isar3_el1");
-    Alias::addAlias("s3_0_c0_c2_4", "id_isar4_el1");
-    Alias::addAlias("s3_0_c0_c2_5", "id_isar5_el1");
-    Alias::addAlias("s3_0_c0_c1_4", "id_mmfr0_el1");
-    Alias::addAlias("s3_0_c0_c1_5", "id_mmfr1_el1");
-    Alias::addAlias("s3_0_c0_c1_6", "id_mmfr2_el1");
-    Alias::addAlias("s3_0_c0_c1_7", "id_mmfr3_el1");
-    Alias::addAlias("s3_0_c0_c2_6", "id_mmfr4_el1");
-    Alias::addAlias("s3_0_c0_c1_0", "id_pfr0_el1");
-    Alias::addAlias("s3_4_c5_c0_1", "ifsr32_el2");
-    Alias::addAlias("s3_0_c12_c1_0", "isr_el1");
-    Alias::addAlias("s3_0_c10_c2_0", "mair_el1");
-    Alias::addAlias("s3_4_c10_c2_0", "mair_el2");
-    Alias::addAlias("s3_6_c10_c2_0", "mair_el3");
-    Alias::addAlias("s3_0_c0_c0_0", "midr_el1");
-    Alias::addAlias("s3_0_c0_c0_5", "mpidr_el1");
-    Alias::addAlias("s3_0_c0_c3_0", "mvfr0_el1");
-    Alias::addAlias("s3_0_c0_c3_0", "mvfr1_el1");
-    Alias::addAlias("s3_0_c0_c3_0", "mvfr2_el1");
-    Alias::addAlias("s3_0_c7_c4_0", "par_el1");
-    Alias::addAlias("s3_0_c0_c0_6", "revidr_el1");
-    Alias::addAlias("s3_0_c12_c0_2", "rmr_el1");
-    Alias::addAlias("s3_4_c12_c0_2", "rmr_el2");
-    Alias::addAlias("s3_6_c12_c0_2", "rmr_el3");
-    Alias::addAlias("s3_0_c12_c0_1", "rvbar_el1");
-    Alias::addAlias("s3_4_c12_c0_1", "rvbar_el2");
-    Alias::addAlias("s3_6_c12_c0_1", "rvbar_el3");
-   
-    /* Not a real alias, acts as a place-holder. */
-    Alias::addAlias("s3_xxx_c1x11_cxxxx_xxx", "IMPLEMENTATION DEFINED");
-
-    Alias::addAlias("s3_6_c1_c1_0", "scr_el3");
-    Alias::addAlias("s3_0_c1_c0_0", "sctlr_el1");
-    Alias::addAlias("s3_4_c1_c0_0", "sctlr_el2");
-    Alias::addAlias("s3_6_c1_c0_0", "sctlr_el3");
-    Alias::addAlias("s3_6_c1_c0_0", "sctlr_el3");
-    Alias::addAlias("s3_0_c2_c0_2", "tcr_el1");
-    Alias::addAlias("s3_4_c2_c0_2", "tcr_el2");
-    Alias::addAlias("s3_6_c2_c0_2", "tcr_el3");
-    Alias::addAlias("s3_3_c13_c0_2", "tpidr_el0");
-    Alias::addAlias("s3_0_c13_c0_2", "tpidr_el1");
-    Alias::addAlias("s3_4_c13_c0_2", "tpidr_el2");
-    Alias::addAlias("s3_6_c13_c0_2", "tpidr_el3");
-    Alias::addAlias("s3_3_c13_c0_3", "tpidrro_el0");
-    Alias::addAlias("s3_0_c2_c0_0", "ttbr0_el1");
-    Alias::addAlias("s3_4_c2_c0_0", "ttbr0_el2");
-    Alias::addAlias("s3_6_c2_c0_0", "ttbr0_el3");
-    Alias::addAlias("s3_0_c2_c0_1", "ttbr1_el1");
-    Alias::addAlias("s3_0_c12_c0_0", "vbar_el1");
-    Alias::addAlias("s3_4_c12_c0_0", "vbar_el2");
-    Alias::addAlias("s3_6_c12_c0_0", "vbar_el3");
-    Alias::addAlias("s3_4_c0_c0_5", "vmpidr_el2");
-    Alias::addAlias("s3_4_c0_c0_0", "vpidr_el2");
-    Alias::addAlias("s3_4_c2_c1_2", "vtcr_el2");
-    Alias::addAlias("s3_4_c2_c1_0", "vttbr_el2");
+    RegisterSet* sysRegs = new RegisterSet("sysreg");
+    char regName[100];
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            for (int k = 0; k < 16; ++k) {
+                for (int l = 0; l < 16; ++l) {
+                    for (int m = 0; m < 8; ++m) {
+                        snprintf(regName, 100, "s%d_%d_c%d_c%d_%d", i, j, k, l, m);
+                        sysRegs->addRegName(regName);
+                    }
+                }
+            }
+        }
+    }
     
+    /*
+    sysRegs->addRegName("scr_el3");
+    sysRegs->addRegName("sctlr_el1");
+    sysRegs->addRegName("sctlr_el2");
+    sysRegs->addRegName("sctlr_el3");
+    sysRegs->addRegName("sctlr_el3");
+    sysRegs->addRegName("tcr_el1");
+    sysRegs->addRegName("tcr_el2");
+    sysRegs->addRegName("tcr_el3");
+     sysRegs->addRegName("tpidr_el0");
+     sysRegs->addRegName("tpidr_el1");
+     sysRegs->addRegName("tpidr_el2");
+     sysRegs->addRegName("tpidr_el3");
+     sysRegs->addRegName("tpidrro_el0");
+    sysRegs->addRegName("ttbr0_el1");
+    sysRegs->addRegName("ttbr0_el2");
+    sysRegs->addRegName("ttbr0_el3");
+    sysRegs->addRegName("ttbr1_el1");
+     sysRegs->addRegName("vbar_el1");
+     sysRegs->addRegName("vbar_el2");
+     sysRegs->addRegName("vbar_el3");
+    sysRegs->addRegName("vmpidr_el2");
+    sysRegs->addRegName("vpidr_el2");
+    sysRegs->addRegName("vtcr_el2");
+    sysRegs->addRegName("vttbr_el2");
+    */
+
     /* Debug system registers */
-    Alias::addAlias("s2_0_c7_c14_6", "dbgauthstatus_el1");
-    Alias::addAlias("s2_0_c0_c0_5", "dbgcr0_el1");
-    Alias::addAlias("s2_0_c0_c1_5", "dbgcr1_el1");
-    Alias::addAlias("s2_0_c0_c2_5", "dbgcr2_el1");
-    Alias::addAlias("s2_0_c0_c3_5", "dbgcr3_el1");
-    Alias::addAlias("s2_0_c0_c4_5", "dbgcr4_el1");
-    Alias::addAlias("s2_0_c0_c5_5", "dbgcr5_el1");
-    Alias::addAlias("s2_0_c0_c6_5", "dbgcr6_el1");
-    Alias::addAlias("s2_0_c0_c7_5", "dbgcr7_el1");
-    Alias::addAlias("s2_0_c0_c8_5", "dbgcr8_el1");
-    Alias::addAlias("s2_0_c0_c9_5", "dbgcr9_el1");
-    Alias::addAlias("s2_0_c0_c10_5", "dbgcr10_el1");
-    Alias::addAlias("s2_0_c0_c11_5", "dbgcr11_el1");
-    Alias::addAlias("s2_0_c0_c12_5", "dbgcr12_el1");
-    Alias::addAlias("s2_0_c0_c13_5", "dbgcr13_el1");
-    Alias::addAlias("s2_0_c0_c14_5", "dbgcr14_el1");
-    Alias::addAlias("s2_0_c0_c15_5", "dbgcr15_el1");
-    Alias::addAlias("s2_0_c0_c0_4", "dbgvr0_el1");
-    Alias::addAlias("s2_0_c0_c1_4", "dbgvr1_el1");
-    Alias::addAlias("s2_0_c0_c2_4", "dbgvr2_el1");
-    Alias::addAlias("s2_0_c0_c3_4", "dbgvr3_el1");
-    Alias::addAlias("s2_0_c0_c4_4", "dbgvr4_el1");
-    Alias::addAlias("s2_0_c0_c5_4", "dbgvr5_el1");
-    Alias::addAlias("s2_0_c0_c6_4", "dbgvr6_el1");
-    Alias::addAlias("s2_0_c0_c7_4", "dbgvr7_el1");
-    Alias::addAlias("s2_0_c0_c8_4", "dbgvr8_el1");
-    Alias::addAlias("s2_0_c0_c9_4", "dbgvr9_el1");
-    Alias::addAlias("s2_0_c0_c10_4", "dbgvr10_el1");
-    Alias::addAlias("s2_0_c0_c11_4", "dbgvr11_el1");
-    Alias::addAlias("s2_0_c0_c12_4", "dbgvr12_el1");
-    Alias::addAlias("s2_0_c0_c13_4", "dbgvr13_el1");
-    Alias::addAlias("s2_0_c0_c14_4", "dbgvr14_el1");
-    Alias::addAlias("s2_0_c0_c15_4", "dbgvr15_el1");
-    Alias::addAlias("s2_0_c7_c9_6", "dbgclaimclr_el1");
-    Alias::addAlias("s2_0_c7_c8_6", "dbgclaimset_el1");
-    Alias::addAlias("s2_3_c0_c4_0", "dbgdtr_el0");
-    Alias::addAlias("s2_3_c0_c5_0", "dbgdtrrx_el0");
-    Alias::addAlias("s2_3_c0_c5_0", "dbgdtrtx_el0");
-    Alias::addAlias("s2_0_c1_c4_4", "dbgprcr_el1");
-    Alias::addAlias("s2_4_c0_c7_0", "dbgvcr32_el2");
-    Alias::addAlias("s2_0_c0_c0_7", "dbgwcr0_el1");
-    Alias::addAlias("s2_0_c0_c1_7", "dbgwcr1_el1");
-    Alias::addAlias("s2_0_c0_c2_7", "dbgwcr2_el1");
-    Alias::addAlias("s2_0_c0_c3_7", "dbgwcr3_el1");
-    Alias::addAlias("s2_0_c0_c4_7", "dbgwcr4_el1");
-    Alias::addAlias("s2_0_c0_c5_7", "dbgwcr5_el1");
-    Alias::addAlias("s2_0_c0_c6_7", "dbgwcr6_el1");
-    Alias::addAlias("s2_0_c0_c7_7", "dbgwcr7_el1");
-    Alias::addAlias("s2_0_c0_c8_7", "dbgwcr8_el1");
-    Alias::addAlias("s2_0_c0_c9_7", "dbgwcr9_el1");
-    Alias::addAlias("s2_0_c0_c10_7", "dbgwcr10_el1");
-    Alias::addAlias("s2_0_c0_c11_7", "dbgwcr11_el1");
-    Alias::addAlias("s2_0_c0_c12_7", "dbgwcr12_el1");
-    Alias::addAlias("s2_0_c0_c13_7", "dbgwcr13_el1");
-    Alias::addAlias("s2_0_c0_c14_7", "dbgwcr14_el1");
-    Alias::addAlias("s2_0_c0_c15_7", "dbgwcr15_el1");
-    Alias::addAlias("s2_0_c0_c0_6", "dbgwvr0_el1");
-    Alias::addAlias("s2_0_c0_c1_6", "dbgwvr1_el1");
-    Alias::addAlias("s2_0_c0_c2_6", "dbgwvr2_el1");
-    Alias::addAlias("s2_0_c0_c3_6", "dbgwvr3_el1");
-    Alias::addAlias("s2_0_c0_c4_6", "dbgwvr4_el1");
-    Alias::addAlias("s2_0_c0_c5_6", "dbgwvr5_el1");
-    Alias::addAlias("s2_0_c0_c6_6", "dbgwvr6_el1");
-    Alias::addAlias("s2_0_c0_c7_6", "dbgwvr7_el1");
-    Alias::addAlias("s2_0_c0_c8_6", "dbgwvr8_el1");
-    Alias::addAlias("s2_0_c0_c9_6", "dbgwvr9_el1");
-    Alias::addAlias("s2_0_c0_c10_6", "dbgwvr10_el1");
-    Alias::addAlias("s2_0_c0_c11_6", "dbgwvr11_el1");
-    Alias::addAlias("s2_0_c0_c12_6", "dbgwvr12_el1");
-    Alias::addAlias("s2_0_c0_c13_6", "dbgwvr13_el1");
-    Alias::addAlias("s2_0_c0_c14_6", "dbgwvr14_el1");
+    /*
+    sysRegs->addRegName("dbgauthstatus_el1");
+    sysRegs->addRegName("dbgcr0_el1");
+    sysRegs->addRegName("dbgcr1_el1");
+    sysRegs->addRegName("dbgcr2_el1");
+    sysRegs->addRegName("dbgcr3_el1");
+    sysRegs->addRegName("dbgcr4_el1");
+    sysRegs->addRegName("dbgcr5_el1");
+    sysRegs->addRegName("dbgcr6_el1");
+    sysRegs->addRegName("dbgcr7_el1");
+    sysRegs->addRegName("dbgcr8_el1");
+    sysRegs->addRegName("dbgcr9_el1");
+     sysRegs->addRegName("dbgcr10_el1");
+     sysRegs->addRegName("dbgcr11_el1");
+     sysRegs->addRegName("dbgcr12_el1");
+     sysRegs->addRegName("dbgcr13_el1");
+     sysRegs->addRegName("dbgcr14_el1");
+     sysRegs->addRegName("dbgcr15_el1");
+    sysRegs->addRegName("dbgvr0_el1");
+    sysRegs->addRegName("dbgvr1_el1");
+    sysRegs->addRegName("dbgvr2_el1");
+    sysRegs->addRegName("dbgvr3_el1");
+    sysRegs->addRegName("dbgvr4_el1");
+    sysRegs->addRegName("dbgvr5_el1");
+    sysRegs->addRegName("dbgvr6_el1");
+    sysRegs->addRegName("dbgvr7_el1");
+    sysRegs->addRegName("dbgvr8_el1");
+    sysRegs->addRegName("dbgvr9_el1");
+    AsysRegs->addRegName("dbgvr10_el1");
+    AsysRegs->addRegName("dbgvr11_el1");
+    AsysRegs->addRegName("dbgvr12_el1");
+    AsysRegs->addRegName("dbgvr13_el1");
+    AsysRegs->addRegName("dbgvr14_el1");
+    AsysRegs->addRegName("dbgvr15_el1");
+    sysRegs->addRegName("dbgclaimclr_el1");
+    sysRegs->addRegName("dbgclaimset_el1");
+    sysRegs->addRegName("dbgdtr_el0");
+    sysRegs->addRegName("dbgdtrrx_el0");
+    sysRegs->addRegName("dbgdtrtx_el0");
+    sysRegs->addRegName("dbgprcr_el1");
+    sysRegs->addRegName("dbgvcr32_el2");
+    sysRegs->addRegName("dbgwcr0_el1");
+    sysRegs->addRegName("dbgwcr1_el1");
+    sysRegs->addRegName("dbgwcr2_el1");
+    sysRegs->addRegName("dbgwcr3_el1");
+    sysRegs->addRegName("dbgwcr4_el1");
+    sysRegs->addRegName("dbgwcr5_el1");
+    sysRegs->addRegName("dbgwcr6_el1");
+    sysRegs->addRegName("dbgwcr7_el1");
+    sysRegs->addRegName("dbgwcr8_el1");
+    sysRegs->addRegName("dbgwcr9_el1");
+    AsysRegs->addRegName("dbgwcr10_el1");
+    AsysRegs->addRegName("dbgwcr11_el1");
+    AsysRegs->addRegName("dbgwcr12_el1");
+    AsysRegs->addRegName("dbgwcr13_el1");
+    AsysRegs->addRegName("dbgwcr14_el1");
+    AsysRegs->addRegName("dbgwcr15_el1");
+    sysRegs->addRegName("dbgwvr0_el1");
+    sysRegs->addRegName("dbgwvr1_el1");
+    sysRegs->addRegName("dbgwvr2_el1");
+    sysRegs->addRegName("dbgwvr3_el1");
+    sysRegs->addRegName("dbgwvr4_el1");
+    sysRegs->addRegName("dbgwvr5_el1");
+    sysRegs->addRegName("dbgwvr6_el1");
+    sysRegs->addRegName("dbgwvr7_el1");
+    sysRegs->addRegName("dbgwvr8_el1");
+    sysRegs->addRegName("dbgwvr9_el1");
+    AsysRegs->addRegName("dbgwvr10_el1");
+    AsysRegs->addRegName("dbgwvr11_el1");
+    AsysRegs->addRegName("dbgwvr12_el1");
+    AsysRegs->addRegName("dbgwvr13_el1");
+    AsysRegs->addRegName("dbgwvr14_el1");
     Alias::addAlias("s2_0_c0_c15_6", "dbgwvr15_el1");
     Alias::addAlias("s3_3_c4_c5_1", "dlr_el0");
     Alias::addAlias("s3_3_c4_c5_0", "dspsr_el0");
@@ -408,8 +383,10 @@ void init_aarch64() {
     Alias::addAlias("s2_0_c1_c0_4", "oslar_el1");
     Alias::addAlias("s2_0_c1_c1_4", "oslsr_el1");
     Alias::addAlias("s3_6_c1_c1_1", "sder32_el3");
-    
+    */
+
     /* Performance monitoring system registers */
+    /*
     Alias::addAlias("s3_3_c14_c15_7", "pmccfiltr_el0");
     Alias::addAlias("s3_3_c9_c13_0", "pmccntr_el0");
     Alias::addAlias("s3_3_c9_c12_6", "pmceid0_el0");
@@ -488,8 +465,10 @@ void init_aarch64() {
     Alias::addAlias("s3_3_c9_c14_0", "pmuserenr_el0");
     Alias::addAlias("s3_3_c9_c13_2", "pmxevcntr_el0");
     Alias::addAlias("s3_3_c9_c13_1", "pmxevtyper_el0");
-   
+    */
+
     /* Generic timer system registers */
+    /*
     Alias::addAlias("s3_3_c14_c0_0", "cntfrq_el0");
     Alias::addAlias("s3_4_c14_c1_0", "cnthctl_el2");
     Alias::addAlias("s3_4_c14_c2_1", "cnthp_ctl_el2");
@@ -508,8 +487,10 @@ void init_aarch64() {
     Alias::addAlias("s3_3_c14_c3_0", "cntv_tval_el0");
     Alias::addAlias("s3_3_c14_c0_2", "cntvct_el0");
     Alias::addAlias("s3_4_c14_c0_3", "cntvoff_el2");
+    */
 
     /* Generic interrupt controller CPU interface system registers */
+    /*
     Alias::addAlias("s3_0_c12_c8_4", "icc_ap0r0_el1");
     Alias::addAlias("s3_0_c12_c8_5", "icc_ap0r1_el1");
     Alias::addAlias("s3_0_c12_c8_6", "icc_ap0r2_el1");
@@ -541,8 +522,10 @@ void init_aarch64() {
     Alias::addAlias("s3_0_c12_c12_5", "icc_sre_el1");
     Alias::addAlias("s3_4_c12_c12_5", "icc_sre_el2");
     Alias::addAlias("s3_6_c12_c12_5", "icc_sre_el3");
+    */
 
     /* Generic interrupt controller virtual interface system registers */
+    /*
     Alias::addAlias("s3_4_c12_c8_0", "ich_ap0r0_el2");
     Alias::addAlias("s3_4_c12_c8_1", "ich_ap0r1_el2");
     Alias::addAlias("s3_4_c12_c8_2", "ich_ap0r2_el2");
@@ -573,7 +556,29 @@ void init_aarch64() {
     Alias::addAlias("s3_4_c12_c11_2", "ich_misr_el2");
     Alias::addAlias("s3_4_c12_c11_7", "ich_vmcr_el2");
     Alias::addAlias("s3_4_c12_c11_1", "ich_vtr_el2");
+    */
+    regSets.push_back(sysRegs);
 
+    RegisterSet* conds = new RegisterSet("COND");
+    conds->addRegName("eq");
+    conds->addRegName("cs");
+    conds->addRegName("mi");
+    conds->addRegName("vs");
+    conds->addRegName("hi");
+    conds->addRegName("ge");
+    conds->addRegName("gt");
+    conds->addRegName("ne");
+    conds->addRegName("cc");
+    conds->addRegName("pl");
+    conds->addRegName("vc");
+    conds->addRegName("ls");
+    conds->addRegName("lt");
+    conds->addRegName("le");
+    conds->addRegName("hs");
+    conds->addRegName("lo");
+    conds->addRegName("al");
+    conds->addRegName("nv");
+    regSets.push_back(conds);
 }
 
 void Architecture::init(const char* arch) {
@@ -601,4 +606,30 @@ void Architecture::destroy() {
     for (size_t i = 0; i < regSets.size(); i++) {
         delete regSets[i];
     }
+}
+
+bool isX86Prefix(const char* field) {
+    return !strcmp(field, "repz") ||
+           !strcmp(field, "repnz") ||
+           !strcmp(field, "repe") ||
+           !strcmp(field, "repne") ||
+           !strcmp(field, "ss") ||
+           !strcmp(field, "es") ||
+           !strcmp(field, "fs") ||
+           !strcmp(field, "gs") ||
+           !strcmp(field, "ds") ||
+           !strcmp(field, "lock");
+}
+
+const char* Architecture::getOpcode(FieldList& fl) {
+    if (name != "x86_64") {
+        return fl.getField(0);
+    }
+    for (size_t i = 0; i < fl.size(); ++i) {
+        const char* field = fl.getField(i);
+        if (!isX86Prefix(field)) {
+            return field;
+        }
+    }
+    return fl.getField(0);
 }

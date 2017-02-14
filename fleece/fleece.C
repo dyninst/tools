@@ -32,7 +32,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <vector>
-#include "Alias.h"
+#include "BitTypes.h"
 #include "Decoder.h"
 #include "Info.h"
 #include "Mask.h"
@@ -259,22 +259,10 @@ int main(int argc, char** argv) {
     int cur_generation = 0;
     uint64_t next_generation = 0;
     i = 0;
+
     while (cur_generation != 7 && (pipe || (!random && !remainingInsns.empty()) 
                 || (random && i < nRuns))) {
 
-        /* generation testing code */
-        /*
-        if (!random && !pipe && i == next_generation) {
-            gen_stream << remainingInsns.size();
-            if (cur_generation == 6) {
-                gen_stream << "\n";
-            } else {
-                gen_stream << ", ";
-            }
-            next_generation = i + remainingInsns.size();
-            cur_generation++;
-        }
-        //*/
         i++;
 
         // If it has been 10 seconds, output a new line to std::cerr with data.
@@ -285,15 +273,25 @@ int main(int argc, char** argv) {
          
             // Count the total number of instructions decoded.
             unsigned long nDecoded = 0;
+            unsigned long totalDecodeTime = 0;
+            unsigned long totalNormTime = 0;
             for (j = 0; j < decCount; j++) {
-                nDecoded += decoders[j].getTotalDecodedInsns();
+                Decoder dec = decoders[j];
+                nDecoded += dec.getTotalDecodedInsns();
+                totalDecodeTime += dec.getTotalDecodeTime();
+                totalNormTime += dec.getTotalNormalizeTime();
             }
 
             // Output instructions decoded and summary of reporting done.
             std::cerr << nDecoded << ", " << remainingInsns.size() << ", ";
             repContext->printSummary(stderr);
-            std::cerr << "Disasm Time: " << totalDisasmTime/1000000000 << "\n";
+            std::cerr << "Test Time: " << totalDisasmTime/1000000000 << "\n";
             std::cerr << "Map Time: " << totalMapTime/1000000000 << "\n";
+            std::cerr << "Decode Time: " << totalDecodeTime/1000000000 << "\n";
+            std::cerr << "Norm. Time: " << totalNormTime/1000000000 << "\n";
+            std::cerr << "Num. Inputs: " << i << "\n";
+            
+            
         }
 
         bool pipeEmpty = false;
@@ -337,7 +335,6 @@ int main(int argc, char** argv) {
             // If the input is non-random, we need to add to the queue now.
             MappedInst* mInsn;
 
-
             for (size_t j = 0; j < decCount; j++) {
             
                 // Each decoder maps the instruction and uses its
@@ -347,22 +344,25 @@ int main(int argc, char** argv) {
                 delete mInsn;
             }
         }
+
         clock_gettime(CLOCK_MONOTONIC, &endTime);
 
         totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                      (endTime.tv_nsec - startTime.tv_nsec);
 
         clock_gettime(CLOCK_MONOTONIC, &startTime);
-
+        
         std::vector<Assembly*> asmList;
 
-        // Use each decoder to decode the instruction.
-        for (j = 0; j < decCount; j++) {
-            asmList.push_back(new Assembly(curInsn, insnLen, &decoders[j]));
-        }
+        if (!Options::get("-notest")) {
+            // Use each decoder to decode the instruction.
+            for (j = 0; j < decCount; j++) {
+                asmList.push_back(new Assembly(curInsn, insnLen, &decoders[j]));
+            }
 
-        // Process the resulting decoding and report it if necessary
-        repContext->processDecodings(asmList);
+            // Process the resulting decoding and report it if necessary
+            repContext->processDecodings(asmList);
+        }
 
         clock_gettime(CLOCK_MONOTONIC, &endTime);
 
@@ -377,6 +377,35 @@ int main(int argc, char** argv) {
         //nRuns = 0;
     }
 
+    std::cout << "----- MAP -----\n";
+    std::cout << "size = " << MappedInst::uniqueMaps.size() << "\n";
+    auto it = MappedInst::uniqueMaps.begin();
+    while(it != MappedInst::uniqueMaps.end()) {
+        MappedInst* a = (*it).first;
+        for (size_t j = 0; j < 8 * a->getNumBytes(); j++) {
+            if (a->getBitType(j) == BIT_TYPE_SWITCH) {
+                std::cout << "*";
+            } else if (a->getBitType(j) == BIT_TYPE_UNUSED) {
+                std::cout << "x";
+            } else if (a->getBitType(j) == BIT_TYPE_CAUSED_ERROR) {
+                std::cout << "E";
+            } else {
+                std::cout << a->getBitType(j);
+            }
+        }
+        std::cout << "  ";
+        char* bytes = a->getRawBytes();
+        for (size_t j = 0; j < a->getNumBytes(); j++) {
+            std::cout << std::hex << std::setfill('0') << std::setw(2)
+                << (unsigned int)(unsigned char)bytes[j] << " ";
+        }
+        std::cout << std::dec;
+        std::cout << "  " << a->getDecoder()->getName() << "  ";
+        a->getFields()->printInsn(stdout);
+        std::cout << "\n";
+        ++it;
+    }
+    std::cout << "----- END OF MAP -----\n";
 
     // Print a summary at the end of execution.
     repContext->printSummary(stdout);
@@ -410,7 +439,6 @@ int main(int argc, char** argv) {
     free(tempInsn);
    
     Architecture::destroy();
-    Alias::destroy();
     Options::destroy();
     Decoder::destroyAllDecoders();
     return 0;

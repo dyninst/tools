@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include "Alias.h"
+#include <vector>
 #include "FieldList.h"
 #include "RegisterSet.h"
 
@@ -13,6 +13,7 @@ namespace Architecture {
     void init(const char* arch);
     void replaceRegSets(FieldList& fl);
     void destroy();
+    const char* getOpcode(FieldList& fl);
 }
 
 #endif /* _ARCHITECTURE_H_ */

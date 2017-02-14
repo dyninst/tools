@@ -29,9 +29,10 @@ void makeIndexesDecimal(char* buf, int bufLen) {
     char* tmpStart = &tmp[0];
     char* cur = buf;
     while (*cur) {
-        if (/**cur == '}' &&*/ *(cur + 1) && *(cur + 1) == '[' && 
-                           *(cur + 2) && *(cur + 2) == '0' && 
-                           *(cur + 3) && *(cur + 3) == 'x') {
+        if (*(cur + 1) && *(cur + 1) == '[' && 
+            *(cur + 2) && *(cur + 2) == '0' && 
+            *(cur + 3) && *(cur + 3) == 'x') {
+            
             cur += 2;
             char* place = cur;
             char* digitsEnd = NULL;
@@ -42,35 +43,6 @@ void makeIndexesDecimal(char* buf, int bufLen) {
         }
         cur++;
     }
-}
-
-void makeHexConstantsPositive(char* buf, int bufLen) {
-
-    char tmp[bufLen];
-    char* tmpStart = &tmp[0];
-
-    char* place = buf;
-    char* cur = buf;
-    while (*cur) {
-        if (*cur == '-' && *(cur + 1) && *(cur + 1) == '0' && 
-                           *(cur + 2) && *(cur + 2) == 'x') {
-            
-            char* digitsEnd = NULL;
-            long long int val = strtoll(cur, &digitsEnd, 16);
-            strcpy(tmpStart, digitsEnd);
-            *place = '0';
-            place++;
-            *place = 'x';
-            place++;
-            int nDigits = snprintf(place, bufLen - (place - buf), "%llx", val);
-            place += nDigits;
-            cur = tmpStart;
-        }
-        *place = *cur;
-        place++;
-        cur++;
-    }
-    *place = '\0';
 }
 
 csh makeAarch64CSHandle() {
@@ -99,16 +71,5 @@ int capstone_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void capstone_aarch64_norm(char* buf, int bufLen) {
-    //removePounds(buf, bufLen);
-    //removeExtraZeroesFromFmovImm(buf, bufLen);
-    //decToHexConstants(buf, bufLen);
     makeIndexesDecimal(buf, bufLen);
-    /*makeHexConstantsPositive(buf, bufLen);
-    aliasMovz(buf, bufLen);
-    aliasMovn(buf, bufLen);
-    aliasIns(buf, bufLen);
-    trimHexFs(buf, bufLen);
-    trimHexZeroes(buf, bufLen);
-    removeADRPZeroes(buf, bufLen);
-    */
 }

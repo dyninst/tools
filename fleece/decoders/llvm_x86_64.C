@@ -51,7 +51,6 @@ int llvm_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
 void llvm_x86_64_norm(char* buf, int bufLen) {
     cleanSpaces(buf, bufLen);
-    //decToHexConstants(buf, bufLen);
     trimHexFs(buf, bufLen);
     trimHexZeroes(buf, bufLen);
 }

@@ -2,9 +2,9 @@
 #define _REPORTING_CONTEXT_H_
 
 #include <list>
+#include <map>
 #include <queue>
 #include <vector>
-#include "Alias.h"
 #include "Architecture.h"
 #include "Assembly.h"
 #include "FieldList.h"

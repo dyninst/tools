@@ -60,9 +60,6 @@ int gnu_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void gnu_ppc_norm(char* buf, int bufLen) {
-  
-    // NORMALIZATION STEPS
-    
     toLowerCase(buf, bufLen);
     cleanSpaces(buf, bufLen);
     spaceAfterCommas(buf, bufLen);

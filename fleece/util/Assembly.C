@@ -50,6 +50,7 @@ Assembly::Assembly(const char* bytes, size_t nBytes, Decoder* decoder) {
     this->bytes = new char[nBytes];
     memcpy(this->bytes, bytes, nBytes);
     this->decoder = decoder;
+    this->nAsmBytes = 0;
 }
 
 Assembly::~Assembly() {
@@ -175,6 +176,10 @@ void Assembly::makeString() {
     if (decError) {
         strncpy(decStr, "decoding_error", DECODING_BUFFER_SIZE);
     }
+    makeFieldList();
+    if (fields->hasError()) {
+        decError = true;
+    }
 }
 
 void Assembly::makeTemplate() {
@@ -195,6 +200,10 @@ void Assembly::makeTemplate() {
 void Assembly::makeAsmResult() {
     if (decStr == NULL) {
         makeString();
+    }
+    if (isError()) {
+        asmResult = ASM_RESULT_NONE;
+        return;
     }
     asmError = new char[REASM_ERROR_BUF_LEN];
     asmBytes = new char[Architecture::maxInsnLen];
@@ -230,5 +239,52 @@ void Assembly::invalidate() {
     if (fields != NULL) {
         delete fields;
         fields = NULL;
+    }
+}
+
+void Assembly::printDebug() {
+    std::cout << "-- ASM Debug --\n";
+    std::cout << "Decoder = " << decoder->getName() << "\n";
+    std::cout << nBytes << " bytes: ";
+    std::cout << std::hex << std::setw(2);
+    for (size_t i = 0; i < nBytes; i++) {
+        std::cout << (unsigned int)(unsigned char)bytes[i] << " ";
+    }
+    std::cout << std::dec << "\n";
+
+    std::cout << "Decoding:\n";
+    if (decStr == NULL) {
+        std::cout << "NULL\nError = N/A\n";
+    } else {
+        std::cout << decStr << "\nError = " << (decError ? "yes\n" : "no\n");
+    }
+
+    std::cout << "Fields: \n";
+    if (fields == NULL) {
+        std::cout << "\tNULL\n";
+    } else {
+        fields->print(stdout);
+    }
+    std::cout << "\n";
+    
+    std::cout << "Template:\n";
+    if (templateStr == NULL) {
+        std::cout << "\tNULL\n";
+    } else {
+        std::cout << "\t" << templateStr << "\n";
+    }
+
+    std::cout << "Reassembly: " << asmResult << "\n";
+    if (asmBytes == NULL && asmError == NULL) {
+        std::cout << "\tNULL\n";
+    } else if (asmBytes != NULL) {
+        std::cout << nAsmBytes << "\tbytes: ";
+        std::cout << std::hex << std::setw(2);
+        for (size_t i = 0; i < nAsmBytes; i++) {
+            std::cout << (unsigned int)(unsigned char)asmBytes[i] << " ";
+        }
+        std::cout << std::dec << "\n";
+    } else {
+        std::cout << "\tError: " << asmError << "\n";
     }
 }

@@ -113,3 +113,12 @@ bool Report::isEquivalent(Report* r) {
 
     return true;
 }
+
+void Report::printDebug() {
+    std::cout << "-- REPORT DEBUG --\n";
+    for (auto it = asmList.begin(); it != asmList.end(); ++it) {
+        std::cout << "ASM:\n" << "\n";
+        (*it)->printDebug();
+        std::cout << "\n";
+    }
+}

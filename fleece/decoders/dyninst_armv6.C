@@ -19,7 +19,6 @@
 */
 
 #include <assert.h>
-#include "Alias.h"
 #include "Decoder.h"
 #include "InstructionDecoder.h"
 #include "Normalization.h"

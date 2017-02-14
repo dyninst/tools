@@ -22,6 +22,8 @@
 
 #include <assert.h>
 #include <cstring>
+#include <iomanip>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -52,7 +54,7 @@ public:
 
     void flipBit(size_t whichBit);
     void setBit(size_t whichBit, int newValue);
-
+    void printDebug();
 private:
     bool decError;
 

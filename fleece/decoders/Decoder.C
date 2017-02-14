@@ -213,6 +213,10 @@ int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen) {
                                    (endTime.tv_nsec - startTime.tv_nsec);
  
     curDecoder = NULL;
+
+    if (!strcmp(buf, "")) {
+        strncpy(buf, "empty_decoding", bufLen);
+    }
     
     if (norm) {
         normalize(buf, bufLen);
@@ -230,10 +234,14 @@ const char* Decoder::getName(void) {
 }
 
 int Decoder::getNumBytesUsed(char* inst, int nBytes) {
+    std::cerr << "DEPRECATED Decoder::getNumBytesUsed\n";
+    exit(-1);
+    /*
     MappedInst* mInst = new MappedInst(inst, nBytes, this);
     int nUsed = mInst->getNumUsedBytes();
     delete mInst;
     return nUsed;
+    */
 }
 
 unsigned long Decoder::getTotalDecodeTime() {

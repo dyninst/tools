@@ -16,10 +16,16 @@
 #include "Options.h"
 #include "StringUtils.h"
 
-#define REASM_FILENAME "tmp_asm_file_2465254685.s"
+#define REASM_FILENAME "/tmp/tmp.s"
 #define REASM_BUF_LEN 256
 #define REASM_ERROR_BUF_LEN 256
 #define BYTE_COLON_COUNT 4
+
+enum AsmResult { 
+    ASM_RESULT_NONE = 'N', 
+    ASM_RESULT_ERROR = 'E', 
+    ASM_RESULT_SAME = 'S', 
+    ASM_RESULT_DIFFERENT = 'D' };
 
 char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp, 
     const char* tmpname, char* byteBuf, int bufLen, int* outputLen,

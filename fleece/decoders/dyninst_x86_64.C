@@ -18,44 +18,31 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include "InstructionDecoder.h"
-#include "StringUtils.h"
-#include <string>
 #include <iomanip>
+#include <string>
+#include "InstructionDecoder.h"
+#include "Normalization.h"
+#include "StringUtils.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
 
 void dyninst_x86_64_norm(char* buf, int bufLen) {
-   char* cur = buf;
-   char* replace = buf;
-   bool inSpace = true;
-   while (*cur) {
-      if (isspace(*cur)) {
-         if (!inSpace) {
-            inSpace = true;
-            *replace = ' ';
-            replace++;
-         }
-      } else {
-         inSpace = false;
-         if (isupper(*cur)) {
-            *replace = *cur + 32 ;
-         } else {
-            *replace = *cur;
-         }
-         replace++;
-      }
-      cur++;
-   }
-   *replace = *cur;
- 
+    toLowerCase(buf, bufLen);
+    cleanSpaces(buf, bufLen);
 }
 
 int dyninst_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-   InstructionDecoder d(inst, nBytes, Arch_x86_64);
+   if (nBytes < 1) {
+      return -1;
+   }
+
+   InstructionDecoder d = InstructionDecoder(inst, nBytes, Arch_x86_64);
    Instruction::Ptr p = d.decode();
-   strncpy(buf, p->format().c_str(), bufLen);
+   InstructionAPI::Instruction* insn_ptr = p.get();
+   assert(insn_ptr);
+
+   strncpy(buf, insn_ptr->format().c_str(), bufLen);
    return 0;
 }

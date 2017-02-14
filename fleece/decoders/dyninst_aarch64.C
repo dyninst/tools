@@ -19,7 +19,6 @@
 */
 
 #include <assert.h>
-#include "Alias.h"
 #include "Decoder.h"
 #include "InstructionDecoder.h"
 #include "Normalization.h"
@@ -28,83 +27,16 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
-bool hasShiftedConstant(char* buf, int bufLen) {
-   return !strncmp(buf, "stp", 3)  ||
-          !strncmp(buf, "stnp", 4) ||
-          !strncmp(buf, "ldp", 3)  ||
-          !strncmp(buf, "ldnp", 4);
-}
-
-void formatShiftedConstants(char* buf, int bufLen) {
-   if (!hasShiftedConstant(buf, bufLen)) {
-      return;
-   }
-
-   //std::cout << "Converted: " << buf << "\n";
-   
-   int commaCount = 0;
-   char* cur = buf;
-   while(*cur && commaCount < 3) {
-      if (*cur == ',') {
-         commaCount++;
-      }
-      cur++;
-   }
-   
-   for (int i = 0; i < 3; i++) {
-      if (!*cur) {
-         return;
-      }
-      cur++;
-   }
-
-   //std::cout << "Hex string starts as: " << cur << "\n";
-
-   char* hexStart = cur;
-   bool isSigned = false;
-   if (*hexStart == 'f' && *(hexStart + 1) != ' ' && *(hexStart + 2) != ' ') {
-      isSigned = true;
-   }
-
-   while (*cur && *cur != ',') {
-      cur++;
-   }
-
-   *cur = 0;
-   cur++;
-
-   for (int i = 0; i < 7; i++) {
-      if (!*cur) {
-         return;
-      }
-      cur++;
-   }
-   
-   // If the value wasn't signed, replace the old value in place with the new
-   // one.
-   if (!isSigned) {
-      shiftHex(hexStart, getCharHexVal(*cur), hexStart, buf + bufLen - hexStart);
-   } else {
-      // Since the value was signed, we'll want to remove the first character
-      // because it is really overflow from the signed representation. We will
-      // write the hex vale back one place sooner and overwrite the first
-      // character with the 'x' from the leading '0x'.
-      
-      shiftHex(hexStart, getCharHexVal(*cur), hexStart - 1, buf + bufLen - hexStart + 1);
-      *(hexStart - 1) = 'x';
-
-   }
-   //std::cout << "\t" << buf << "\n";
-
-}
-
 int dyninst_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-   //static ArmFormatter* formatter = new ArmFormatter();
-
+   if (nBytes <= 0) {
+      return -1;
+   }
+   
    if (isAarch64SysRegInsn(inst, nBytes, buf, bufLen)) {
       return 0;
    }
+
    
    InstructionDecoder d(inst, nBytes, Arch_aarch64);
    Instruction::Ptr p = d.decode();
@@ -114,101 +46,9 @@ int dyninst_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void dyninst_aarch64_norm(char* buf, int bufLen) {
-
    toLowerCase(buf, bufLen);
-   
-   //removeCharacter(buf, bufLen, ']');
-   //removeCharacter(buf, bufLen, '[');
-   /*
-   removeTrailing(buf, bufLen, ", pstate");
-   removeTrailing(buf, bufLen, ", pc");
-   removeFirst(buf, bufLen, "pc + ");
-   replaceStr(buf, bufLen, " <<", ", lsl");
-   replaceStr(buf, bufLen, " +", ",");
-   removeHexBrackets(buf, bufLen);
-   place0x(buf, bufLen);
-   formatShiftedConstants(buf, bufLen);
-   trimHexFs(buf, bufLen);
-   removeADRPZeroes(buf, bufLen);
-   removeTrailing(buf, bufLen, ", lsl 0x0");
-   replaceStr(buf, bufLen, " asr", ", asr");
-   replaceStr(buf, bufLen, " lsr", ", lsr");
-   replaceStr(buf, bufLen, " ror", ", ror");
-   
-   buf[bufLen - 1] = 0;
-   */
-}
-
-void aliasRegisterSet(const char* prefix1, const char* suffix1, const char* prefix2, const char* suffix2) {
-   int plen1 = strlen(prefix1);
-   int plen2 = strlen(prefix2);
-   
-   char* str1 = (char*)malloc(32 + plen1 + strlen(suffix1));
-   char* str2 = (char*)malloc(32 + plen2 + strlen(suffix2));
-
-   assert(str1 != NULL && str2 != NULL);
-
-   strcpy(str1, prefix1);
-   strcpy(str2, prefix2);
-
-   strcpy(str1 + plen1 + 1, suffix1);
-   strcpy(str2 + plen2 + 1, suffix2);
-
-   for (str1[plen1] = '0'; str1[plen1] <= '9'; str1[plen1]++) {
-      str2[plen2] = str1[plen1];
-      Alias::addAlias(str1, str2);
-   }
-
-   strcpy(str1 + plen1 + 2, suffix1);
-   strcpy(str2 + plen2 + 2, suffix2);
-
-   for(str1[plen1] = '1'; str1[plen1] <= '3'; str1[plen1]++) {
-      for (str1[plen1 + 1] = '0'; str1[plen1 + 1] <= '9'; str1[plen1 + 1]++) {
-         str2[plen2] = str1[plen1];
-         str2[plen2 + 1] = str1[plen1 + 1];
-         Alias::addAlias(str1, str2);
-      }
-   }
-
-   free(str1);
-   free(str2);
 }
 
 int dyninst_aarch64_init(void) {
-
-   /*
-   aliasRegisterSet("hq", "", "v", ".2");
-   aliasRegisterSet("hq", ",", "v", ".2,");
-   aliasRegisterSet("hq", "", "v", ".2d");
-   aliasRegisterSet("hq", ",", "v", ".2d,");
-   aliasRegisterSet("hq", "", "v", ".4s");
-   aliasRegisterSet("hq", ",", "v", ".4s,");
-   aliasRegisterSet("hq", "", "v", ".8h");
-   aliasRegisterSet("hq", ",", "v", ".8h,");
-   aliasRegisterSet("hq", "", "v", ".16b");
-   aliasRegisterSet("hq", ",", "v", ".16b,");
-   
-   aliasRegisterSet("q", "", "v", ".2");
-   aliasRegisterSet("q", ",", "v", ".2,");
-   aliasRegisterSet("q", "", "v", ".2d");
-   aliasRegisterSet("q", ",", "v", ".2d,");
-   aliasRegisterSet("q", "", "v", ".4s");
-   aliasRegisterSet("q", ",", "v", ".4s,");
-   aliasRegisterSet("q", "", "v", ".8h");
-   aliasRegisterSet("q", ",", "v", ".8h,");
-   aliasRegisterSet("q", "", "v", ".16b");
-   aliasRegisterSet("q", ",", "v", ".16b,");
-
-   aliasRegisterSet("d", "", "v", ".1d");
-   aliasRegisterSet("d", ",", "v", ".1d,");
-   aliasRegisterSet("d", "", "v", ".2s");
-   aliasRegisterSet("d", ",", "v", ".2s,");
-   aliasRegisterSet("d", "", "v", ".4h");
-   aliasRegisterSet("d", ",", "v", ".4h,");
-   aliasRegisterSet("d", "", "v", ".8b");
-   aliasRegisterSet("d", ",", "v", ".8b,");
-
-   */
-
-       return 0;
+    return 0;
 }

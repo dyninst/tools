@@ -22,21 +22,6 @@
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
-void removeRegLetters(char* buf, int bufLen) {
-    char* place = buf;
-    char* cur = buf;
-
-    while(*cur) {
-        if ((*cur == 'f' || *cur == 'r') && isdigit(*(cur + 1))) {
-            cur++;
-        }
-        *place = *cur;
-        place++;
-        cur++;
-    }
-    *place = *cur;
-}
-
 csh makePpcCsHandle() {
     csh handle;
     if (cs_open(CS_ARCH_PPC, CS_MODE_BIG_ENDIAN, &handle) != CS_ERR_OK) {
@@ -63,5 +48,4 @@ int capstone_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void capstone_ppc_norm(char* buf, int bufLen) {
-    removeRegLetters(buf, bufLen);
 }

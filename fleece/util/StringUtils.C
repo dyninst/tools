@@ -29,6 +29,8 @@
  */
 bool signalsError(const char* token) {
    bool retval =  (
+      !strcmp(token, "llvm_decoding_error")  ||
+      !strcmp(token, "empty_decoding")  ||
       !strcmp(token, "decoding_error")  ||
       !strcmp(token, "no_entry")        ||
       !strcmp(token, "No_Entry")        ||
@@ -41,6 +43,7 @@ bool signalsError(const char* token) {
       !strcmp(token, "nyi")             ||
       !strcmp(token, "invalid")         ||
       !strcmp(token, ".long")           ||
+      !strcmp(token, "long")            ||
       !strcmp(token, ".byte")           ||
       !strcmp(token, "%?")              ||
       !strcmp(token, "would_sig")
@@ -453,30 +456,34 @@ void writeStrToFile(const char* filename, long offset, char* str) {
 }
 
 std::string asmErrorToFilename(const char* asmError) {
-    char buf[strlen(asmError) + 1];
+    std::string endChars = ";:`'\"\n";
+    int nameLen = strlen(asmError) + 1;
+    if (nameLen > MAX_ERROR_FILENAME_LENGTH) {
+        nameLen = MAX_ERROR_FILENAME_LENGTH;
+    }
+    const char* endPtr = asmError + nameLen;
+    char buf[nameLen];
     char* place = &buf[0];
     const char* cur = asmError;
     bool inQuotes = false;
     while (isspace(*cur)) {
         cur++;
     }
-    while (*cur) {
-        if (*cur == '`') {
-            inQuotes = true;
-        } else if (*cur == '\'') {
-            inQuotes = false;
-        }
-        if (!inQuotes) {
-            if (*cur == '\'') {
-                *place = 'X';
-            } else if (*cur == ' ' || *cur == '/') {
+    while (*cur && cur < endPtr) {
+        if (endChars.find(*cur) == std::string::npos) {
+            if (isspace(*cur)) { 
                 *place = '_';
             } else {
                 *place = *cur;
             }
-            place++;
+            ++place;
+        } else {
+            *place = '\0';
+            if (*(place - 1) == '_') {
+                *(place - 1) = '\n';
+            }
         }
-        cur++;
+        ++cur;
     }
     *place = '\0';
 

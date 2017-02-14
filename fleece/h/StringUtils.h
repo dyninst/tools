@@ -20,6 +20,8 @@
 #ifndef _MYSTRING_H_
 #define _MYSTRING_H_
 
+#define MAX_ERROR_FILENAME_LENGTH 32
+
 #include <assert.h>
 #include <cstring>
 #include <stdio.h>
@@ -29,10 +31,24 @@
 #include <time.h>
 #include <unistd.h>
 
+
 namespace StringUtils {
     struct str_cmp {
         bool operator()(const char* a, const char* b) const {
             return std::strcmp(a, b) < 0;
+        }
+    };
+    
+    struct str_eq {
+        bool operator()(const char* a, const char* b) const {
+            return std::strcmp(a, b) == 0;
+        }
+    };
+
+
+    struct str_hash {
+        std::size_t operator()(const char* k) const {
+            return std::hash<std::string>()(std::string(k));
         }
     };
 }
