@@ -456,7 +456,7 @@ void writeStrToFile(const char* filename, long offset, char* str) {
 }
 
 std::string asmErrorToFilename(const char* asmError) {
-    std::string endChars = ";:`'\"\n";
+    std::string endChars = "/;:`'\"\n()";
     int nameLen = strlen(asmError) + 1;
     if (nameLen > MAX_ERROR_FILENAME_LENGTH) {
         nameLen = MAX_ERROR_FILENAME_LENGTH;
@@ -486,6 +486,13 @@ std::string asmErrorToFilename(const char* asmError) {
         ++cur;
     }
     *place = '\0';
+
+    if (*buf == '\0') {
+        std::cout << "NO ERROR MESSAGE!\n";
+        std::cout << asmError << std::endl;
+        exit(-1);
+        return std::string("no_message");
+    }
 
     return std::string(buf);
 }
