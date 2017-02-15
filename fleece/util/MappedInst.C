@@ -455,19 +455,70 @@ void MappedInst::mapBitTypes() {
     #ifdef COUNTING_OPCODE_COMBOS
 
     MappedInst* storedMap = new MappedInst(this);
+    bool operandUse[nBits];
+
     for (size_t i = 0; i < nBits; ++i) {
-        if (map->isOpcodeBit(i) == (char)107) {
-            std::cerr << "Found unset upcode bit! (i = " << i << ")\n";
+        operandUse[i] = false;
+    }
+
+    #endif
+
+    for (i = 0; i < nBits; i++) {
+        if (map->getBitType(i) == BIT_TYPE_UNUSED        ||
+            map->getBitType(i) == BIT_TYPE_SWITCH        ||
+            map->getBitType(i) == BIT_TYPE_CAUSED_ERROR  ||
+            map->isBitConfirmedImm(i)) {
+
+            continue;
+        }
+
+        flipBufferBit(bytes, i);
+        SimpleInsnMap newMap = SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
+        if (!map->isMapEquivalent(newMap)) {
+            map->overrideBitType(i, BIT_TYPE_SWITCH);
+        }
+        
+        #ifdef COUNTING_OPCODE_COMBOS
+        if (!map->isOpcodeBit(i)) {
+            for (size_t j = 0; j < nBits; ++j) {
+                if (newMap.getBitType(j) >= 0) {
+                    operandUse[j] = true;
+                }
+            }
+        }
+        #endif
+        
+        flipBufferBit(bytes, i);
+    }
+
+    #ifdef COUNTING_OPCODE_COMBOS
+
+    //std::cout << "Operand use map: ";
+
+    for (size_t i = 0; i < nBits; ++i) {
+
+        /*
+        if (operandUse[i]) {
+            std::cout << "O";
+        } else {
+            std::cout << "*";
+        }
+        */
+
+        if (storedMap->map->isOpcodeBit(i) == (char)107) {
+            std::cerr << "Found unset upcode bit! (i = " << i << ")" << std::endl;
             exit(-1);
         }
-        if (map->isOpcodeBit(i)) {
+        if (storedMap->map->isOpcodeBit(i)) {
             storedMap->map->overrideBitType(i, BIT_TYPE_SWITCH);
-        } else if (map->getBitType(i) == BIT_TYPE_CAUSED_ERROR) {
+        } else if (storedMap->map->getBitType(i) == BIT_TYPE_CAUSED_ERROR && !operandUse[i]) {
             storedMap->map->overrideBitType(i, BIT_TYPE_SWITCH);
         } else {
             storedMap->map->overrideBitType(i, 0);
         }
     }
+
+    //std::cout << std::endl;
     
     bool mapWasNew = false;
     if (!storedMap->isError && !storedMap->fields->hasError() && MappedInst::uniqueMaps.count(storedMap) == 0) {
@@ -497,29 +548,12 @@ void MappedInst::mapBitTypes() {
         storedMap->getFields()->printInsn(stdout);
         std::cout << "\n";
     }
-   
-
+  
     if (!mapWasNew) {
         delete storedMap;
     }
 
     #endif
-
-    for (i = 0; i < nBits; i++) {
-        if (map->getBitType(i) == BIT_TYPE_UNUSED ||
-            map->getBitType(i) == BIT_TYPE_SWITCH ||
-            map->isBitConfirmedImm(i)) {
-
-            continue;
-        }
-
-        flipBufferBit(bytes, i);
-        SimpleInsnMap newMap = SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
-        if (!map->isMapEquivalent(newMap)) {
-            map->overrideBitType(i, BIT_TYPE_SWITCH);
-        }
-        flipBufferBit(bytes, i);
-    }
 }
 
 void setInstructionBitVector(char* inst, int* bitPositions, unsigned int nBit, int value) {
