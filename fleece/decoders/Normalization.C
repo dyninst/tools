@@ -1,27 +1,30 @@
 
+#include <iostream>
+
 #include "Normalization.h"
 
 bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen) {
-   if (nBytes >= 4 && inst[3] == (char)0xD5) {
+   
+    if (inst[3] == (char)0xD5) {
       
-      if ((inst[2] & 0xF0) == 0x30 ||
-          (inst[2] & 0xF0) == 0x10) {
+        if ((inst[2] & 0xF0) == (char)0x30 ||
+            (inst[2] & 0xF0) == (char)0x10) {
          
-         strncpy(buf, "MOVE SYSTEM REGISTER", bufLen);
-         buf[bufLen - 1] = 0;
-         return true;
+            strncpy(buf, "MOVE SYSTEM REGISTER", bufLen);
+            buf[bufLen - 1] = 0;
+            return true;
 
-      } else if ((inst[2] & 0xF8) == 0x00 &&
-                 (inst[1] & 0xF0) == 0x40 &&
-                 (inst[0] & 0x1F) == 0x1F) {
+        } else if ((inst[2] & 0xF8) == (char)0x00 &&
+                   (inst[1] & 0xF0) == (char)0x40 &&
+                   (inst[0] & 0x1F) == (char)0x1F) {
 
-         strncpy(buf, "MOVE SYSTEM REGISTER", bufLen);
-         buf[bufLen - 1] = 0;
-         return true;
+            strncpy(buf, "MOVE SYSTEM REGISTER", bufLen);
+            buf[bufLen - 1] = 0;
+            return true;
       
-      }
-   }
-   return false;
+        }
+    }
+    return false;
 }
 
 void cleanSpaces(char* buf, int bufLen) {
