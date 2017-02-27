@@ -456,20 +456,41 @@ void writeStrToFile(const char* filename, long offset, char* str) {
 }
 
 std::string asmErrorToFilename(const char* asmError) {
-    std::string endChars = "/;:`'\"\n()";
+    std::string endChars = "[]{}\\/;:`'\"\n()";
     int nameLen = strlen(asmError) + 1;
     if (nameLen > MAX_ERROR_FILENAME_LENGTH) {
         nameLen = MAX_ERROR_FILENAME_LENGTH;
     }
-    const char* endPtr = asmError + nameLen;
     char buf[nameLen];
     char* place = &buf[0];
+    const char* endPtr = place + nameLen;
     const char* cur = asmError;
-    bool inQuotes = false;
     while (isspace(*cur)) {
         cur++;
     }
-    while (*cur && cur < endPtr) {
+    bool done = false;
+    while (!done && *cur && place < endPtr) {
+
+        if (*cur == '`' || *cur == '\'') {
+            
+            ++cur;
+            while (*cur && *cur != '\'' && *cur != '`') {
+                ++cur;
+            }
+            if (*cur == '\'') {
+                ++cur;
+            }
+            if (isspace(*cur)) {
+                ++cur;
+            }
+        }
+
+        if (*cur == '0' && *(cur + 1) == 'x') {
+            while(!isspace(*cur)) {
+                ++cur;
+            }
+        }
+
         if (endChars.find(*cur) == std::string::npos) {
             if (isspace(*cur)) { 
                 *place = '_';
@@ -482,6 +503,7 @@ std::string asmErrorToFilename(const char* asmError) {
             if (*(place - 1) == '_') {
                 *(place - 1) = '\n';
             }
+            done = true;
         }
         ++cur;
     }
