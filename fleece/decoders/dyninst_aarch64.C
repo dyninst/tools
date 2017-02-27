@@ -29,20 +29,19 @@ using namespace InstructionAPI;
 
 int dyninst_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
-   if (nBytes <= 0) {
-      return -1;
-   }
+    if (nBytes <= 0) {
+        return -1;
+    }
    
-   if (isAarch64SysRegInsn(inst, nBytes, buf, bufLen)) {
-      return 0;
-   }
-
+    if (isAarch64SysRegInsn(inst, nBytes, buf, bufLen)) {
+        return 0;
+    }
    
-   InstructionDecoder d(inst, nBytes, Arch_aarch64);
-   Instruction::Ptr p = d.decode();
-   strncpy(buf, p->format().c_str(), bufLen);
+    InstructionDecoder d(inst, nBytes, Arch_aarch64);
+    Instruction::Ptr p = d.decode();
+    strncpy(buf, p->format().c_str(), bufLen);
 
-   return 0;
+    return 0;
 }
 
 void dyninst_aarch64_norm(char* buf, int bufLen) {
