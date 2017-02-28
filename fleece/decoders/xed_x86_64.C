@@ -35,7 +35,8 @@ extern "C" {
 #define XED_ADDRESS_WIDTH XED_ADDRESS_WIDTH_64b
 
 int xedInit(void) {
-   xed_tables_init(); 
+   xed_tables_init();
+   return 0;
 }
 
 void fixStRegs(char* buf, int bufLen) {
@@ -190,7 +191,6 @@ void fixVexTrailingX(char* buf, int bufLen) {
 
 void fixExtraOpcodeDressing(char* buf, int bufLen) {
     if (strstr(buf, "sd") != NULL) {
-        replaceStr(buf, bufLen, "sdq ", "sd ");
         replaceStr(buf, bufLen, "sdl ", "sl ");
     }
     if (strstr(buf, "ps") != NULL) {
@@ -198,13 +198,21 @@ void fixExtraOpcodeDressing(char* buf, int bufLen) {
         replaceStr(buf, bufLen, "psx ", "ps ");
         replaceStr(buf, bufLen, "psy ", "ps ");
     }
+    if (strstr(buf, "pd") != NULL) {
+        replaceStr(buf, bufLen, "pdz ", "pd ");
+    }
+  
+    replaceStr(buf, bufLen, "bq ", "b ");
+    replaceStr(buf, bufLen, "wl ", "w ");
+    replaceStr(buf, bufLen, "wq ", "w ");
+    replaceStr(buf, bufLen, "wz ", "w ");
+    replaceStr(buf, bufLen, "dl ", "d ");
+    replaceStr(buf, bufLen, "dq ", "d ");
+    replaceStr(buf, bufLen, "dy ", "d ");
+    replaceStr(buf, bufLen, "qq ", "q ");
+    replaceStr(buf, bufLen, "qz ", "q ");
 
-    replaceStr(buf, bufLen, "fqq", "fq");
-    replaceStr(buf, bufLen, "sbb", "sb");
     replaceStr(buf, bufLen, "sww", "sw");
-    replaceStr(buf, bufLen, "wdy ", "wd ");
-    replaceStr(buf, bufLen, "sqq ", "sq ");
-    replaceStr(buf, bufLen, "pdy ", "pd ");
     replaceStr(buf, bufLen, "sxd ", "slq ");
     replaceStr(buf, bufLen, "iretd", "iretl");
 
