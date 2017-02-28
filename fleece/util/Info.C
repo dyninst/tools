@@ -36,37 +36,51 @@ details.\n\n\
 You should have received a copy of the GNU Lesser General Public License\n\
 along with this software; if not, see www.gnu.org/licenses\n\n";
 
-   std::cout << "DATA:\n";
-   std::cout << "\n  byte_source | ./fleece\n";
-   std::cout << "    To pipe bytes from a file or program into fleece\n";
-   std::cout << "\n  -rand\n";
-   std::cout << "    Generate instructions randomly.\n";
-   std::cout << "\n  -n=n\n";
-   std::cout << "    To generate a set number of random instructions\n";
-   std::cout << "\n  -len=n\n";
-   std::cout << "    To specify the number of bytes per instruction. Note: decoders use a number of bytes specific to the instruction or architecture.\n";
-   std::cout << "\n\nOUTPUT & REPORTING:\n";
-   std::cout << "\n  -o=output_filename\n";
-   std::cout << "    (MANDATORY) To set the output file.\n";
-   std::cout << "\n  -m=matched output filename\n";
-   std::cout << "    Outputs matched instructions to this file.\n";
-   std::cout << "\n  -t\n";
-   std::cout << "    Shows timing information at the end of execution\n";
-   std::cout << "\n  -norm\n";
-   std::cout << "    Normalizes the output of decoders. (work in progress).\n";
-   std::cout << "\n  -bytes\n";
-   std::cout << "    Prints the raw bytes of an instruction.\n";
-   std::cout << "\n  -seed=n\n";
-   std::cout << "    Specifies the seed for random instruction generation.\n";
-   std::cout << "\n  -show\n";
-   std::cout << "    Prints the results of each decoding to stdout.\n";
-   std::cout << "\n\nOPTIONS:\n";
-   std::cout << "\n  -arch=\n";
-   std::cout << "    (MANDATORY) x84_64 or Aarch64\n";
-   std::cout << "\n  -decoders=decoder1,decoder2\n";
-   std::cout << "    (MANDATORY) choose from: xed, dyninst, llvm, gnu\n\n";
+    std::cout << "Example usage:\n";
+    std::cout << "./fleece -as=/usr/bin/as -objdump=/usr/bin/objdump -norm -n=10 -arch=x86_64 -decoders=xed,gnu\n";
+    std::cout << "\nFleece arguments:\n";
+
+
+    std::cout << "\nDATA:\n";
+    std::cout << "\n  byte_source | ./fleece\n";
+    std::cout << "    To pipe bytes from a file or program into fleece\n";
+    std::cout << "\n  -rand\n";
+    std::cout << "    Use only random instructions, do not generate extra inputs.\n";
+    std::cout << "\n  -n=n\n";
+    std::cout << "    Generate n random byte sequences to begin input generation.\n";
+    std::cout << "\n  -len=n\n";
+    std::cout << "    Length of each instruction. Shorter instructions should be padded to this length\n";
+   
+    std::cout << "\n\nOPTIONS:\n";
+    std::cout << "\n  -arch=architecture\n";
+    std::cout << "    (MANDATORY) choose from: x84_64, aarch64, ppc\n";
+    std::cout << "\n  -decoders=decoder1,decoder2\n";
+    std::cout << "    (MANDATORY) choose from: xed, dyninst, llvm, gnu, capstone\n\n";
+  
+    std::cout << "\n\nREASSEMBLY:\n";
+    std::cout << "\n  -as=/absolute/path/to/assembler (MANDATORY)\n";
+    std::cout << "\n  -asopt=comma sep list of assembler options\n";
+    std::cout << "    ex. -asopt=-mregname,-mpower9\n";
+    std::cout << "\n  -asf=/abosulte/path/to/temporary/asm/file\n";
+    std::cout << "    default: /tmp/tmp.s\n";
+    std::cout << "\n  -objdump=/absolute/path/to/objdump (MANDATORY)\n";
+
+    std::cout << "\n\nOUTPUT & REPORTING:\n";
+    std::cout << "\n  -o=output_dir\n";
+    std::cout << "    The directory where output shoul be place (relative or absolute).\n";
+    std::cout << "    default: ./fleece_results/\n";
+    std::cout << "\n  -t\n";
+    std::cout << "    Shows timing information at the end of execution\n";
+    std::cout << "\n  -norm\n";
+    std::cout << "    Normalizes the output of decoders partially. Assembly detects other equivalences.\n";
+    std::cout << "\n  -bytes\n";
+    std::cout << "    Prints the raw bytes of an instruction before decoding.\n";
+    std::cout << "\n  -seed=n\n";
+    std::cout << "    Specifies the seed for random instruction generation.\n";
+    std::cout << "\n  -show\n";
+    std::cout << "    Prints the results of each decoding to stdout.\n";
 }
 
 void Info::printVersion() {
-   std::cout << "Fleece version: " << FLEECE_VERSION_STRING << std::endl;
+    std::cout << "Fleece version: " << FLEECE_VERSION_STRING << std::endl;
 }

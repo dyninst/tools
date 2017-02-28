@@ -1,5 +1,16 @@
 
 #include "Reassemble.h"
+#include <iostream>
+
+// This default value can be overriden by the "-asf=" option.
+const char* REASM_FILENAME = "/tmp/tmp.s";
+
+void initReassembly() {
+    const char* reasmFilename = Options::get("-asf=");
+    if (reasmFilename != NULL) {
+        REASM_FILENAME = reasmFilename;
+    }
+}
 
 int getOptArgCount(const char* opts) {
     

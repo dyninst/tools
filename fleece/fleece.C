@@ -109,7 +109,8 @@ int main(int argc, char** argv) {
     
     // Initialize the architecture with the command line name.
     Architecture::init(archStr);
-    
+    initReassembly();
+
     // Determine the instruction length. The default value is 15 bytes.
     unsigned long insnLen = Architecture::maxInsnLen;
     const char* strInsnLen = Options::get("-len=");
