@@ -201,14 +201,23 @@ void fixExtraOpcodeDressing(char* buf, int bufLen) {
     if (strstr(buf, "pd") != NULL) {
         replaceStr(buf, bufLen, "pdz ", "pd ");
     }
+    if (strstr(buf, "prefetch") != NULL) {
+        replaceStr(buf, bufLen, "z ", " ");
+    } else if (strstr(buf, "cflush") != NULL) {
+        replaceStr(buf, bufLen, "z ", " ");
+    }
   
     replaceStr(buf, bufLen, "bq ", "b ");
+    replaceStr(buf, bufLen, "by ", "b ");
+    replaceStr(buf, bufLen, "bz ", "b ");
     replaceStr(buf, bufLen, "wl ", "w ");
     replaceStr(buf, bufLen, "wq ", "w ");
+    replaceStr(buf, bufLen, "wy ", "w ");
     replaceStr(buf, bufLen, "wz ", "w ");
     replaceStr(buf, bufLen, "dl ", "d ");
     replaceStr(buf, bufLen, "dq ", "d ");
     replaceStr(buf, bufLen, "dy ", "d ");
+    replaceStr(buf, bufLen, "dz ", "d ");
     replaceStr(buf, bufLen, "qq ", "q ");
     replaceStr(buf, bufLen, "qz ", "q ");
 
