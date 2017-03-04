@@ -25,7 +25,7 @@
 #define CONSECUTIVE_UNUSED_THRESHOLD 256
 #endif
 
-#define COUNTING_OPCODE_COMBOS
+//#define COUNTING_OPCODE_COMBOS
 
 #include <iomanip>
 #include <iostream>

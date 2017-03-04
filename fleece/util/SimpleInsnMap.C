@@ -22,7 +22,6 @@
 
 //#define DEBUG_SIMPLE_MAP
 
-
 int getBitTypeByChanges(FieldList& startFields, FieldList& newFields);
 
 SimpleInsnMap::SimpleInsnMap(SimpleInsnMap* toCopy) {
