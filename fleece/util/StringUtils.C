@@ -510,9 +510,6 @@ std::string asmErrorToFilename(const char* asmError) {
     *place = '\0';
 
     if (*buf == '\0') {
-        std::cout << "NO ERROR MESSAGE!\n";
-        std::cout << asmError << std::endl;
-        exit(-1);
         return std::string("no_message");
     }
 
