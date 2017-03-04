@@ -177,6 +177,7 @@ int gnu_x86_64_norm(char* buf, int bufLen) {
     spaceAfterCommas(buf, bufLen);
     removeRexPrinting(buf, bufLen);
     removeIzRegister(buf, bufLen);
+    removePoundComment(buf, bufLen);
     cleanSpaces(buf, bufLen);
     return 0;
 }

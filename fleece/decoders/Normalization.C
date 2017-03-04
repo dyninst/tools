@@ -348,3 +348,13 @@ void place0x(char* buf, int bufLen) {
    free(tmp);
 }
 
+void removePoundComment(char* buf, int bufLen) {
+    char* cur = buf;
+    while (*cur && *cur != '#') {
+        ++cur;
+    }
+    if (*cur == '#') {
+        *cur = '\0';
+    }
+}
+
