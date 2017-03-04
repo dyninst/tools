@@ -31,7 +31,7 @@ Bitfield* Bitfield::create(const char* str) {
     }
     bool found = (*endPtr == '\0');
 
-    // If the nubmer wasn't decimal, try hex.
+    // If the number wasn't decimal, try hex.
     if (!found) {
         val = strtoull(str, &endPtr, 16);
     }
@@ -69,7 +69,7 @@ int getValMatchLen(uint64_t val, char* bytes, int whichBit,
         int nBits) {
 
     /*
-    std::cout << "Finding match for field: " << val << "\n";
+    std::cout << "Finding match for field: " << std::hex << val << std::dec << "\n";
     std::cout << "Val = ";
     for (size_t i = 1; i <= 64; ++i) {
         if (val & ((uint64_t)0x1 << (64 - i))) {
@@ -149,12 +149,10 @@ int getValMatchLen(uint64_t val, char* bytes, int whichBit,
     if (curShift == -1) {
         return nMatched;
     }
-    return 0;
-    
-    // Below code returns matches of incorrect length.
-    /*
+   
     // Here, we match bits even if the endianness of the value and the bytes
     // are different.
+    nMatched = 0;
     for (int i = 0; i < nBits - whichBit && 8 * i < firstFlip; i++) {
         for (int j = 7; j >= 0; j--) {
             if ((bool)getBufferBit(bytes, whichBit + nMatched) == 
@@ -167,9 +165,8 @@ int getValMatchLen(uint64_t val, char* bytes, int whichBit,
         }
     }
   
-    std::cout << "nBits = " << nBits << ", whichBit = " << whichBit << "\n";
     return nMatched;
-    */
+    
 }
 
 int Bitfield::matches(char* bytes, int whichBit, int nBits) {
