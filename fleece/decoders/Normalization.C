@@ -1,6 +1,6 @@
 
 #include <iostream>
-
+#include <string.h>
 #include "Normalization.h"
 
 bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen) {
@@ -358,3 +358,42 @@ void removePoundComment(char* buf, int bufLen) {
     }
 }
 
+void addReplaceTerm(FindList& fl, const char* oldStr, const char* newStr) {
+    ReplaceParam* rParam = new ReplaceParam;
+    rParam->len = strlen(oldStr);
+    rParam->newStr = strdup(newStr);
+    fl.addTerm(oldStr, &flReplaceFunc, (void*)rParam);
+}
+
+void flReplaceFunc(char* buf, int bufLen, void* repParam) {
+    ReplaceParam* rParam = (ReplaceParam*)repParam;
+    size_t uBufLen = bufLen;
+    if (uBufLen < rParam->len) {
+        std::cerr << "ERROR: Buffer length too short for FindList replacement!\n";
+        return;
+    }
+    
+    int newLen = strlen(rParam->newStr);
+    char* place = buf + newLen;
+    char* cur = buf + rParam->len;
+    if (place < cur) {
+        while (*cur) {
+            *place = *cur;
+            ++place;
+            ++cur;
+        }
+        *place = *cur;
+    } else if (place > cur) {
+        while (*cur) {
+            ++cur;
+            ++place;
+        }
+        char* endPtr = buf + newLen;
+        while (place >= endPtr) {
+            *place = *cur;
+            --cur;
+            --place;
+        }
+    }
+    strncpy(buf, rParam->newStr, newLen);
+}

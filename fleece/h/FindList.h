@@ -89,14 +89,14 @@ public:
      * value val occuring prior to the current location (buf) will not be
      * found.
      */
-    void AddTerm(const char* val, void (*func)(char* buf, int bufLen, void* arg),
-        void* func_arg);
+    void addTerm(const char* val, void (*func)(char* buf, int bufLen, void* arg),
+        void* funcArg);
 
     /*
      * Searches through a buffer and attempts to find all of the terms in this
      * FindList.
      */
-    void Process(char* buf, int bufLen);
+    void process(char* buf, int bufLen);
 
 private:
 

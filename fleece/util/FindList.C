@@ -36,7 +36,7 @@ FindList::~FindList() {
     free(terms);
 }
     
-void FindList::AddTerm(const char* val, void (*func)(char* buf, int bufLen, void* arg), void* funcArg) {
+void FindList::addTerm(const char* val, void (*func)(char* buf, int bufLen, void* arg), void* funcArg) {
     int len = strlen(val);
     assert(len != 0);
     if (len < minStrLen) {
@@ -55,7 +55,7 @@ void FindList::AddTerm(const char* val, void (*func)(char* buf, int bufLen, void
     terms[freeIndex].len = strlen(val);
 }
     
-void FindList::Process(char* buf, int bufLen) {
+void FindList::process(char* buf, int bufLen) {
     char* cur = buf;
     char* minStrPtr = buf + minStrLen;
     while (*cur && cur < minStrPtr) {

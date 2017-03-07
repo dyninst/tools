@@ -34,6 +34,7 @@ extern "C" {
 #define XED_MACHINE_MODE XED_MACHINE_MODE_LONG_64
 #define XED_ADDRESS_WIDTH XED_ADDRESS_WIDTH_64b
 
+
 int xedInit(void) {
    xed_tables_init();
    return 0;
@@ -189,41 +190,38 @@ void fixVexTrailingX(char* buf, int bufLen) {
     }
 }
 
-void fixExtraOpcodeDressing(char* buf, int bufLen) {
-    if (strstr(buf, "sd") != NULL) {
-        replaceStr(buf, bufLen, "sdl ", "sl ");
-    }
-    if (strstr(buf, "ps") != NULL) {
-        replaceStr(buf, bufLen, "psq ", "ps ");
-        replaceStr(buf, bufLen, "psx ", "ps ");
-        replaceStr(buf, bufLen, "psy ", "ps ");
-    }
-    if (strstr(buf, "pd") != NULL) {
-        replaceStr(buf, bufLen, "pdz ", "pd ");
-    }
-    if (strstr(buf, "prefetch") != NULL) {
-        replaceStr(buf, bufLen, "z ", " ");
-    } else if (strstr(buf, "cflush") != NULL) {
-        replaceStr(buf, bufLen, "z ", " ");
-    }
-  
-    replaceStr(buf, bufLen, "bq ", "b ");
-    replaceStr(buf, bufLen, "by ", "b ");
-    replaceStr(buf, bufLen, "bz ", "b ");
-    replaceStr(buf, bufLen, "wl ", "w ");
-    replaceStr(buf, bufLen, "wq ", "w ");
-    replaceStr(buf, bufLen, "wy ", "w ");
-    replaceStr(buf, bufLen, "wz ", "w ");
-    replaceStr(buf, bufLen, "dl ", "d ");
-    replaceStr(buf, bufLen, "dq ", "d ");
-    replaceStr(buf, bufLen, "dy ", "d ");
-    replaceStr(buf, bufLen, "dz ", "d ");
-    replaceStr(buf, bufLen, "qq ", "q ");
-    replaceStr(buf, bufLen, "qz ", "q ");
+FindList* initOpcodeDressingFindList() {
+    FindList* fl = new FindList(409);
+    addReplaceTerm(*fl, "bq ", "b ");
+    addReplaceTerm(*fl, "by ", "b ");
+    addReplaceTerm(*fl, "bz ", "b ");
+    addReplaceTerm(*fl, "wl ", "w ");
+    addReplaceTerm(*fl, "wq ", "w ");
+    addReplaceTerm(*fl, "wy ", "w ");
+    addReplaceTerm(*fl, "wz ", "w ");
+    addReplaceTerm(*fl, "sdl ", "sd ");
+    addReplaceTerm(*fl, "dq ", "d ");
+    addReplaceTerm(*fl, "dy ", "d ");
+    addReplaceTerm(*fl, "dz ", "d ");
+    addReplaceTerm(*fl, "qq ", "q ");
+    addReplaceTerm(*fl, "qz ", "q ");
+    addReplaceTerm(*fl, "sdl ", "sl ");
+    addReplaceTerm(*fl, "psq ", "ps ");
+    addReplaceTerm(*fl, "psx ", "ps ");
+    addReplaceTerm(*fl, "psy ", "ps ");
+    addReplaceTerm(*fl, "pdz ", "pd ");
+    addReplaceTerm(*fl, "prefetchz ", "prefetch ");
+    addReplaceTerm(*fl, "cflushz ", "cflush ");
+    addReplaceTerm(*fl, "sww", "sw");
+    addReplaceTerm(*fl, "sxd ", "slq ");
+    addReplaceTerm(*fl, "iretd", "iretl");
+    return fl;
+}
 
-    replaceStr(buf, bufLen, "sww", "sw");
-    replaceStr(buf, bufLen, "sxd ", "slq ");
-    replaceStr(buf, bufLen, "iretd", "iretl");
+void fixExtraOpcodeDressing(char* buf, int bufLen) {
+    static FindList* fl = initOpcodeDressingFindList();
+
+    fl->process(buf, bufLen);
 
     // Need to verify that the below are necessary.
     /*
@@ -247,71 +245,70 @@ void fixExtraOpcodeDressing(char* buf, int bufLen) {
 
 void removeImplicitST0(char* buf, int bufLen) {
     
-   std::string str = std::string(buf);
+    std::string str = std::string(buf);
     
     if (*buf != 'f' && str.find(" f") == std::string::npos) {
         return;
     }
+
+    removeOperand(str, "fadd", ", %st(0)");
+    removeOperand(str, "fld", ", %st(0)");
+    removeOperand(str, "fbld", ", %st(0)");
+    removeOperand(str, "fst", "%st(0), ");
+    removeOperand(str, "fbstp", "%st(0), ");
+    removeOperand(str, "fstpq", "%st(0), ");
+    //removeOperand(str, "fcmov", ", %st(0)"); // x
+    removeOperand(str, "fild", ", %st(0)");
+    removeOperand(str, "fist", "%st(0), ");
+    removeOperand(str, "fisub", ", %st(0)");
+    removeOperand(str, "fsub", ", %st(0)");
+ 
+    removeOperand(str, "fmul", ", %st(0)");
+    removeOperand(str, "fucom", ", %st(0)");
+    removeOperand(str, "fcom", ", %st(0)");
+    removeOperand(str, "fidiv", ", %st(0)");
+    removeOperand(str, "fdiv", ", %st(0)");
+    removeOperand(str, "fimul", ", %st(0)");
+    removeOperand(str, "fiadd", ", %st(0)");
+ 
+    removeOperand(str, "ficom", ", %st(0)");
+    removeOperand(str, "fsubrl", "%st(0), ");
+    removeOperand(str, "fbstp", "%st(0), ");
+    removeOperand(str, "fsqrt", " %st(0)");
+    removeOperand(str, "fxch", ", %st(0)");
+    removeOperand(str, "fptan", ", %st(0)");
+ 
+    removeOperand(str, "fprem1", "%st(1), %st(0)");
+    removeOperand(str, "fprem", "%st(1), %st(0)");
+    removeOperand(str, "fscale", "%st(1), %st(0)");
+    removeOperand(str, "fxtract", "%st(1), %st(0)");
+    removeOperand(str, "fpatan", "%st(1), %st(0)");
+    removeOperand(str, "fsincos", "%st(1), %st(0)");
+    removeOperand(str, "fchs", "%st(0)");
+    removeOperand(str, "fldz", "%st(0)");
+    removeOperand(str, "fldpi", "%st(0)");
+    removeOperand(str, "ftst", "%st(0)");
+    removeOperand(str, "fcompp", "%st(1)");
+    removeOperand(str, "fucompp", "%st(1)");
+    removeOperand(str, "fptan", "%st(1)");
+    removeOperand(str, "fld1", "%st(0)");
+    removeOperand(str, "fsin", "%st(0)");
+    removeOperand(str, "fabs", "%st(0)");
+    removeOperand(str, "fcos", "%st(0)");
+    removeOperand(str, "frndint", "%st(0)");
+    removeOperand(str, "fdld2t", "%st(0)");
+    removeOperand(str, "fxam", "%st(0)");
+    removeOperand(str, "fdln2", "%st(0)");
+    removeOperand(str, "fldlg2", "%st(0)");
+    removeOperand(str, "fldl2e", "%st(0)");
+    removeOperand(str, "fyl2xp1", "%st(1), %st(0)");
+    removeOperand(str, "fyl2x", "%st(1), %st(0)");
+    removeOperand(str, "f2xm1", "%st(1), %st(0)");
     
-
-   removeOperand(str, "fadd", ", %st(0)");
-   removeOperand(str, "fld", ", %st(0)");
-   removeOperand(str, "fbld", ", %st(0)");
-   removeOperand(str, "fst", "%st(0), ");
-   removeOperand(str, "fbstp", "%st(0), ");
-   removeOperand(str, "fstpq", "%st(0), ");
-   //removeOperand(str, "fcmov", ", %st(0)"); // x
-   removeOperand(str, "fild", ", %st(0)");
-   removeOperand(str, "fist", "%st(0), ");
-   removeOperand(str, "fisub", ", %st(0)");
-   removeOperand(str, "fsub", ", %st(0)");
-
-   removeOperand(str, "fmul", ", %st(0)");
-   removeOperand(str, "fucom", ", %st(0)");
-   removeOperand(str, "fcom", ", %st(0)");
-   removeOperand(str, "fidiv", ", %st(0)");
-   removeOperand(str, "fdiv", ", %st(0)");
-   removeOperand(str, "fimul", ", %st(0)");
-   removeOperand(str, "fiadd", ", %st(0)");
-
-   removeOperand(str, "ficom", ", %st(0)");
-   removeOperand(str, "fsubrl", "%st(0), ");
-   removeOperand(str, "fbstp", "%st(0), ");
-   removeOperand(str, "fsqrt", " %st(0)");
-   removeOperand(str, "fxch", ", %st(0)");
-   removeOperand(str, "fptan", ", %st(0)");
-
-   removeOperand(str, "fprem1", "%st(1), %st(0)");
-   removeOperand(str, "fprem", "%st(1), %st(0)");
-   removeOperand(str, "fscale", "%st(1), %st(0)");
-   removeOperand(str, "fxtract", "%st(1), %st(0)");
-   removeOperand(str, "fpatan", "%st(1), %st(0)");
-   removeOperand(str, "fsincos", "%st(1), %st(0)");
-   removeOperand(str, "fchs", "%st(0)");
-   removeOperand(str, "fldz", "%st(0)");
-   removeOperand(str, "fldpi", "%st(0)");
-   removeOperand(str, "ftst", "%st(0)");
-   removeOperand(str, "fcompp", "%st(1)");
-   removeOperand(str, "fucompp", "%st(1)");
-   removeOperand(str, "fptan", "%st(1)");
-   removeOperand(str, "fld1", "%st(0)");
-   removeOperand(str, "fsin", "%st(0)");
-   removeOperand(str, "fabs", "%st(0)");
-   removeOperand(str, "fcos", "%st(0)");
-   removeOperand(str, "frndint", "%st(0)");
-   removeOperand(str, "fdld2t", "%st(0)");
-   removeOperand(str, "fxam", "%st(0)");
-   removeOperand(str, "fdln2", "%st(0)");
-   removeOperand(str, "fldlg2", "%st(0)");
-   removeOperand(str, "fldl2e", "%st(0)");
-   removeOperand(str, "fyl2xp1", "%st(1), %st(0)");
-   removeOperand(str, "fyl2x", "%st(1), %st(0)");
-   removeOperand(str, "f2xm1", "%st(1), %st(0)");
-   
-   strncpy(buf, str.c_str(), bufLen);
-   if (buf[str.length() - 1] == ' ') {
-      buf[str.length() - 1] = 0;
-   }
+    strncpy(buf, str.c_str(), bufLen);
+    if (buf[str.length() - 1] == ' ') {
+       buf[str.length() - 1] = 0;
+    }
 }
 
 void xed_x86_64_norm(char* buf, int bufLen) {

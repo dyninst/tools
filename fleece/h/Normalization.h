@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <cctype>
 
+#include "FindList.h"
+
 bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen);
 
 void cleanSpaces       (char* buf, int bufLen);
@@ -25,5 +27,13 @@ void removeADRPZeroes  (char* buf, int bufLen);
 void commaBeforeSpace  (char* buf, int bufLen);
 void removeEmptyParens (char* buf, int bufLen);
 void removePoundComment(char* buf, int bufLen);
+
+typedef struct ReplaceParam {
+    size_t len;
+    const char* newStr;
+} ReplacePair;
+
+void addReplaceTerm(FindList& fl, const char* oldStr, const char* newStr);
+void flReplaceFunc(char* buf, int bufLen, void* rParam);
 
 #endif // _NORMALIZATION_H_
