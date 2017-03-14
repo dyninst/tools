@@ -276,18 +276,18 @@ void init_aarch64() {
     sysRegs->addRegName("tcr_el1");
     sysRegs->addRegName("tcr_el2");
     sysRegs->addRegName("tcr_el3");
-     sysRegs->addRegName("tpidr_el0");
-     sysRegs->addRegName("tpidr_el1");
-     sysRegs->addRegName("tpidr_el2");
-     sysRegs->addRegName("tpidr_el3");
-     sysRegs->addRegName("tpidrro_el0");
+    sysRegs->addRegName("tpidr_el0");
+    sysRegs->addRegName("tpidr_el1");
+    sysRegs->addRegName("tpidr_el2");
+    sysRegs->addRegName("tpidr_el3");
+    sysRegs->addRegName("tpidrro_el0");
     sysRegs->addRegName("ttbr0_el1");
     sysRegs->addRegName("ttbr0_el2");
     sysRegs->addRegName("ttbr0_el3");
     sysRegs->addRegName("ttbr1_el1");
-     sysRegs->addRegName("vbar_el1");
-     sysRegs->addRegName("vbar_el2");
-     sysRegs->addRegName("vbar_el3");
+    sysRegs->addRegName("vbar_el1");
+    sysRegs->addRegName("vbar_el2");
+    sysRegs->addRegName("vbar_el3");
     sysRegs->addRegName("vmpidr_el2");
     sysRegs->addRegName("vpidr_el2");
     sysRegs->addRegName("vtcr_el2");
@@ -307,12 +307,12 @@ void init_aarch64() {
     sysRegs->addRegName("dbgcr7_el1");
     sysRegs->addRegName("dbgcr8_el1");
     sysRegs->addRegName("dbgcr9_el1");
-     sysRegs->addRegName("dbgcr10_el1");
-     sysRegs->addRegName("dbgcr11_el1");
-     sysRegs->addRegName("dbgcr12_el1");
-     sysRegs->addRegName("dbgcr13_el1");
-     sysRegs->addRegName("dbgcr14_el1");
-     sysRegs->addRegName("dbgcr15_el1");
+    sysRegs->addRegName("dbgcr10_el1");
+    sysRegs->addRegName("dbgcr11_el1");
+    sysRegs->addRegName("dbgcr12_el1");
+    sysRegs->addRegName("dbgcr13_el1");
+    sysRegs->addRegName("dbgcr14_el1");
+    sysRegs->addRegName("dbgcr15_el1");
     sysRegs->addRegName("dbgvr0_el1");
     sysRegs->addRegName("dbgvr1_el1");
     sysRegs->addRegName("dbgvr2_el1");
@@ -323,12 +323,12 @@ void init_aarch64() {
     sysRegs->addRegName("dbgvr7_el1");
     sysRegs->addRegName("dbgvr8_el1");
     sysRegs->addRegName("dbgvr9_el1");
-    AsysRegs->addRegName("dbgvr10_el1");
-    AsysRegs->addRegName("dbgvr11_el1");
-    AsysRegs->addRegName("dbgvr12_el1");
-    AsysRegs->addRegName("dbgvr13_el1");
-    AsysRegs->addRegName("dbgvr14_el1");
-    AsysRegs->addRegName("dbgvr15_el1");
+    sysRegs->addRegName("dbgvr10_el1");
+    sysRegs->addRegName("dbgvr11_el1");
+    sysRegs->addRegName("dbgvr12_el1");
+    sysRegs->addRegName("dbgvr13_el1");
+    sysRegs->addRegName("dbgvr14_el1");
+    sysRegs->addRegName("dbgvr15_el1");
     sysRegs->addRegName("dbgclaimclr_el1");
     sysRegs->addRegName("dbgclaimset_el1");
     sysRegs->addRegName("dbgdtr_el0");
@@ -346,12 +346,12 @@ void init_aarch64() {
     sysRegs->addRegName("dbgwcr7_el1");
     sysRegs->addRegName("dbgwcr8_el1");
     sysRegs->addRegName("dbgwcr9_el1");
-    AsysRegs->addRegName("dbgwcr10_el1");
-    AsysRegs->addRegName("dbgwcr11_el1");
-    AsysRegs->addRegName("dbgwcr12_el1");
-    AsysRegs->addRegName("dbgwcr13_el1");
-    AsysRegs->addRegName("dbgwcr14_el1");
-    AsysRegs->addRegName("dbgwcr15_el1");
+    sysRegs->addRegName("dbgwcr10_el1");
+    sysRegs->addRegName("dbgwcr11_el1");
+    sysRegs->addRegName("dbgwcr12_el1");
+    sysRegs->addRegName("dbgwcr13_el1");
+    sysRegs->addRegName("dbgwcr14_el1");
+    sysRegs->addRegName("dbgwcr15_el1");
     sysRegs->addRegName("dbgwvr0_el1");
     sysRegs->addRegName("dbgwvr1_el1");
     sysRegs->addRegName("dbgwvr2_el1");
@@ -362,27 +362,27 @@ void init_aarch64() {
     sysRegs->addRegName("dbgwvr7_el1");
     sysRegs->addRegName("dbgwvr8_el1");
     sysRegs->addRegName("dbgwvr9_el1");
-    AsysRegs->addRegName("dbgwvr10_el1");
-    AsysRegs->addRegName("dbgwvr11_el1");
-    AsysRegs->addRegName("dbgwvr12_el1");
-    AsysRegs->addRegName("dbgwvr13_el1");
-    AsysRegs->addRegName("dbgwvr14_el1");
-    Alias::addAlias("s2_0_c0_c15_6", "dbgwvr15_el1");
-    Alias::addAlias("s3_3_c4_c5_1", "dlr_el0");
-    Alias::addAlias("s3_3_c4_c5_0", "dspsr_el0");
-    Alias::addAlias("s2_0_c0_c2_0", "mdccint_el1");
-    Alias::addAlias("s2_3_c0_c1_0", "mdccsr_el0");
-    Alias::addAlias("s3_4_c1_c1_1", "mdcr_el2");
-    Alias::addAlias("s3_6_c1_c1_1", "mdcr_el3");
-    Alias::addAlias("s2_0_c1_c0_0", "mdrar_el1");
-    Alias::addAlias("s2_0_c0_c2_2", "mdscr_el1");
-    Alias::addAlias("s2_0_c1_c3_4", "osdlr_el1");
-    Alias::addAlias("s2_0_c0_c0_2", "osdtrrx_el1");
-    Alias::addAlias("s2_0_c0_c3_2", "osdtrtx_el1");
-    Alias::addAlias("s2_0_c0_c6_2", "oseccr_el1");
-    Alias::addAlias("s2_0_c1_c0_4", "oslar_el1");
-    Alias::addAlias("s2_0_c1_c1_4", "oslsr_el1");
-    Alias::addAlias("s3_6_c1_c1_1", "sder32_el3");
+    sysRegs->addRegName("dbgwvr10_el1");
+    sysRegs->addRegName("dbgwvr11_el1");
+    sysRegs->addRegName("dbgwvr12_el1");
+    sysRegs->addRegName("dbgwvr13_el1");
+    sysRegs->addRegName("dbgwvr14_el1");
+    sysRegs->addRegName("dbgwvr15_el1");
+    sysRegs->addRegName("dlr_el0");
+    sysRegs->addRegName("dspsr_el0");
+    sysRegs->addRegName("mdccint_el1");
+    sysRegs->addRegName("mdccsr_el0");
+    sysRegs->addRegName("mdcr_el2");
+    sysRegs->addRegName("mdcr_el3");
+    sysRegs->addRegName("mdrar_el1");
+    sysRegs->addRegName("mdscr_el1");
+    sysRegs->addRegName("osdlr_el1");
+    sysRegs->addRegName("osdtrrx_el1");
+    sysRegs->addRegName("osdtrtx_el1");
+    sysRegs->addRegName("oseccr_el1");
+    sysRegs->addRegName("oslar_el1");
+    sysRegs->addRegName("oslsr_el1");
+    sysRegs->addRegName("sder32_el3");
     */
 
     /* Performance monitoring system registers */
@@ -559,6 +559,7 @@ void init_aarch64() {
     */
     regSets.push_back(sysRegs);
 
+    /*
     RegisterSet* conds = new RegisterSet("COND");
     conds->addRegName("eq");
     conds->addRegName("cs");
@@ -579,6 +580,7 @@ void init_aarch64() {
     conds->addRegName("al");
     conds->addRegName("nv");
     regSets.push_back(conds);
+    */
 }
 
 void Architecture::init(const char* arch) {
