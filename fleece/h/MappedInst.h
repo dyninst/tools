@@ -32,6 +32,7 @@
 #include "BitTypes.h"
 #include "Decoder.h"
 #include "FieldList.h"
+#include "Options.h"
 #include "StringUtils.h"
 #include "SimpleInsnMap.h"
 

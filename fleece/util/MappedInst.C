@@ -225,6 +225,8 @@ void MappedInst::trimUnusedEnd() {
 */
 
 void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
+    static bool printQueue = (Options::get("-pig") != NULL);
+
     /*
     std::cout << "\n\n|---- BEGINNING QUEUEING ----|\n\n";
     std::cout << "Bytes before removal:\n";
@@ -291,23 +293,24 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 
             if (hc->insert(std::make_pair(hcString, 1)).second) {
              
-                
-                std::cout << decoder->getName();
-                size_t decNameLen = strlen(decoder->getName());
-                for (size_t j = 0; j < 9 - decNameLen; ++j) {
-                    std::cout << " ";
+                if (printQueue) {  
+                    std::cout << decoder->getName();
+                    size_t decNameLen = strlen(decoder->getName());
+                    for (size_t j = 0; j < 9 - decNameLen; ++j) {
+                        std::cout << " ";
+                    }
+                    std::cout << "queue: ";
+                    for (size_t j = 0; j < nBytesUsed; ++j) {
+                        std::cout << std::hex << std::setfill('0') << std::setw(2)
+                            << (unsigned int)(unsigned char)bytes[j] << " ";
+                    }
+                    std::cout << "(";
+                    for (size_t j = nBytesUsed; j < nBytes; ++j) {
+                        std::cout << std::hex << std::setfill('0') << std::setw(2)
+                            << (unsigned int)(unsigned char)bytes[j] << " ";
+                    }
+                    std::cout << std::dec << "): " << hcString << "\n";
                 }
-                std::cout << "queue: ";
-                for (size_t j = 0; j < nBytesUsed; ++j) {
-                    std::cout << std::hex << std::setfill('0') << std::setw(2)
-                        << (unsigned int)(unsigned char)bytes[j] << " ";
-                }
-                std::cout << "(";
-                for (size_t j = nBytesUsed; j < nBytes; ++j) {
-                    std::cout << std::hex << std::setfill('0') << std::setw(2)
-                        << (unsigned int)(unsigned char)bytes[j] << " ";
-                }
-                std::cout << std::dec << "): " << hcString << "\n";
                 /*
                 if (strstr(decStr, "addr32") != NULL) {
                     for (size_t j = 0; j < nBytes; j++) {
