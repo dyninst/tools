@@ -330,7 +330,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
                 char* queuedBytes = (char*)malloc(Architecture::maxInsnLen);
                 assert(queuedBytes != NULL);
                 randomizeBuffer(queuedBytes, Architecture::maxInsnLen);
-                bcopy(bytes, queuedBytes, nBytesUsed);
+                bcopy(bytes, queuedBytes, nBytes);
                 queue->push(queuedBytes);
             } else {
                 free(hcString);
