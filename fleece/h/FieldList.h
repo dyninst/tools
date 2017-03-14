@@ -107,7 +107,17 @@ public:
      * Returns true if the character is a separator character.
      */
     static bool isSeparator(char c);
-    
+   
+    /*
+     * Returns true if the given field is an immediate.
+     */
+    bool isFieldImm(size_t whichField);
+
+    /*
+     * Returns true if the given field is a register.
+     */
+    bool isFieldReg(size_t whichField);
+
     /*
      * Prints the field list as a set of fields and separators.
      */

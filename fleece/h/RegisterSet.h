@@ -30,14 +30,14 @@
 
 class RegisterSet {
 public:
-   RegisterSet(const char* symbol);
-   ~RegisterSet();
-   void addRegName(const char* regName);
-   void replaceRegNamesWithSymbol(FieldList& fl);
+    RegisterSet(const char* symbol);
+    ~RegisterSet();
+    void addRegName(const char* regName);
+    bool isReg(const char* str);
+    void replaceRegNamesWithSymbol(FieldList& fl);
 private:
-   char* sym;
-   std::unordered_map<char*, char*, StringUtils::str_hash, StringUtils::str_eq> names;
-   //std::vector<char*> regNames;
+    char* sym;
+    std::unordered_map<char*, char*, StringUtils::str_hash, StringUtils::str_eq> names;
 };
 
 #endif // _REGISTER_SET_H_

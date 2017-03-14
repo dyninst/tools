@@ -279,3 +279,23 @@ void FieldList::printInsn(FILE* f) {
     }
     fprintf(f, "%s", separators[nFields]);
 }
+
+bool FieldList::isFieldImm(size_t whichField) {
+    char* endPtr;
+    strtod(fields[whichField], &endPtr);
+    if (*endPtr == '\0') {
+        return true;
+    }
+    char* field = fields[whichField];
+    if (*field == '-') {
+        ++field;
+    }
+    if (*field == '0' && *(field + 1) == 'x') {
+        return true;
+    }
+    return false;
+}
+
+bool FieldList::isFieldReg(size_t whichField) {
+    return false;
+}

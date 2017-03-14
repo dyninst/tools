@@ -596,6 +596,15 @@ void Architecture::init(const char* arch) {
     }
 }
 
+bool Architecture::isReg(const char* str) {
+    for (size_t i = 0; i < regSets.size(); ++i) {
+        if (regSets[i]->isReg(str)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Architecture::replaceRegSets(FieldList& fl) {
     for (size_t i = 0; i < regSets.size(); i++) {
        regSets[i]->replaceRegNamesWithSymbol(fl);

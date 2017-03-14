@@ -31,27 +31,19 @@ RegisterSet::~RegisterSet() {
         delete [] (*it).first;
     }
 
-    /*
-    while(!regNames.empty()) {
-       char* regName = regNames.back();
-       regNames.pop_back();
-       free(regName);
-    }
-    */
-
    delete [] sym;
 }
 
 void RegisterSet::addRegName(const char* regName) {
-    /*
-    char* newName = (char*)malloc(strlen(regName) + 1);
-    regNames.push_back(newName);
-    */
     size_t len = strlen(regName) + 1;
     char* name = new char[len];
     strncpy(name, regName, len);
 
     names.insert(std::make_pair(name, sym));
+}
+
+bool RegisterSet::isReg(const char* str) {
+    return (names.find((char*)str) != names.end());
 }
    
 void RegisterSet::replaceRegNamesWithSymbol(FieldList& fl) {
@@ -59,27 +51,6 @@ void RegisterSet::replaceRegNamesWithSymbol(FieldList& fl) {
         auto name = names.find((char*)fl.getField(i));
         if (name != names.end()) {
             fl.setField(i, name->second);
-            /*
-            size_t nameLen = strlen(name.first);
-            if (strlen(field) == nameLen) {
-                fl.setField(i, sym);
-            } else if (field[nameLen] == '.') {
-                int fieldLen = strlen(field);
-                char newField[fieldLen - nameLen + strlen(sym)];
-                snprintf(newField, fieldLen - nameLen + strlen(sym), 
-                        "%s%s", sym, (field + nameLen));
-                fl.setField(i, newField);
-                replaced = true;
-            }
-            */
         }       
-
-        /*
-        for (size_t j = 0; !replaced && j < regNames.size(); j++) {
-            const char* field = fl.getField(i);
-            if (!strncmp(field, regNames[j], nameLen)) {
-            }
-        }
-        */
     }
 }

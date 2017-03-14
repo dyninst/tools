@@ -11,6 +11,7 @@ namespace Architecture {
     extern int maxInsnLen;
     extern std::string name;
     void init(const char* arch);
+    bool isReg(const char* str);
     void replaceRegSets(FieldList& fl);
     void destroy();
     const char* getOpcode(FieldList& fl);
