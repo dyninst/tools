@@ -58,16 +58,26 @@ size_t FieldList::detectNumFields(const char* buf) {
     
     // Iterate over the string counting the number of fields with at least one separator between 
     // each.
-    while (*buf) {
-        if (isSeparator(*buf)) {
+    const char* cur = buf;
+    while (*cur) {
+        if (isSeparator(*cur)) {
             if (inField) {
-                ++nFields;
+
+                // This if statement matches everything except the exponent part of a floating point immediate.
+                // For example, the '-' in "1.23e-5" will not appear to be a separator because it is a plus
+                // or minus, it is preceeeded by an 'e' and it is followed by a digit.
+                if ((*cur != '+' && *cur != '-') || 
+                    (cur == buf || *(cur - 1) != 'e') || 
+                    !isdigit(*(cur + 1))) {
+
+                    ++nFields;
+                    inField = false;
+                }
             }
-            inField = false;
         } else {
             inField = true;
         }
-        ++buf;
+        ++cur;
     }
    
     // If we ended without a space and hit at least one non-space character, then we need to count
@@ -110,6 +120,17 @@ void FieldList::initFieldsAndSeparators(const char* buf) {
     while (*cur) {
 
         bool isSep = isSeparator(*cur);
+                
+        // This if statement matches the exponent part of a floating point immediate.
+        // For example, the '-' in "1.23e-5" will not appear to be a separator because it is a plus
+        // or minus, it is preceeeded by an 'e' and it is followed by a digit.
+        if (isSep && inField &&
+            (*cur == '+' || *cur == '-') &&
+            (cur != buf && *(cur - 1) == 'e') &&
+            isdigit(*(cur + 1))) {
+
+            isSep = false;
+        }
 
         // If we change between in a field or in a separator, we just finished a field or
         // separator, so we need to allocate one and copy it.
