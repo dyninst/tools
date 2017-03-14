@@ -21,9 +21,33 @@
 #include <iostream>
 #include "FieldList.h"
 
+static bool* createSeparatorArray() {
+    bool* sepArray = new bool[256];
+    for (int i = 0; i < 256; ++i) {
+        sepArray[i] = false;
+    }
+    sepArray[' '] = true;
+    sepArray[','] = true;
+    sepArray[':'] = true;
+    sepArray['['] = true;
+    sepArray[']'] = true;
+    sepArray['{'] = true;
+    sepArray['}'] = true;
+    sepArray['('] = true;
+    sepArray[')'] = true;
+    sepArray['$'] = true;
+    sepArray['#'] = true;
+    sepArray['*'] = true;
+    sepArray['+'] = true;
+    sepArray['-'] = true;
+    sepArray['\t'] = true;
+    sepArray['\n'] = true;
+    return sepArray;
+}
+
 bool FieldList::isSeparator(char c) {
-    static std::string separators = " ,\t[]{}():$#*+-\n";
-    return separators.find(c) != std::string::npos;
+    static bool* sepArray = createSeparatorArray();
+    return sepArray[(int)c];
 }
 
 size_t FieldList::detectNumFields(const char* buf) {
