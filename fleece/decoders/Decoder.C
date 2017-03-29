@@ -52,13 +52,14 @@ void Decoder::printErrorStatus() {
         return;
     }
 
-    std::cerr << "Current decoder = " << curDecoder->name << " " 
-              << curDecoder->arch << "\n";
+    std::cerr << "Current insn = (" << curInsnLen << " bytes): ";
     for (int j = 0; j < curInsnLen; j++) {
-        std::cout << std::hex << std::setfill('0') << std::setw(2)
+        std::cerr << std::hex << std::setfill('0') << std::setw(2)
             << (unsigned int)(unsigned char)curInsn[j] << " ";
     }
-    std::cout << "\n" << std::dec;
+    std::cerr << "Current decoder = " << curDecoder->name << " " 
+              << curDecoder->arch << "\n";
+    std::cerr << "\n" << std::dec;
 }
 
 Decoder::Decoder(
