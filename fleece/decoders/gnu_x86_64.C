@@ -49,7 +49,8 @@ int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
                 ((0x0f & inst[curByte + 3]) > 0x0b)) {
 
                 // Return an error
-                return -1;
+                strncpy(buf, "would_sig", bufLen - 1);
+                return 0;
             }
         }
       
@@ -62,7 +63,9 @@ int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
                 if ((inst[curByte + 1] & 0x0d) == 0x01 && 
                     (inst[curByte + 2] & 0x07) == 0x05) {
                     if ((inst[curByte + 3] & 0x60) == 0x20) {
-                        return -1;
+                        // Return an error
+                        strncpy(buf, "would_sig", bufLen - 1);
+                        return 0;
                     }
                 }
             }
