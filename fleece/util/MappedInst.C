@@ -356,15 +356,6 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
     size_t j = 0;
 
     for (i = 0; i < nBits; i++) {
-        if (map->getBitType(i) != BIT_TYPE_SWITCH) {
-            continue;
-        }
-        flipBufferBit(bytes, i);
-        enqueueInsnIfNew(queue, hc);
-        flipBufferBit(bytes, i);
-    }
-
-    for (i = 0; i < nBits; i++) {
 
         if (map->getBitType(i) != BIT_TYPE_SWITCH) {
             continue;
@@ -385,6 +376,15 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
         flipBufferBit(bytes, i);
     }
 
+    for (i = 0; i < nBits; i++) {
+        if (map->getBitType(i) != BIT_TYPE_SWITCH) {
+            continue;
+        }
+        flipBufferBit(bytes, i);
+        enqueueInsnIfNew(queue, hc);
+        flipBufferBit(bytes, i);
+    }
+
     char startBytes[nBytes];
     for (i = 0; i < nBytes; i++) {
         startBytes[i] = 0;
@@ -392,13 +392,19 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
 
     memcpy(bytes, startBytes, nBytes);
     for (i = 0; i < fields->size(); i++) {
-        for (j = 0; j < nBits; j++) {
+        for (j = 0; j < nBits; ++j) {
+            if (map->getBitType(j) == (int)i) {
+                setBufferBit(bytes, i, rand() & 0x01);
+            }
+        }
+        enqueueInsnIfNew(queue, hc);
+        for (j = 0; j < nBits; ++j) {
             if (map->getBitType(j) == (int)i) {
                 setBufferBit(bytes, i, 0);
             }
         }
         enqueueInsnIfNew(queue, hc);
-        for (j = 0; j < nBits; j++) {
+        for (j = 0; j < nBits; ++j) {
             if (map->getBitType(j) == (int)i) {
                 setBufferBit(bytes, i, 1);
             }
