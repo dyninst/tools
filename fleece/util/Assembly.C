@@ -23,14 +23,36 @@
 Assembly::Assembly(const Assembly& other) {
     decError = other.decError;
 
-    decStr = other.decStr == NULL ? NULL : strdup(other.decStr);
-    templateStr = other.templateStr == NULL ? NULL : strdup(other.templateStr);
+    if (other.decStr == NULL) {
+        decStr = NULL;
+    } else {
+        decStr = new char[strlen(other.decStr) + 1];
+        strcpy(decStr, other.decStr);
+    }
+
+    if (other.templateStr == NULL) {
+        templateStr = NULL;
+    } else {
+        templateStr = new char[strlen(other.templateStr) + 1];
+        strcpy(templateStr, other.templateStr);
+    }
 
     fields = NULL;
     
     asmResult = other.asmResult;
-    asmError = other.asmError == NULL ? NULL : strdup(other.asmError);
-    asmBytes = other.asmBytes == NULL ? NULL : strdup(other.asmBytes);
+    if (other.asmError == NULL) {
+        asmError = NULL;
+    } else {
+        asmError = new char[REASM_ERROR_BUF_LEN];
+        strcpy(asmError, other.asmError);
+    }
+    
+    if (other.asmBytes == NULL) {
+        asmBytes = NULL;
+    } else {
+        asmBytes = new char[other.nAsmBytes];
+        bcopy(other.asmBytes, asmBytes, other.nAsmBytes);
+    }
     nAsmBytes = other.nAsmBytes;
     
     nBytes = other.nBytes;
