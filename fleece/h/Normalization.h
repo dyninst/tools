@@ -27,6 +27,8 @@ void removeADRPZeroes  (char* buf, int bufLen);
 void commaBeforeSpace  (char* buf, int bufLen);
 void removeEmptyParens (char* buf, int bufLen);
 void removePoundComment(char* buf, int bufLen);
+void fixStRegs         (char* buf, int bufLen);
+void cleanX86NOP       (char* buf, int bufLen);
 
 typedef struct ReplaceParam {
     size_t len;
