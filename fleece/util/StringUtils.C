@@ -486,12 +486,12 @@ std::string asmErrorToFilename(const char* asmError) {
         }
 
         if (*cur == '0' && *(cur + 1) == 'x') {
-            while(!isspace(*cur)) {
+            while(*cur && !isspace(*cur)) {
                 ++cur;
             }
         }
 
-        if (endChars.find(*cur) == std::string::npos) {
+        if (*cur && endChars.find(*cur) == std::string::npos) {
             if (isspace(*cur)) { 
                 *place = '_';
             } else {
@@ -500,8 +500,8 @@ std::string asmErrorToFilename(const char* asmError) {
             ++place;
         } else {
             *place = '\0';
-            if (*(place - 1) == '_') {
-                *(place - 1) = '\n';
+            if (place > &buf[0] && *(place - 1) == '_') {
+                *(place - 1) = '\0';
             }
             done = true;
         }
