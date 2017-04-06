@@ -40,39 +40,6 @@ int xedInit(void) {
    return 0;
 }
 
-void fixStRegs(char* buf, int bufLen) {
-    char tmpBuf[bufLen];
-    char* place = &tmpBuf[0];
-    char* cur = buf;
-    char* firstRegStart = NULL;
-    while (*cur && place + 5 < &tmpBuf[bufLen - 1]) {
-        if (!strncmp(cur, "%st", 3)) {
-            if (firstRegStart == NULL) {
-                firstRegStart = cur;
-            }
-            for (int i = 0; i < 3; i++) {
-                *place = *cur;
-                place++;
-                cur++;
-            }
-            *place = '(';
-            place++;
-            *place = *cur;
-            place++;
-            *place = ')';
-            place++;
-        } else if (firstRegStart != NULL) {
-            *place = *cur;
-            place++;
-        }
-        cur++;
-    }
-    *place = '\0';
-    if (firstRegStart != NULL) {
-        strncpy(firstRegStart, &tmpBuf[0], bufLen + buf - firstRegStart);
-    }
-}
-
 void fixMmxRegs(char* buf, int bufLen) {
 
     // We are looking for the 'x' in 'mmx', so the string must be at least 3
@@ -142,6 +109,20 @@ void fixVexMaskOperations(char* buf, int bufLen) {
     }
 
     // If we didn't find a space, return.
+    if (*cur != ' ') {
+        return;
+    }
+    
+    // We want to copy this before the first %*mm# register. There may be a single operand
+    // before that register, so copy over and see.
+    if (*(cur + 3) != 'm' || *(cur + 4) != 'm') {
+        ++cur;
+        while (*cur && *cur != ' ') {
+            ++cur;
+        }
+    }
+
+    // Verify that we found another place for the mask, or return.
     if (*cur != ' ') {
         return;
     }
@@ -300,11 +281,48 @@ void removeImplicitST0(char* buf, int bufLen) {
     removeOperand(str, "fxam", "%st(0)");
     removeOperand(str, "fdln2", "%st(0)");
     removeOperand(str, "fldlg2", "%st(0)");
+    removeOperand(str, "fldln2", "%st(0)");
     removeOperand(str, "fldl2e", "%st(0)");
+    removeOperand(str, "fldl2t", "%st(0)");
     removeOperand(str, "fyl2xp1", "%st(1), %st(0)");
     removeOperand(str, "fyl2x", "%st(1), %st(0)");
     removeOperand(str, "f2xm1", "%st(1), %st(0)");
+    removeOperand(str, "f2xm1", "%st(0)");
     
+    strncpy(buf, str.c_str(), bufLen);
+    if (buf[str.length() - 1] == ' ') {
+       buf[str.length() - 1] = 0;
+    }
+}
+
+void removeExtraAddr32(char* buf, int bufLen) {
+    std::string str = std::string(buf);
+    
+    if (str.find("addr32 j") == std::string::npos) {
+        return;
+    }
+   
+    removeOperand(str, "", "addr32");
+
+    strncpy(buf, str.c_str(), bufLen);
+    if (buf[str.length() - 1] == ' ') {
+       buf[str.length() - 1] = 0;
+    }
+}
+
+void removeExtraData16(char* buf, int bufLen) {
+    std::string str = std::string(buf);
+    
+    if (str.find("data16") == std::string::npos) {
+        return;
+    }
+   
+    removeOperand(str, "pushfw", "data16");
+    removeOperand(str, "popfw", "data16");
+    removeOperand(str, "cbw", "data16");
+    removeOperand(str, "cwd", "data16");
+    removeOperand(str, "leavew", "data16");
+
     strncpy(buf, str.c_str(), bufLen);
     if (buf[str.length() - 1] == ' ') {
        buf[str.length() - 1] = 0;
@@ -321,6 +339,9 @@ void xed_x86_64_norm(char* buf, int bufLen) {
     fixVexTrailingX(buf, bufLen);
     fixVexMaskOperations(buf, bufLen);
     removeImplicitST0(buf, bufLen);
+    cleanX86NOP(buf, bufLen);
+    removeExtraData16(buf, bufLen);
+    removeExtraAddr32(buf, bufLen);
 }
 
 int xed_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {

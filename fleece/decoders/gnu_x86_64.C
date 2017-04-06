@@ -182,4 +182,5 @@ void gnu_x86_64_norm(char* buf, int bufLen) {
     removeIzRegister(buf, bufLen);
     removePoundComment(buf, bufLen);
     cleanSpaces(buf, bufLen);
+    cleanX86NOP(buf, bufLen);
 }

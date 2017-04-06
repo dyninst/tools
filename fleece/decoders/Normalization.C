@@ -3,6 +3,40 @@
 #include <string.h>
 #include "Normalization.h"
 
+void fixStRegs(char* buf, int bufLen) {
+    char tmpBuf[bufLen];
+    char* place = &tmpBuf[0];
+    char* cur = buf;
+    char* firstRegStart = NULL;
+    while (*cur && place + 5 < &tmpBuf[bufLen - 1]) {
+        if (!strncmp(cur, "%st", 3)) {
+            if (firstRegStart == NULL) {
+                firstRegStart = cur;
+            }
+            for (int i = 0; i < 3; i++) {
+                *place = *cur;
+                place++;
+                cur++;
+            }
+            *place = '(';
+            place++;
+            *place = *cur;
+            place++;
+            *place = ')';
+            place++;
+        } else if (firstRegStart != NULL) {
+            *place = *cur;
+            place++;
+        }
+        cur++;
+    }
+    *place = '\0';
+    if (firstRegStart != NULL) {
+        strncpy(firstRegStart, &tmpBuf[0], bufLen + buf - firstRegStart);
+    }
+}
+
+
 bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen) {
    
     if (inst[3] == (char)0xD5) {
@@ -396,4 +430,10 @@ void flReplaceFunc(char* buf, int bufLen, void* repParam) {
         }
     }
     strncpy(buf, rParam->newStr, newLen);
+}
+
+void cleanX86NOP(char* buf, int bufLen) {
+    if (strncmp(buf, "nop", 3) == 0) {
+        *(buf + 3) = '\0';
+    }
 }

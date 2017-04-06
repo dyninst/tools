@@ -50,4 +50,5 @@ int capstone_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void capstone_x86_64_norm(char* buf, int bufLen) {
+    cleanX86NOP(buf, bufLen);
 }

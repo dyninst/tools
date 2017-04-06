@@ -30,6 +30,8 @@ using namespace InstructionAPI;
 void dyninst_x86_64_norm(char* buf, int bufLen) {
     toLowerCase(buf, bufLen);
     cleanSpaces(buf, bufLen);
+    cleanX86NOP(buf, bufLen);
+    fixStRegs(buf, bufLen);
 }
 
 int dyninst_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {

@@ -53,4 +53,5 @@ void llvm_x86_64_norm(char* buf, int bufLen) {
     cleanSpaces(buf, bufLen);
     trimHexFs(buf, bufLen);
     trimHexZeroes(buf, bufLen);
+    cleanX86NOP(buf, bufLen);
 }
