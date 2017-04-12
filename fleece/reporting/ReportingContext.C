@@ -142,7 +142,7 @@ asmList) {
     // have seen for matches. All others should count as suppressed.
     if (allMatch) {
        char* buf = (char*)malloc(256 * r.size());
-       std::cout << "All match: made buf\n";
+       assert(buf != NULL);
        r.makeTemplate(buf, 256 * r.size());
        if (matchMap->count(buf) == 0) {
           ++nMatches;
