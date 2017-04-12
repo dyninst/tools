@@ -69,6 +69,7 @@ void init_ppc() {
     addNumberedRegSet("segreg", "seg", 0, 4);
     addNumberedRegSet("fslreg", "fsl", 0, 31);
 
+    /*
     RegisterSet* conditions = new RegisterSet("COND");
 
     conditions->addRegName("eq");
@@ -78,6 +79,7 @@ void init_ppc() {
     conditions->addRegName("eq");
 
     regSets.push_back(conditions);
+    */
 }
 
 void init_x86_64() {
