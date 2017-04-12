@@ -90,6 +90,7 @@ private:
      * The record of different instruction decodings seen.
      */
     std::map<char*, std::list<Report*>*, StringUtils::str_cmp>* diffMap;
+    std::map<char*, Report*, StringUtils::str_cmp>* matchMap;
 
     /*
      * The output dir for all reports (but not necessarily for summary data).

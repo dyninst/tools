@@ -73,6 +73,12 @@ public:
      */
     bool isEquivalent(Report* r);
 
+    /*
+     * Returns a string containing the templates of all instructions in this
+     * report.
+     */
+    void makeTemplate(char* buf, size_t bufLen);
+
     Assembly* getAsm(int index) { return asmList[index]; }
 
     void printDebug();

@@ -114,6 +114,30 @@ bool Report::isEquivalent(Report* r) {
     return true;
 }
 
+void Report::makeTemplate(char* buf, size_t bufLen) {
+    char* cur = buf;
+    char* end = buf + bufLen;
+    for (size_t j = 0; j < this->size(); ++j) {
+     
+        strncpy(cur, this->getAsm(j)->getTemplate(), end - cur);
+
+        while (*cur && cur < end) {
+            cur++;
+        }
+     
+        if (cur < end) {
+            *cur = ';';
+            ++cur;
+        }
+
+        if (cur < end) {
+            *cur = ' ';
+            ++cur;
+        }
+    }
+
+}
+
 void Report::printDebug() {
     std::cout << "-- REPORT DEBUG --\n";
     for (auto it = asmList.begin(); it != asmList.end(); ++it) {

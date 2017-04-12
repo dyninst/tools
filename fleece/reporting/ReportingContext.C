@@ -4,6 +4,7 @@
 ReportingContext::ReportingContext(const char* outputDir, int flushFreq) {
   
     diffMap = new std::map<char*, std::list<Report*>*, StringUtils::str_cmp>();
+    matchMap = new std::map<char*, Report*, StringUtils::str_cmp>();
     assert(diffMap != NULL && "Report hashcounter should not be null!");
 
     // Initialize summary data to all zeroes.
@@ -64,6 +65,7 @@ void ReportingContext::flushReportQueue() {
         // one decoder. If not, we can add it to the no_obv_error file.
         bool issuedToDecoder = false;
 
+        // First, issue a report to for all decoders whose output could not be reassembled.
         for (size_t i = 0; i < r->size(); i++) {
             if (r->hasReasmError(i)) {
                 snprintf(filename, REPORT_FILENAME_BUF_LEN,
@@ -74,14 +76,24 @@ void ReportingContext::flushReportQueue() {
             }
         }
 
-        // If there were not reassembly errors, then any decoder reporting the
-        // instruction as invalid should have the instruction listed as a
+        // If there were no reassembly errors, then any decoder reporting the
+        // instruction as invalid or which reassembled differently than
+        // the input should have the instruction listed as a
         // potential error.
         if (!issuedToDecoder) {
-            for (size_t i = 0; i < r->size(); i++) {
+            for (size_t i = 0; i < r->size(); ++i) {
                 if (r->getAsm(i)->isError()) {
                     snprintf(filename, REPORT_FILENAME_BUF_LEN,
                             "%s/%s/errors.txt", outputDir, decoderNames[i]);
+                    r->issue(filename);
+                    issuedToDecoder = true;
+                }
+            }
+
+            for (size_t i = 0; i < r->size(); ++i) {
+                if (r->getAsm(i)->getAsmResult() == AsmResult::ASM_RESULT_DIFFERENT) {
+                    snprintf(filename, REPORT_FILENAME_BUF_LEN,
+                            "%s/%s/diff_reasm.txt", outputDir, decoderNames[i]);
                     r->issue(filename);
                     issuedToDecoder = true;
                 }
@@ -92,7 +104,7 @@ void ReportingContext::flushReportQueue() {
         // it to the no obvious error file. This should be renamed, but will
         // suffice for now.
         if (!issuedToDecoder) {
-            snprintf(filename, REPORT_FILENAME_BUF_LEN, "%s/no_obv_error.txt",
+            snprintf(filename, REPORT_FILENAME_BUF_LEN, "%s/unknown_issue.txt",
                     outputDir);
             r->issue(filename);
         }
@@ -110,10 +122,10 @@ void ReportingContext::addDecoder(const char* name) {
 int ReportingContext::processDecodings(std::vector<Assembly*>&
 asmList) {
    
-    
     // Update summary data.
     nProcessed++;
-
+    Report r = Report(asmList);
+    
     // Check if every instruction matches the first. If they are all 
     // equivalent, there is no more processing to do, simply return.
     bool allMatch = true;
@@ -126,12 +138,23 @@ asmList) {
         ++asmIt;
     }
     
+    // We want to only report unique matches, so we need to keep track of which instructions we
+    // have seen for matches. All others should count as suppressed.
     if (allMatch) {
-       nMatches++;
+       char* buf = (char*)malloc(256 * r.size());
+       std::cout << "All match: made buf\n";
+       r.makeTemplate(buf, 256 * r.size());
+       if (matchMap->count(buf) == 0) {
+          ++nMatches;
+          matchMap->insert(std::make_pair(strdup(buf), new Report(r)));
+       } else {
+          ++nSuppressed;
+       }
+       free(buf);
        return asm1->getNBytes();
     }
     
-    Report r = Report(asmList);
+    
 
     // Check if we need to report the difference and do so. Update summary data.
     if (shouldReportDiff(&r)) {
@@ -168,8 +191,11 @@ bool ReportingContext::shouldReportDiff(Report* report) {
     int nInsns = report->size();
 
     // Allocate buffers for the instruction templates and output.
-    char** insnTemplates = (char**)malloc(nInsns * sizeof(char*));
+    //char** insnTemplates = (char**)malloc(nInsns * sizeof(char*));
     char* buf = (char*)malloc(256 * nInsns);
+    report->makeTemplate(buf, 256 * nInsns);
+    
+    /*
     char* end = buf + 256 * nInsns;
     assert(insnTemplates != NULL && buf != NULL);
 
@@ -227,12 +253,13 @@ bool ReportingContext::shouldReportDiff(Report* report) {
             *cur = ';';
             cur++;
         }
-    }
+    }*/
   
     // Check if we have seen this value before (including this time) less
     // than the threshold. If so, we will say that the difference
     // should be reported.
     
+    bool result = false;
     if (diffMap->count(buf) == 0) {
         result = true;
         std::list<Report*>* newList = new std::list<Report*>();
@@ -254,11 +281,12 @@ bool ReportingContext::shouldReportDiff(Report* report) {
    
     // Free the buffer and templates used and delete the field lists.
     free(buf);
+    /*
     for (int i = 0; i < nInsns; i++) {
         free(insnTemplates[i]);
         delete tLists[i];
     }
     free(insnTemplates);
-
+    */
     return result;
 }
