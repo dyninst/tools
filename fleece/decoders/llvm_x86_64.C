@@ -29,7 +29,19 @@ static const char* LLVMCallback(void* info, uint64_t refVal, uint64_t* refType,
     return nullptr;
 }
 
+bool llvmWillAssert(char* inst, int nBytes) {
+    if (nBytes >= 5 && inst[0] == (char)0x62 && inst[4] == (char)0xc2) {
+        return true;
+    }
+    return false;
+}
+
 int llvm_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+
+    if (llvmWillAssert(inst, nBytes)) {
+        strncpy(buf, "would_sig", bufLen);
+        return 0;
+    }
 
     static LLVMDisasmContextRef disasm = 
             LLVMCreateDisasm("x86_64-linux-gnu", 
