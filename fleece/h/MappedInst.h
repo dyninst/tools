@@ -27,6 +27,7 @@
 #include <queue>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 #include "Architecture.h"
 #include "Bitfield.h"
 #include "BitTypes.h"
@@ -40,6 +41,10 @@ class Decoder;
 
 class MappedInst {
 public:
+    static unsigned long long t1;
+    static unsigned long long t2;
+    static unsigned long long totalQueueingTime;
+    static unsigned long long totalLabellingTime;
     MappedInst(char* bytes, unsigned int nBytes, Decoder* dec);
     MappedInst(MappedInst* toCopy);
     ~MappedInst();
@@ -49,7 +54,7 @@ public:
     size_t     getNumBytesUsed() { return nBytesUsed; }
     char*      getRawBytes() { return bytes; }
     Decoder*   getDecoder() { return decoder; }
-    void queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc);
+    void queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders);
     
     struct insn_cmp {
         bool operator()(const MappedInst* a, const MappedInst* b) const {
@@ -72,6 +77,13 @@ public:
         }
     };
     static std::map<MappedInst*, MappedInst*, MappedInst::insn_cmp> uniqueMaps;
+    static bool isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, size_t whichByte, FieldList* oldFields);
+
+    /*
+     * Determines the minimum number of bytes in the instruction that result in the same decoding
+     * as all of the bytes (any more bytes would be unnecessary).
+     */
+    static size_t findNumBytesUsed(char* bytes, size_t nBytes, Decoder* dec);
 
 private:
     char* bytes;
@@ -82,17 +94,9 @@ private:
     Decoder* decoder;
     SimpleInsnMap* map;
     void mapBitTypes();
-    //void makeSimpleMap(BitType* bTypes, FieldList* fields);
-    bool isByteOptional(size_t whichByte);
     void deleteDownToNOptionalBytes(size_t numOptionalBytes);
     void trimUnusedEnd();
-    void enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc);
-
-    /*
-     * Determines the minimum number of bytes in the instruction that result in the same decoding
-     * as all of the bytes (any more bytes would be unnecessary).
-     */
-    size_t findNumBytesUsed(char* bytes, size_t nBytes, Decoder* dec);
+    void enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders);
 };
 
 #endif /* _MAPPEDINST_H_ */

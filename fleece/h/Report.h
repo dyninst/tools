@@ -9,6 +9,8 @@
 #include "FieldList.h"
 #include "StringUtils.h"
 
+extern unsigned long long totalReportIssueTime;
+
 /*
  * This class records a single set of instructions, the input bytes that
  * produced them, and any reassembly errors that result.
@@ -31,14 +33,15 @@ public:
     ~Report();
 
     /*
-     * Appends this report to a provided filename. This will open, append to
-     * and close the file.
+     * Appends this report to a provided filename. The first version will
+     * open, append to and close the file.
      *
      * Note: This is inefficient because writes to the same files are not
      * grouped. This should be optimized if it proves to be a significant
      * portion of execution time.
      */
     void issue(const char* filename);
+    void issue(FILE* file);
 
     /*
      * Returns an instruction according to an index into this report.

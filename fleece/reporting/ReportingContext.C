@@ -1,10 +1,12 @@
 
+#include <fcntl.h>
 #include "ReportingContext.h"
 
 ReportingContext::ReportingContext(const char* outputDir, int flushFreq) {
   
     diffMap = new std::map<char*, std::list<Report*>*, StringUtils::str_cmp>();
     matchMap = new std::map<char*, Report*, StringUtils::str_cmp>();
+    fileMap = new std::map<char*, FILE*, StringUtils::str_cmp>();
     assert(diffMap != NULL && "Report hashcounter should not be null!");
 
     // Initialize summary data to all zeroes.
@@ -32,13 +34,42 @@ ReportingContext::~ReportingContext() {
     for (auto it = diffMap->begin(); it != diffMap->end(); ++it) {
         delete it->second;
     }
+    for (auto it = matchMap->begin(); it != matchMap->end(); ++it) {
+        delete it->second;
+    }
+    for (auto it = fileMap->begin(); it != fileMap->end(); ++it) {
+        fclose(it->second);
+    }
     delete diffMap;
 }
 
-void ReportingContext::reportDiff(Report* report) {
-    reportQueue.push(new Report(report));
+FILE* ReportingContext::getOpenFileByName(const char* filename) {
+    //std::cout << "Getting open file " << filename << "\n";
+    auto fileMapEntry = fileMap->find((char*)filename);
+    if (fileMapEntry == fileMap->end()) {
+        FILE* outf = fopen(filename, "a+");
+        assert(outf != NULL);
+        fcntl(fileno(outf), F_SETFD, fcntl(fileno(outf), F_GETFD) | FD_CLOEXEC);
+        fileMap->insert(std::make_pair(strdup(filename), outf));
+        return outf;
+    } else {
+        return fileMapEntry->second;
+    }
+}
+
+void ReportingContext::closeOpenFiles() {
+    auto it = fileMap->begin();
+    while (it != fileMap->end()) {
+        fclose(it->second);
+        free(it->first);
+        it = fileMap->erase(it);
+    }
+}
+
+void ReportingContext::reportDiff(Report* r) {
+    reportQueue.push(new Report(r));
     flushCount++;
-    if (flushCount > flushFreq) {
+    if (flushCount >= flushFreq) {
         flushReportQueue();
         flushCount = 0;
     }
@@ -58,12 +89,13 @@ void ReportingContext::flushReportQueue() {
         // All reports are issued to the all_reports.txt file.
         snprintf(filename, REPORT_FILENAME_BUF_LEN, "%s/all_reports.txt",
                 outputDir);
-
-        r->issue(filename);
+        FILE* outf = getOpenFileByName(filename);
+        r->issue(outf);
 
         // We need to track whether or not a report has been issued to at least
         // one decoder. If not, we can add it to the no_obv_error file.
         bool issuedToDecoder = false;
+        bool anyValid = false;
 
         // First, issue a report to for all decoders whose output could not be reassembled.
         for (size_t i = 0; i < r->size(); i++) {
@@ -71,8 +103,11 @@ void ReportingContext::flushReportQueue() {
                 snprintf(filename, REPORT_FILENAME_BUF_LEN,
                         "%s/%s/%s.txt", outputDir, decoderNames[i],
                         asmErrorToFilename(r->getReasmError(i)).c_str());
-                r->issue(filename);
+                outf = getOpenFileByName(filename);
+                r->issue(outf);
                 issuedToDecoder = true;
+            } else if (!r->getAsm(i)->isError()) {
+                anyValid = true;
             }
         }
 
@@ -80,56 +115,88 @@ void ReportingContext::flushReportQueue() {
         // instruction as invalid or which reassembled differently than
         // the input should have the instruction listed as a
         // potential error.
-        if (!issuedToDecoder) {
+        if (anyValid) {
             for (size_t i = 0; i < r->size(); ++i) {
                 if (r->getAsm(i)->isError()) {
                     snprintf(filename, REPORT_FILENAME_BUF_LEN,
-                            "%s/%s/errors.txt", outputDir, decoderNames[i]);
-                    r->issue(filename);
+                            "%s/%s/returned_invalid.txt", outputDir, decoderNames[i]);
+                    outf = getOpenFileByName(filename);
+                    r->issue(outf);
                     issuedToDecoder = true;
                 }
             }
 
+            const char* reasmBytes;
+            size_t nReasmBytes = 0;
+            bool reasmAgrees = true;
             for (size_t i = 0; i < r->size(); ++i) {
-                if (r->getAsm(i)->getAsmResult() == AsmResult::ASM_RESULT_DIFFERENT) {
-                    snprintf(filename, REPORT_FILENAME_BUF_LEN,
-                            "%s/%s/diff_reasm.txt", outputDir, decoderNames[i]);
-                    r->issue(filename);
-                    issuedToDecoder = true;
+                Assembly* curAsm = r->getAsm(i);
+                if (!curAsm->isError() && curAsm->getAsmResult() != AsmResult::ASM_RESULT_ERROR) {
+                    const char* curReasmBytes = curAsm->getAsmBytes();
+                    size_t curNReasmBytes = curAsm->getNAsmBytes();
+                    if (nReasmBytes == 0) {
+                        nReasmBytes = curNReasmBytes;
+                        reasmBytes = curReasmBytes;
+                    } else {
+                        if (nReasmBytes != curNReasmBytes) {
+                            reasmAgrees = false;
+                        } else if (memcmp(reasmBytes, curReasmBytes, nReasmBytes)) {
+                            reasmAgrees = false;
+                        }
+                    }
+                }
+            }
+
+            if (!reasmAgrees) {
+                for (size_t i = 0; i < r->size(); ++i) {
+                    Assembly* curAsm = r->getAsm(i);
+                    if (curAsm->getAsmResult() == AsmResult::ASM_RESULT_DIFFERENT) {
+                        snprintf(filename, REPORT_FILENAME_BUF_LEN,
+                                "%s/%s/diff_reasm.txt", outputDir, decoderNames[i]);
+                        outf = getOpenFileByName(filename);
+                        r->issue(outf);
+                        issuedToDecoder = true;
+                    }
                 }
             }
         }
 
-        // If there were no failures to decode and all outputs assembled, add
-        // it to the no obvious error file. This should be renamed, but will
-        // suffice for now.
+        // If there were no failures to decode and all outputs assembled, and
+        // the outputs assembled to the same bytes, then we're really confused.
+        // This should never happen, because all types of errors we identify
+        // are already reported by this point.
         if (!issuedToDecoder) {
             snprintf(filename, REPORT_FILENAME_BUF_LEN, "%s/unknown_issue.txt",
                     outputDir);
-            r->issue(filename);
+            outf = getOpenFileByName(filename);
+            r->issue(outf);
         }
 
-        // Reports were created using new and put on the queue, so free them
+        // Reports were created using new and put on the queue, so delete them
         // here.
         delete r;
     }
+    closeOpenFiles();
 }
 
 void ReportingContext::addDecoder(const char* name) {
     decoderNames.push_back(strdup(name));
 }
 
-int ReportingContext::processDecodings(std::vector<Assembly*>&
-asmList) {
+int ReportingContext::processDecodings(std::vector<Assembly*>& asmList) {
    
     // Update summary data.
     nProcessed++;
-    Report r = Report(asmList);
     
     // Check if every instruction matches the first. If they are all 
     // equivalent, there is no more processing to do, simply return.
     bool allMatch = true;
     auto asmIt = asmList.begin();
+    while (asmIt != asmList.end()) {
+        (*asmIt)->getAsmResult();
+        ++asmIt;
+    }
+    asmIt = asmList.begin();
     assert(asmIt != asmList.end());
     Assembly* asm1 = *asmIt;
     ++asmIt;
@@ -138,30 +205,38 @@ asmList) {
         ++asmIt;
     }
     
+    Report r = Report(asmList);
+    
     // We want to only report unique matches, so we need to keep track of which instructions we
     // have seen for matches. All others should count as suppressed.
     if (allMatch) {
+       /*
        char* buf = (char*)malloc(256 * r.size());
        assert(buf != NULL);
        r.makeTemplate(buf, 256 * r.size());
        if (matchMap->count(buf) == 0) {
           ++nMatches;
-          matchMap->insert(std::make_pair(strdup(buf), new Report(r)));
+          matchMap->insert(std::make_pair(strdup(buf), new Report(&r)));
        } else {
           ++nSuppressed;
        }
        free(buf);
+       */
+       ++nMatches;
        return asm1->getNBytes();
     }
-    
-    
 
-    // Check if we need to report the difference and do so. Update summary data.
-    if (shouldReportDiff(&r)) {
+    if (Options::get("-rand") != NULL) {
+        // Check if we need to report the difference and do so. Update summary data.
+        if (shouldReportDiff(&r)) {
+            nReports++;
+            reportDiff(&r);
+        } else {
+            nSuppressed++;
+        }
+    } else {
         nReports++;
         reportDiff(&r);
-    } else {
-        nSuppressed++;
     }
 
     return asm1->getNBytes();
@@ -192,7 +267,8 @@ bool ReportingContext::shouldReportDiff(Report* report) {
 
     // Allocate buffers for the instruction templates and output.
     //char** insnTemplates = (char**)malloc(nInsns * sizeof(char*));
-    char* buf = (char*)malloc(256 * nInsns);
+    char buf[256 * nInsns];
+    //char* buf = (char*)malloc(256 * nInsns);
     report->makeTemplate(buf, 256 * nInsns);
     
     /*
@@ -280,7 +356,7 @@ bool ReportingContext::shouldReportDiff(Report* report) {
     }
    
     // Free the buffer and templates used and delete the field lists.
-    free(buf);
+    //free(buf);
     /*
     for (int i = 0; i < nInsns; i++) {
         free(insnTemplates[i]);

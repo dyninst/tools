@@ -66,7 +66,7 @@ void FindList::process(char* buf, int bufLen) {
     }
     char* bufEnd = buf + bufLen;
     char* base = buf;
-    while (base[minStrLen]) {
+    while (base[minStrLen - 1]) {
         cur = base;
         minStrPtr = base + minStrLen - 1;
         uint32_t curHash = 0;

@@ -22,7 +22,7 @@
 
 Assembly::Assembly(const Assembly& other) {
     decError = other.decError;
-
+    
     if (other.decStr == NULL) {
         decStr = NULL;
     } else {
@@ -109,13 +109,13 @@ bool Assembly::isEquivalent(Assembly* other) {
     }
 
     // If they assemble to the same bytes, they are equivalent.
-    if (!memcmp(getAsmBytes(), other->getAsmBytes(), getNAsmBytes())) {
-        return true;
+    if (memcmp(getAsmBytes(), other->getAsmBytes(), getNAsmBytes())) {
+        return false;
     }
 
     // In this case, the instructions have different strings, and they
     // assembled to different bytes, so they are not equivalent.
-    return false;
+    return true;
 }
 
 const char* Assembly::getString() {
@@ -169,7 +169,7 @@ const char* Assembly::getAsmBytes() {
 }
 
 size_t Assembly::getNAsmBytes() {
-    if (asmBytes == NULL) {
+    if (asmError == NULL && asmBytes == NULL) {
         makeAsmResult();
     }
     return nAsmBytes;
@@ -227,6 +227,7 @@ void Assembly::makeAsmResult() {
         asmResult = ASM_RESULT_NONE;
         return;
     }
+    assert(asmError == NULL && asmBytes == NULL);
     asmError = new char[REASM_ERROR_BUF_LEN];
     asmBytes = new char[Architecture::maxInsnLen];
     asmResult = reassemble(bytes, nBytes, decStr, NULL, REASM_FILENAME, 

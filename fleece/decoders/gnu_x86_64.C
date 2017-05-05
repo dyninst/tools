@@ -31,6 +31,79 @@
 #include "Normalization.h"
 #include "StringUtils.h"
 
+void removeRexPrinting(char* buf, int bufLen) {
+    std::string result(buf);
+   
+    if (result.find("rex") == std::string::npos) {
+        return;
+    }
+
+    // Remove rex prefixes. These are printed if the bytes exist and applied if
+    // they are actually used. XED doesn't print them if they are unused.
+
+    removeAtSubStr(result, "rex.WRXB", 9);
+    removeAtSubStr(result, "rex.RXB", 8);
+    removeAtSubStr(result, "rex.WRB", 8);
+    removeAtSubStr(result, "rex.WXB", 8);
+    removeAtSubStr(result, "rex.WRX", 8);
+    removeAtSubStr(result, "rex.WX", 7);
+    removeAtSubStr(result, "rex.WB", 7);
+    removeAtSubStr(result, "rex.WR", 7);
+    removeAtSubStr(result, "rex.RX", 7);
+    removeAtSubStr(result, "rex.RB", 7);
+    removeAtSubStr(result, "rex.XB", 7);
+    removeAtSubStr(result, "rex.W", 6);
+    removeAtSubStr(result, "rex.R", 6);
+    removeAtSubStr(result, "rex.X", 6);
+    removeAtSubStr(result, "rex.B", 6);
+    removeAtSubStr(result, "rex", 4);
+    
+    strncpy(buf, result.c_str(), bufLen);
+    buf[bufLen - 1] = 0;
+}
+
+void removeUnusedSegRegs(char* buf, int bufLen) {
+    while(!strncmp(buf, "fs ", 3) ||
+          !strncmp(buf, "ss ", 3) ||
+          !strncmp(buf, "es ", 3) ||
+          !strncmp(buf, "gs ", 3) ||
+          !strncmp(buf, "cs ", 3) ||
+          !strncmp(buf, "ds ", 3)) {
+
+        strcpy(buf, &buf[3]);
+    }
+    std::string result(buf);
+   
+    if (result.find("s ") == std::string::npos) {
+        return;
+    }
+
+    // Remove rex prefixes segment register names that appear without any
+    // qualifier. These names are decoded from the bytes preceeding an input
+    // instruction. They are removed because the output of objdump indicates
+    // that they are not intended to be included in the instruction.
+    //
+    // Example from objdump:
+    //
+    //
+    removeAtSubStr(result, " fs ", 3);
+    removeAtSubStr(result, " ss ", 3);
+    removeAtSubStr(result, " es ", 3);
+    removeAtSubStr(result, " gs ", 3);
+    removeAtSubStr(result, " ds ", 3);
+    removeAtSubStr(result, " cs ", 3);
+
+    removeAtSubStr(result, " fs ", 3);
+    removeAtSubStr(result, " ss ", 3);
+    removeAtSubStr(result, " es ", 3);
+    removeAtSubStr(result, " gs ", 3);
+    removeAtSubStr(result, " ds ", 3);
+    removeAtSubStr(result, " cs ", 3);
+    
+    strncpy(buf, result.c_str(), bufLen);
+    buf[bufLen - 1] = 0;
+}
+
 int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
    
     // This loop detects the objdump-aborting byte sequences regardless of
@@ -117,41 +190,19 @@ int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
         }
     }
 
+    /* 
+     * The libopcodes function does not exactly match the output of objdump and GDB that
+     * are used by binutils. In order to obtain that output, I make these changes here. They
+     * should be applied to all decoding so that my use of libopcodes mirrors real tools, 
+     * so they are done with decoding instead of normalization.
+     */
+    removeUnusedSegRegs(buf, bufLen);
+    removeRexPrinting(buf, bufLen);
+    removePoundComment(buf, bufLen);
+
     buf[bufLen - 1] = 0;
    
     return !rc;
-}
-
-void removeRexPrinting(char* buf, int bufLen) {
-    std::string result(buf);
-   
-    if (result.find("rex") == std::string::npos) {
-        return;
-    }
-
-    // Remove rex prefixes. These are printed if the bytes exist and applied if
-    // they are actually used. XED doesn't print them if they are unused.
-
-    removeAtSubStr(result, "rex.wrxb", 8);
-    removeAtSubStr(result, "rex.rxb", 7);
-    removeAtSubStr(result, "rex.wrb", 7);
-    removeAtSubStr(result, "rex.wrb", 7);
-    removeAtSubStr(result, "rex.wxb", 7);
-    removeAtSubStr(result, "rex.wrx", 7);
-    removeAtSubStr(result, "rex.wx", 6);
-    removeAtSubStr(result, "rex.wb", 6);
-    removeAtSubStr(result, "rex.wr", 6);
-    removeAtSubStr(result, "rex.rx", 6);
-    removeAtSubStr(result, "rex.rb", 6);
-    removeAtSubStr(result, "rex.xb", 6);
-    removeAtSubStr(result, "rex.w", 5);
-    removeAtSubStr(result, "rex.r", 5);
-    removeAtSubStr(result, "rex.x", 5);
-    removeAtSubStr(result, "rex.b", 5);
-    removeAtSubStr(result, "rex", 3);
-    
-    strncpy(buf, result.c_str(), bufLen);
-    buf[bufLen - 1] = 0;
 }
 
 void removeIzRegister(char* buf, int bufLen) {
@@ -173,14 +224,54 @@ void removeIzRegister(char* buf, int bufLen) {
     
 }
 
+FindList* initFixKRegsFindList() {
+    FindList* fl = new FindList(409);
+    addReplaceTerm(*fl, " k0", " %k0");
+    addReplaceTerm(*fl, " k1", " %k1");
+    addReplaceTerm(*fl, " k2", " %k2");
+    addReplaceTerm(*fl, " k3", " %k3");
+    addReplaceTerm(*fl, " k4", " %k4");
+    addReplaceTerm(*fl, " k5", " %k5");
+    addReplaceTerm(*fl, " k6", " %k6");
+    addReplaceTerm(*fl, " k7", " %k7");
+    return fl;
+}
+
+void fixKRegs(char* buf, int bufLen) {
+    static FindList* fl = initFixKRegsFindList();
+    fl->process(buf, bufLen);
+}
+
+FindList* initJumpHintsFindList() {
+    FindList* fl = new FindList(409);
+    //addReplaceTerm(*fl, "bq ", "b ");
+    addReplaceTerm(*fl, "jp, pn", "jp");
+    addReplaceTerm(*fl, "jp, pt", "jp");
+    addReplaceTerm(*fl, "js, pt", "js");
+    addReplaceTerm(*fl, "js, pn", "js");
+    addReplaceTerm(*fl, "jnp, pt", "jnp");
+    addReplaceTerm(*fl, "jnp, pn", "jnp");
+    return fl;
+}
+
+void removeJumpHints(char* buf, int bufLen) {
+    static FindList* fl = initJumpHintsFindList();
+    fl->process(buf, bufLen);
+}
+
 void gnu_x86_64_norm(char* buf, int bufLen) {
 
     cleanSpaces(buf, bufLen);
     toLowerCase(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
-    removeRexPrinting(buf, bufLen);
+    removeUnusedRepPrefixes(buf, bufLen);
+    removeUnusedOverridePrefixes(buf, bufLen);
     removeIzRegister(buf, bufLen);
-    removePoundComment(buf, bufLen);
+    removeX86Hints(buf, bufLen);
+    fixKRegs(buf, bufLen);
+    signedOperands(buf, bufLen);
+    //trimHexFs(buf, bufLen);
+    //trimHexZeroes(buf, bufLen);
     cleanSpaces(buf, bufLen);
     cleanX86NOP(buf, bufLen);
 }

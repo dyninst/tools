@@ -79,6 +79,17 @@ private:
     void flushReportQueue();
 
     /*
+     * Closes all files currently open in this reporting context.
+     */
+    void closeOpenFiles();
+    
+    /*
+     * Returns an open file by name. If this reporting context already
+     * has this file open, it will 
+     */
+    FILE* getOpenFileByName(const char* filename);
+
+    /*
      * Data used to summarize the activity of the reporting context.
      */
     unsigned int nReports;
@@ -91,6 +102,7 @@ private:
      */
     std::map<char*, std::list<Report*>*, StringUtils::str_cmp>* diffMap;
     std::map<char*, Report*, StringUtils::str_cmp>* matchMap;
+    std::map<char*, FILE*, StringUtils::str_cmp>* fileMap;
 
     /*
      * The output dir for all reports (but not necessarily for summary data).

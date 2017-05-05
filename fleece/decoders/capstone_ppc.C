@@ -22,6 +22,52 @@
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
+void addMissing0AfterBranch(char* buf, int bufLen) {
+    if (*buf != 'b') {
+        return;
+    }
+    std::string str(buf);
+    if (str.find("lr") != std::string::npos ||
+        str.find("ctr") != std::string::npos) {
+        return;
+    }
+    char* cur = buf;
+    int nSpaces = 0;
+    bool hasDigit = false;
+    bool hasStar = false;
+    while (*cur) {
+        if (*cur == ' ') {
+            ++nSpaces;
+        } else if (isdigit(*cur)) {
+            if (cur >= buf + 2 && strncmp(cur - 2, "cr", 2)) {
+                hasDigit = true;
+            }
+        } else if (*cur == '*') {
+            hasStar = true;
+        }
+        ++cur;
+    }
+    if ((!hasDigit || hasStar) && nSpaces == 1 && (cur - buf) + 3 < bufLen) {
+        if (*(cur - 1) == ' ') {
+            *(cur + 0) = '0';
+            *(cur + 1) = '\0';
+        } else {
+            strcpy(cur, ", 0");
+        }
+    }
+}
+
+FindList* initAddMissing0BeforeParenFindList() {
+    FindList* fl = new FindList(877);
+    addReplaceTerm(*fl, " (", " 0(");
+    return fl;
+}
+
+void addMissing0BeforeParen(char* buf, int bufLen) {
+    static FindList* fl = initAddMissing0BeforeParenFindList();
+    fl->process(buf, bufLen);
+}
+
 csh makePpcCsHandle() {
     csh handle;
     if (cs_open(CS_ARCH_PPC, CS_MODE_BIG_ENDIAN, &handle) != CS_ERR_OK) {
@@ -48,4 +94,6 @@ int capstone_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void capstone_ppc_norm(char* buf, int bufLen) {
+    addMissing0BeforeParen(buf, bufLen);
+    addMissing0AfterBranch(buf, bufLen);
 }

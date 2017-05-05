@@ -46,6 +46,9 @@ class SimpleInsnMap {
 
 public:
 
+    static unsigned long long timeInFields;
+    static unsigned long long timeInImmMatching;
+
     /*
      * Make a copy of a SimpleInsnMap from a pointer.
      */

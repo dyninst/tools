@@ -20,7 +20,10 @@
 
 #include "SimpleInsnMap.h"
 
-//#define DEBUG_SIMPLE_MAP
+#define DEBUG_SIMPLE_MAP
+    
+unsigned long long SimpleInsnMap::timeInFields = 0;
+unsigned long long SimpleInsnMap::timeInImmMatching = 0;
 
 int getBitTypeByChanges(FieldList& startFields, FieldList& newFields);
 
@@ -40,6 +43,9 @@ SimpleInsnMap::SimpleInsnMap(SimpleInsnMap* toCopy) {
 }
 
 SimpleInsnMap::SimpleInsnMap(const char* bytes, size_t nBytes, size_t nBytesUsed, Decoder* dec) {
+    struct timespec startTime;
+    struct timespec endTime;
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
     
     nBits = 8 * nBytes;
     nBitsUsed = 8 * nBytesUsed;
@@ -59,6 +65,10 @@ SimpleInsnMap::SimpleInsnMap(const char* bytes, size_t nBytes, size_t nBytesUsed
     char tmpBytes[nBytes];
     bcopy(bytes, tmpBytes, nBytes);
     mapBitTypes(tmpBytes, dec);
+    exit(-1);    
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    timeInFields += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                 (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 SimpleInsnMap::~SimpleInsnMap() {
@@ -84,9 +94,18 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
     bool success = false;
     char decStr[DECODING_BUFFER_SIZE];
     int consecutiveUnused = 0;
+    struct timespec startTime;
+    struct timespec endTime;
 
-    bool isError = (bool)dec->decode(bytes, nBits / 8, decStr, DECODING_BUFFER_SIZE);
+
+
+    bool isError = (bool)dec->decode(bytes, nBits / 8, decStr, DECODING_BUFFER_SIZE,
+        false);
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
     FieldList startFields = FieldList(decStr);
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    timeInFields += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                 (endTime.tv_nsec - startTime.tv_nsec);
     #ifdef DEBUG_SIMPLE_MAP
     std::cout << "Starting insn = " << decStr << "\n";
     for (size_t j = 0; j < nBits / 8; j++) {
@@ -103,10 +122,14 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
     #endif
     #endif
 
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
     std::vector<Bitfield*> bitfields = std::vector<Bitfield*>();
     for (size_t j = 0; j < startFields.size(); j++) {
         bitfields.push_back(Bitfield::create(startFields.getField(j)));
     }
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    timeInImmMatching += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                 (endTime.tv_nsec - startTime.tv_nsec);
    
     // Iterate over each bit, flipping it. Update the bit types with each 
     // test. This is a first pass over the data. This will be a first pass
@@ -130,8 +153,12 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
             continue;
         }
         flipBufferBit(bytes, i);
-        success = !dec->decode(bytes, nBits / 8, decStr, DECODING_BUFFER_SIZE);
+        success = !dec->decode(bytes, nBits / 8, decStr, DECODING_BUFFER_SIZE, false);
+        clock_gettime(CLOCK_MONOTONIC, &startTime);
         FieldList newFields = FieldList(decStr);
+        clock_gettime(CLOCK_MONOTONIC, &endTime);
+        timeInFields += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                     (endTime.tv_nsec - startTime.tv_nsec);
       
         #ifdef DEBUG_SIMPLE_MAP
         for (size_t j = 0; j < nBitsUsed / 8; j++) {
@@ -164,6 +191,7 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
 
             if (bitTypes[i] >= 0) {
 
+                clock_gettime(CLOCK_MONOTONIC, &startTime);
                 Bitfield* bf = bitfields[bitTypes[i]];
                 if (bf != NULL) {
                     flipBufferBit(bytes, i); 
@@ -188,17 +216,23 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
                                 }
                             }
                         }
+                        delete newBf;
                     } else {
                         flipBufferBit(bytes, i);
                     }
+                    //if (!confirmedImm[i]) {
+                    //    delete bf;
+                    //    bitfields[bitTypes[i]] = NULL;
+                    //}
                 }
+                clock_gettime(CLOCK_MONOTONIC, &endTime);
+                timeInImmMatching += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                             (endTime.tv_nsec - startTime.tv_nsec);
             }
         } else {
             bitTypes[i] = BIT_TYPE_CAUSED_ERROR;
             if (isError) {
                 bitTypes[i] = BIT_TYPE_UNUSED;
-            } else {
-                bitTypes[i] = BIT_TYPE_CAUSED_ERROR;
             }
         }
 
@@ -224,6 +258,7 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
             delete *it;
         }
     }
+    //exit(-1);
 }
 
 int getBitTypeByChanges(FieldList& startFields, FieldList& newFields) {

@@ -3,6 +3,368 @@
 #include <string.h>
 #include "Normalization.h"
 
+void addImpliedX86Index(char* buf, int bufLen) {
+    char* cur = buf;
+    bool inParens = false;
+    int nCommas = 0;
+    while (*cur) {
+        if (*cur == '(') {
+            inParens = true;
+            nCommas = 0;
+        } else if (*cur == ',') {
+            ++nCommas;
+        } else if (*cur == ')') {
+            if (inParens && nCommas == 1) {
+                char temp[bufLen];
+                strcpy(temp, cur);
+                snprintf(cur, bufLen - (cur - buf), ", 1%s", temp);
+            }
+            inParens = false;
+            return;
+        }
+        ++cur;
+    }
+}
+
+void removeImplicitST0(char* buf, int bufLen) {
+    
+    std::string str = std::string(buf);
+    
+    if (*buf != 'f' && str.find(" f") == std::string::npos) {
+        return;
+    }
+
+    removeOperand(str, "fadd", ", %st(0)");
+    removeOperand(str, "fld", ", %st(0)");
+    removeOperand(str, "fbld", ", %st(0)");
+    removeOperand(str, "fst", "%st(0), ");
+    removeOperand(str, "fbstp", "%st(0), ");
+    removeOperand(str, "fstpq", "%st(0), ");
+    //removeOperand(str, "fcmov", ", %st(0)"); // x
+    removeOperand(str, "fild", ", %st(0)");
+    removeOperand(str, "fcomp", "%st(0), ");
+    removeOperand(str, "fist", "%st(0), ");
+    removeOperand(str, "fistp", "%st(0), ");
+    removeOperand(str, "fst", "%st(0), ");
+    removeOperand(str, "fstp", "%st(0), ");
+    removeOperand(str, "fstpnce", "%st(0), ");
+    removeOperand(str, "fisub", ", %st(0)");
+    removeOperand(str, "fsub", ", %st(0)");
+ 
+    removeOperand(str, "fmul", ", %st(0)");
+    removeOperand(str, "fucom", ", %st(0)");
+    removeOperand(str, "fcom", ", %st(0)");
+    removeOperand(str, "fidiv", ", %st(0)");
+    removeOperand(str, "fidivr", ", %st(0)");
+    removeOperand(str, "ficomp", ", %st(0)");
+    removeOperand(str, "fdiv", ", %st(0)");
+    removeOperand(str, "fimul", ", %st(0)");
+    removeOperand(str, "fiadd", ", %st(0)");
+ 
+    removeOperand(str, "ficom", ", %st(0)");
+    removeOperand(str, "fsubrl", "%st(0), ");
+    removeOperand(str, "fbstp", "%st(0), ");
+    removeOperand(str, "fsqrt", " %st(0)");
+    removeOperand(str, "fxch", ", %st(0)");
+    removeOperand(str, "fptan", ", %st(0)");
+ 
+    removeOperand(str, "fyl2x", "%st(1), %st(0)");
+    removeOperand(str, "fprem1", "%st(1), %st(0)");
+    removeOperand(str, "fprem", "%st(1), %st(0)");
+    removeOperand(str, "fscale", "%st(1), %st(0)");
+    removeOperand(str, "fxtract", "%st(1), %st(0)");
+    removeOperand(str, "fpatan", "%st(1), %st(0)");
+    removeOperand(str, "fsincos", "%st(1), %st(0)");
+    removeOperand(str, "f2xm1", "%st(0)");
+    removeOperand(str, "fchs", "%st(0)");
+    removeOperand(str, "fldz", "%st(0)");
+    removeOperand(str, "fldpi", "%st(0)");
+    removeOperand(str, "ftst", "%st(0)");
+    removeOperand(str, "fcompp", "%st(1)");
+    removeOperand(str, "fucompp", "%st(1)");
+    removeOperand(str, "fptan", "%st(1)");
+    removeOperand(str, "fld1", "%st(0)");
+    removeOperand(str, "fsin", "%st(0)");
+    
+    strncpy(buf, str.c_str(), bufLen);
+    if (buf[str.length() - 1] == ' ') {
+       buf[str.length() - 1] = 0;
+    }
+}
+
+FindList* initRemoveImplicitK0FindList() {
+    FindList* fl = new FindList(877);
+    addReplaceTerm(*fl, "{%k0}", "");
+    return fl;
+}
+
+void removeImplicitK0(char* buf, int bufLen) {
+    static FindList* fl = initRemoveImplicitK0FindList();
+    fl->process(buf, bufLen);
+}
+
+FindList* initRemoveHintsFindList() {
+    FindList* fl = new FindList(877);
+    addReplaceTerm(*fl, "hint-taken", "");
+    addReplaceTerm(*fl, "hint-not-taken", "");
+    addReplaceTerm(*fl, "xacquire", "");
+    addReplaceTerm(*fl, "xrelease", "");
+    return fl;
+}
+
+void removeX86Hints(char* buf, int bufLen) {
+    static FindList* fl = initRemoveHintsFindList();
+    fl->process(buf, bufLen);
+}
+
+FindList* initOpcodeOnlyMissing0x0FindList() {
+    FindList* fl = new FindList(877);
+    addReplaceTerm(*fl, "fiaddl", "fiaddl 0x0");
+    addReplaceTerm(*fl, "fisubl", "fisubl 0x0");
+    addReplaceTerm(*fl, "fimull", "fimull 0x0");
+    addReplaceTerm(*fl, "ficmpl", "ficmpl 0x0");
+    addReplaceTerm(*fl, "fidivl", "fidivl 0x0");
+    addReplaceTerm(*fl, "fiadd", "fiadd 0x0");
+    addReplaceTerm(*fl, "fisub", "fisub 0x0");
+    addReplaceTerm(*fl, "fimul", "fimul 0x0");
+    addReplaceTerm(*fl, "ficmp", "ficmp 0x0");
+    addReplaceTerm(*fl, "fidiv", "fidiv 0x0");
+    addReplaceTerm(*fl, "fistp", "fistp 0x0");
+    addReplaceTerm(*fl, "fistpll", "fistpll 0x0");
+    addReplaceTerm(*fl, "fistpq", "fistpq 0x0");
+    addReplaceTerm(*fl, "fists", "fists 0x0");
+    addReplaceTerm(*fl, "fildl", "fildl 0x0");
+    addReplaceTerm(*fl, "fldl", "fldl 0x0");
+    addReplaceTerm(*fl, "fild", "fild 0x0");
+    addReplaceTerm(*fl, "fbstp", "fbstp 0x0");
+    addReplaceTerm(*fl, "decq", "decq 0x0");
+    addReplaceTerm(*fl, "incq", "incq 0x0");
+    addReplaceTerm(*fl, "fld", "fld 0x0");
+    addReplaceTerm(*fl, "inc", "inc 0x0");
+    addReplaceTerm(*fl, "dec", "dec 0x0");
+    addReplaceTerm(*fl, "ltrw", "ltrw 0x0");
+    addReplaceTerm(*fl, "sidtq", "sidtq 0x0");
+    addReplaceTerm(*fl, "lidtq", "lidtq 0x0");
+    addReplaceTerm(*fl, "sidt", "sidt 0x0");
+    addReplaceTerm(*fl, "lidt", "lidt 0x0");
+    addReplaceTerm(*fl, "lgdt", "lidt 0x0");
+    addReplaceTerm(*fl, "lgdtq", "lidtq 0x0");
+    addReplaceTerm(*fl, "vmptrst", "vmptrst 0x0");
+    addReplaceTerm(*fl, "vmptrstq", "vmptrst 0x0");
+    addReplaceTerm(*fl, "idivb", "idivb 0x0");
+    addReplaceTerm(*fl, "idivl", "idivl 0x0");
+    addReplaceTerm(*fl, "mul", "mul 0x0");
+    addReplaceTerm(*fl, "mull", "mull 0x0");
+    addReplaceTerm(*fl, "setae", "setae 0x0");
+    addReplaceTerm(*fl, "setnbb", "setnbb 0x0");
+    addReplaceTerm(*fl, "xrstors", "xrstors 0x0");
+    return fl;
+}
+
+FindList* initMissing0x0FindList() {
+    FindList* fl = new FindList(877);
+    addReplaceTerm(*fl, " , ", " 0x0, ");
+    addReplaceTerm(*fl, ":, ", ":0x0, ");
+    return fl;
+}
+
+void addMissing0x0(char* buf, int bufLen) {
+    static FindList* fl = initMissing0x0FindList();
+    static FindList* opcodeOnlyFl = initOpcodeOnlyMissing0x0FindList();
+    fl->process(buf, bufLen);
+    char* cur = buf;
+    if (strncmp(buf, "xlat", 4) && strncmp(buf, "out", 4) && strncmp(buf, "mask", 4)) {
+        while (*cur) {
+            ++cur;
+        }
+        --cur;
+        if (*cur == ':') {
+            strcpy(cur + 1, "0x0");
+        } else if (*cur == ',') {
+            strcpy(cur + 1, " 0x0");
+        }
+    }
+    bool foundSpace = false;
+    cur = buf;
+    while (*cur && !foundSpace) {
+        if (*cur == ' ') {
+            foundSpace = true;
+        }
+        ++cur;
+    }
+    if (!foundSpace) {
+        if (strcmp(buf, "fsincos") &&
+            strcmp(buf, "fdecstp") &&
+            strcmp(buf, "fincstp") &&
+            strcmp(buf, "fldpi")) {
+            opcodeOnlyFl->process(buf, bufLen);
+        }
+    }
+}
+
+void removeUnusedOverridePrefixes(char* buf, int bufLen) {
+    std::string result(buf);
+   
+    removeAtSubStr(result, "data16", 7);
+    removeAtSubStr(result, "addr32", 7);
+    removeAtSubStr(result, "data16", 7);
+    removeAtSubStr(result, "addr32", 7);
+    
+    strncpy(buf, result.c_str(), bufLen);
+    buf[bufLen - 1] = 0;
+    
+}
+
+void signOperands(char* buf, int bufLen, void* arg) {
+    char* cur = buf;
+    char* place;
+    while (*cur) {
+        if (*cur == '0' && *(cur + 1) == 'x') {
+            place = cur;
+            cur += 2;
+            while (isxdigit(*cur)) {
+                ++cur;
+            }
+            long long disp = strtoll(place, NULL, 16);
+            int intDisp = (int)strtol(place, NULL, 16);
+            if (*cur == ',' && (cur == place + 18 && disp < 0)) {
+                disp = disp * -1;
+                char temp[bufLen - (cur - buf)];
+                strcpy(temp, cur);
+                snprintf(place, bufLen - (place - buf), "-0x%x%s", (int)disp, temp);
+            } else if (*cur == ',' && (cur == place + 10 && intDisp < 0)) {
+                intDisp = intDisp * -1;
+                char temp[bufLen - (cur - buf)];
+                strcpy(temp, cur);
+                snprintf(place, bufLen - (place - buf), "-0x%x%s", intDisp, temp);
+            }
+        }
+        ++cur;
+    }
+}
+
+FindList* initFixCallFindList() {
+    FindList* fl = new FindList(877);
+    addReplaceTerm(*fl, "ljmpq", "ljmp");
+    addReplaceTerm(*fl, "lcallq", "lcall");
+    addReplaceTerm(*fl, "lgsq", "lgs");
+    addReplaceTerm(*fl, "lfsq", "lgs");
+    addReplaceTerm(*fl, "lssq", "lss");
+    addReplaceTerm(*fl, "sldtq", "sldt");
+    addReplaceTerm(*fl, "sysexitl", "sysexit");
+    return fl;
+}
+
+void fixCallSuffix(char* buf, int bufLen) {
+    static FindList* fl = initFixCallFindList();
+    fl->process(buf, bufLen);
+}
+
+FindList* initSignedOperandFindList() {
+    FindList* fl = new FindList(877);
+    fl->addTerm(" dec", &signOperands, NULL);
+    fl->addTerm(" inc", &signOperands, NULL);
+    fl->addTerm(" test", &signOperands, NULL);
+    fl->addTerm(" lsl", &signOperands, NULL);
+    fl->addTerm(" sqrt", &signOperands, NULL);
+    fl->addTerm(" imul", &signOperands, NULL);
+    fl->addTerm(" sms", &signOperands, NULL);
+    fl->addTerm(" bts", &signOperands, NULL);
+    fl->addTerm(" push", &signOperands, NULL);
+    fl->addTerm(" str", &signOperands, NULL);
+    fl->addTerm(" sbb", &signOperands, NULL);
+    fl->addTerm(" or", &signOperands, NULL);
+    fl->addTerm(" cmp", &signOperands, NULL);
+    fl->addTerm(" xor", &signOperands, NULL);
+    fl->addTerm(" and", &signOperands, NULL);
+    fl->addTerm(" sub", &signOperands, NULL);
+    fl->addTerm(" add", &signOperands, NULL);
+    fl->addTerm(" idiv", &signOperands, NULL);
+    fl->addTerm(" imul", &signOperands, NULL);
+    fl->addTerm(" shr", &signOperands, NULL);
+    fl->addTerm(" adc", &signOperands, NULL);
+    fl->addTerm(" xchg", &signOperands, NULL);
+    fl->addTerm(" vpunpck", &signOperands, NULL);
+    fl->addTerm(" vpack", &signOperands, NULL);
+    fl->addTerm(" vpavg", &signOperands, NULL);
+    fl->addTerm(" vpadd", &signOperands, NULL);
+    fl->addTerm(" vpsub", &signOperands, NULL);
+    fl->addTerm(" vpsra", &signOperands, NULL);
+    fl->addTerm(" vpmin", &signOperands, NULL);
+    fl->addTerm(" vpmax", &signOperands, NULL);
+    fl->addTerm(" vpcmp", &signOperands, NULL);
+    fl->addTerm("fcomp", &signOperands, NULL);
+    return fl;
+}
+
+void signedOperands(char* buf, int bufLen) {
+    static FindList* fl = initSignedOperandFindList();
+    fl->process(buf, bufLen);
+   
+    if (strncmp(buf, "idiv", 4) &&
+        strncmp(buf, "imul", 4) &&
+        strncmp(buf, "shr", 3) &&
+        strncmp(buf, "adc", 3) &&
+        strncmp(buf, "xchg", 4) &&
+        strncmp(buf, "vpunpck", 7) &&
+        strncmp(buf, "vpack", 5) &&
+        strncmp(buf, "vpavg", 5) &&
+        strncmp(buf, "vpadd", 5) &&
+        strncmp(buf, "vpsub", 5) &&
+        strncmp(buf, "vpmin", 5) &&
+        strncmp(buf, "vpmax", 5) &&
+        strncmp(buf, "vpcmp", 5) &&
+        strncmp(buf, "vpsra", 5) &&
+        strncmp(buf, "dec", 3) &&
+        strncmp(buf, "inc", 3) &&
+        strncmp(buf, "test", 4) &&
+        strncmp(buf, "push", 4) &&
+        strncmp(buf, "bts", 3) &&
+        strncmp(buf, "sms", 3) &&
+        strncmp(buf, "imul", 4) &&
+        strncmp(buf, "sqrt", 4) &&
+        strncmp(buf, "lsl", 3) &&
+        strncmp(buf, "str", 3) &&
+        strncmp(buf, "sbb", 3) &&
+        strncmp(buf, "or", 2) &&
+        strncmp(buf, "cmp", 3) &&
+        strncmp(buf, "xor", 3) &&
+        strncmp(buf, "and", 3) &&
+        strncmp(buf, "sub", 3) &&
+        strncmp(buf, "add", 3)) {
+        return;
+    }
+
+    signOperands(buf, bufLen, NULL);
+}
+
+void removeUnusedRepPrefixes(char* buf, int bufLen) {
+    std::string result(buf);
+   
+    if (result.find("ins") != std::string::npos ||
+        result.find("outs") != std::string::npos ||
+        result.find("lods") != std::string::npos ||
+        result.find("stos") != std::string::npos ||
+        result.find("cmps") != std::string::npos ||
+        result.find("scas") != std::string::npos ||
+        result.find("movs") != std::string::npos) {
+        return;
+    }
+
+    removeAtSubStr(result, "repne", 6);
+    removeAtSubStr(result, "repne", 6);
+    removeAtSubStr(result, "repnz", 6);
+    removeAtSubStr(result, "repnz", 6);
+    removeAtSubStr(result, "repz", 5);
+    removeAtSubStr(result, "repz", 5);
+    removeAtSubStr(result, "rep", 4);
+    removeAtSubStr(result, "rep", 4);
+    
+    strncpy(buf, result.c_str(), bufLen);
+    buf[bufLen - 1] = 0;
+    
+}
+
 void fixStRegs(char* buf, int bufLen) {
     char tmpBuf[bufLen];
     char* place = &tmpBuf[0];
@@ -262,6 +624,24 @@ void removeComments(char* buf, int bufLen) {
    }
 }
 
+void convertToDec(char* buf, int bufLen) {
+    char tmpBuf[bufLen];
+    char* end; 
+    long long int val = strtoll(buf, &end, 16);
+    snprintf(&tmpBuf[0], bufLen, "%lld%s", val, end);
+    strncpy(buf, &tmpBuf[0], bufLen);
+}
+
+void hexToDecConstants(char* buf, int bufLen) {
+   char* cur = buf;
+   while (*cur) {
+        if (!strncmp(cur, "0x", 2)) {
+            convertToDec(cur, bufLen - (cur - buf));
+        }
+        ++cur;
+    }
+}
+
 void convertToHex(char* buf, int bufLen) {
     char tmpBuf[bufLen];
     char* end; 
@@ -272,19 +652,31 @@ void convertToHex(char* buf, int bufLen) {
 
 void decToHexConstants(char* buf, int bufLen) {
    char* cur = buf;
+   bool inParens = false;
 
    while (*cur) {
         while (*cur && (isspace(*cur) || *cur == '(' || *cur == '$')) {
+            if (*cur == '(') {
+                inParens = true;
+            }
             ++cur;
         }
 
-        if ((*cur != '0' || *(cur + 1) != 'x') && 
+        if (*cur == '-') {
+            ++cur;
+        }
+
+        if (!inParens &&
+            (*cur != '0' || *(cur + 1) != 'x') && 
             (isdigit(*cur) || *(cur) == '-')) {
             
             convertToHex(cur, buf + bufLen - cur);
         }
 
         while (*cur && (!isspace(*cur) && *cur != '(')) {
+            if (*cur == ')') {
+                inParens = false;
+            }
             ++cur;
         }
     }
@@ -390,6 +782,108 @@ void removePoundComment(char* buf, int bufLen) {
     if (*cur == '#') {
         *cur = '\0';
     }
+}
+
+void flOperandSwapFunc(char* buf, int bufLen, void* oSwapParam) {
+    OperandSwapParam* osParam = (OperandSwapParam*)oSwapParam;
+    char buf1[bufLen];
+    char between[bufLen];
+    char buf2[bufLen];
+    bool inParens = false;
+    char* place1;
+    char* place2;
+    size_t len1;
+    size_t len2;
+    size_t betweenLen;
+    char* cur = buf;
+    size_t curPos = 0;
+    //std::cerr << "BEFORE: " << buf << "\n";
+    while (*cur && !isspace(*cur)) {
+        ++cur;
+    }
+    while (curPos < osParam->pos1) {
+        while (*cur && (inParens || !isspace(*cur))) {
+            if (*cur == '(') {
+                inParens = true;
+            }
+            if (*cur == ')') {
+                inParens = false;
+            }
+            ++cur;
+        }
+        if (!*cur) {
+            return;
+        }
+        ++cur;
+        ++curPos;
+        //std::cerr << "Pos " << curPos << " at " << cur << "\n";
+    }
+    place1 = cur;
+    while (*cur && (inParens || *cur != ',')) {
+        if (*cur == '(') {
+            inParens = true;
+        }
+        if (*cur == ')') {
+            inParens = false;
+        }
+        ++cur;
+    }
+    if (*cur != ',' || *(cur + 1) != ' ') {
+        return;
+    }
+    len1 = cur - place1;
+    strncpy(buf1, place1, len1);
+    buf1[len1] = '\0';
+    //std::cerr << "Operand " << osParam->pos1 << " = " << buf1 << "\n";
+    while (curPos < osParam->pos2) {
+        while (*cur && (inParens || !isspace(*cur))) {
+            if (*cur == '(') {
+                inParens = true;
+            }
+            if (*cur == ')') {
+                inParens = false;
+            }
+            ++cur;
+        }
+        if (!*cur) {
+            return;
+        }
+        ++cur;
+        ++curPos;
+        //std::cerr << "Pos " << curPos << " at " << cur << "\n";
+    }
+    if (!*cur) {
+        return;
+    }
+    betweenLen = cur - (place1 + len1);
+    strncpy(between, place1 + len1, betweenLen);
+    between[betweenLen] = '\0';
+    //std::cerr << "Between = " << between << "\n";
+    place2 = cur;
+    while (*cur && (inParens || *cur != ',')) {
+        if (*cur == '(') {
+            inParens = true;
+        }
+        if (*cur == ')') {
+            inParens = false;
+        }
+        ++cur;
+    }
+    len2 = cur - place2;
+    strncpy(buf2, place2, len2);
+    buf2[len2] = '\0';
+    //std::cerr << "Operand " << osParam->pos2 << " = " << buf2 << "\n";
+    strncpy(place1, buf2, len2);
+    strncpy(place1 + len2, between, betweenLen);
+    strncpy(place1 + len2 + betweenLen, buf1, len1);
+    //std::cerr << "AFTER:  " << buf << "\n";
+}
+
+void addOperandSwapTerm(FindList& fl, const char* opcode, size_t pos1, size_t pos2) {
+    OperandSwapParam* osParam = new OperandSwapParam;
+    osParam->pos1 = pos1;
+    osParam->pos2 = pos2;
+    fl.addTerm(opcode, &flOperandSwapFunc, (void*)osParam);
 }
 
 void addReplaceTerm(FindList& fl, const char* oldStr, const char* newStr) {

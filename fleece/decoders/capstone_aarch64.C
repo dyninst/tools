@@ -70,6 +70,20 @@ int capstone_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
 }
 
+void removeADRPPound(char* buf, int bufLen) {
+    if (!strncmp(buf, "adrp", 4)) {
+        char* cur = buf;
+        while (*cur) {
+            if (*cur == '#') {
+                *cur = ' ';
+            }
+            ++cur;
+        }
+    }
+}
+
 void capstone_aarch64_norm(char* buf, int bufLen) {
     makeIndexesDecimal(buf, bufLen);
+    removeADRPPound(buf, bufLen);
+    cleanSpaces(buf, bufLen);
 }

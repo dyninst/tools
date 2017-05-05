@@ -241,7 +241,8 @@ int main(int argc, char** argv) {
     }
 
     // Record the time reported and report stats to std::cerr regularly.
-    unsigned long lastTime = 0;
+    unsigned long firstTime = time(NULL);
+    unsigned long lastTime = firstTime;
 
     // Output a header to std::cerr.
     std::cerr << "decoded, queued, reports, matches, suppressed\n";
@@ -256,6 +257,7 @@ int main(int argc, char** argv) {
     uint64_t totalDisasmTime = 0;
     uint64_t totalMapTime = 0;
     struct timespec startTime, endTime;
+    size_t nFormatsSeen = 0;
 
     int cur_generation = 0;
     uint64_t next_generation = 0;
@@ -275,24 +277,39 @@ int main(int argc, char** argv) {
             // Count the total number of instructions decoded.
             unsigned long nDecoded = 0;
             unsigned long totalDecodeTime = 0;
-            unsigned long totalNormTime = 0;
+            //unsigned long totalNormTime = 0;
             for (j = 0; j < decCount; j++) {
                 Decoder dec = decoders[j];
                 nDecoded += dec.getTotalDecodedInsns();
                 totalDecodeTime += dec.getTotalDecodeTime();
-                totalNormTime += dec.getTotalNormalizeTime();
+                //totalNormTime += dec.getTotalNormalizeTime();
+                //std::cerr << dec.getName() << " dec:  " << dec.getTotalDecodeTime() / 1000000000 << "\n";
+                //std::cerr << dec.getName() << " norm: " << dec.getTotalNormalizeTime() / 1000000000 << "\n";
             }
 
             // Output instructions decoded and summary of reporting done.
             std::cerr << nDecoded << ", " << remainingInsns.size() << ", ";
             repContext->printSummary(stderr);
-            std::cerr << "Test Time: " << totalDisasmTime/1000000000 << "\n";
-            std::cerr << "Map Time: " << totalMapTime/1000000000 << "\n";
-            std::cerr << "Decode Time: " << totalDecodeTime/1000000000 << "\n";
-            std::cerr << "Norm. Time: " << totalNormTime/1000000000 << "\n";
+            std::cerr << "Total time: " << newTime - firstTime << "\n";
+            std::cerr << "Output Verify Time: " << totalDisasmTime/1000000000 << "\n";
+            std::cerr << "\tReasm Time: " << totalReasmTime/1000000000 << "\n";
+            std::cerr << "\tReasm Cache Hits: " << numReasmCacheHits << " / " << numReassembled << "\n";
+            std::cerr << "\tIssue Time: " << totalReportIssueTime/1000000000 << "\n";
+            std::cerr << "Input Gen Time: " << totalMapTime/1000000000 << "\n";
+            //std::cerr << "\tDecode Time: " << totalDecodeTime/1000000000 << "\n";
+            //std::cerr << "\tField Time: " << SimpleInsnMap::timeInFields/1000000000 << "\n";
+            //std::cerr << "\tImm Time: " << SimpleInsnMap::timeInImmMatching/1000000000 << "\n";
+            std::cerr << "\tLabelling Time: " << MappedInst::totalLabellingTime/1000000000 << "\n";
+            std::cerr << "\tQueueing Time: " << MappedInst::totalQueueingTime/1000000000 << "\n";
+            std::cerr << "\t\tFiltering Time: " << MappedInst::t1/1000000000 << "\n";
+            std::cerr << "\t\tMisc Queueing Time: " << MappedInst::t2/1000000000 << "\n";
+            std::cerr << "\t\tTotal Check Err Time: " << FieldList::totalHasErrTime/1000000000 << "\n";
+            //std::cerr << "\tNorm. Time: " << totalNormTime/1000000000 << "\n";
             std::cerr << "Num. Inputs: " << i << "\n";
-            
-            
+            std::cerr << "Num. Formats seen: " << nFormatsSeen << "\n";
+
+            //if (i > 1) exit(-1);
+
         }
 
         bool pipeEmpty = false;
@@ -300,8 +317,46 @@ int main(int argc, char** argv) {
         // Get the next instruction.
         if (random) {
 
-            // Fill the buffer then apply the mask.
-            randomizeBuffer(curInsn, insnLen);
+            size_t curOptional = 4;
+            while (curOptional > 2) {
+                curOptional = 0;
+                // Fill the buffer then apply the mask.
+                randomizeBuffer(curInsn, insnLen);
+                for (j = 0; j < decCount; j++) {
+                    Decoder dec = decoders[j];
+                    Assembly insnAsm = Assembly(curInsn, insnLen, &dec);
+                    if (!insnAsm.isError()) {
+                        size_t nBytesUsed = MappedInst::findNumBytesUsed(curInsn, insnLen, &dec);
+                        size_t nOptional = 0;
+                        for (size_t k = 0; k < nBytesUsed; ++k) {
+                            if (MappedInst::isByteOptional(&dec, curInsn, nBytesUsed, k, (FieldList*)insnAsm.getFields())) {
+                                ++nOptional;
+                            }
+                        }
+                        if (nOptional > curOptional) {
+                            curOptional = nOptional;
+                        }
+                    }
+                }
+            }
+            
+            bool formatStrSeen = true;
+            for (j = 0; j < decCount; ++j) {
+                Assembly insnAsm = Assembly(curInsn, insnLen, &decoders[j]);
+                if (!insnAsm.isError()) {
+                    char* insnFormatStr = strdup(insnAsm.getTemplate());
+                    if (seenMap.insert(std::make_pair(insnFormatStr, 1)).second) {
+                        formatStrSeen = false;
+                    } else {
+                        free(insnFormatStr);
+                    }
+                }
+            }
+
+            if (!formatStrSeen) {
+                ++nFormatsSeen;
+            }
+
         } else if (pipe) {
          
             // Read from stdin if we're in pipe mode.
@@ -341,15 +396,15 @@ int main(int argc, char** argv) {
                 // Each decoder maps the instruction and uses its
                 // map to try to find new inputs to add to the queue.
                 mInsn = new MappedInst(curInsn, insnLen, &decoders[j]);
-                mInsn->queueNewInsns(&remainingInsns, &seenMap);
+                mInsn->queueNewInsns(&remainingInsns, &seenMap, decoders);
                 delete mInsn;
             }
         }
-
         clock_gettime(CLOCK_MONOTONIC, &endTime);
 
         totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                      (endTime.tv_nsec - startTime.tv_nsec);
+
 
         clock_gettime(CLOCK_MONOTONIC, &startTime);
         
@@ -418,6 +473,7 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "Total instructions decoded: " << totalDecInsns << "\n";
+    std::cout << "Num. Formats seen: " << nFormatsSeen << "\n";
 
     delete repContext;
     

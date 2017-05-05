@@ -40,6 +40,8 @@ class FieldList {
 
 public:
 
+    static unsigned long long totalHasErrTime;
+
     /*
      * Creates a list of space-delimited fields as a FieldList. The values are
      * copied, so the original buffer may be disposed of.

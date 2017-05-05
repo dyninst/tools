@@ -1,6 +1,8 @@
 
 #include "Report.h"
 
+unsigned long long totalReportIssueTime = 0;
+
 Report::Report(Report* r) : Report(r->asmList) {
 }
 
@@ -21,7 +23,39 @@ Report::~Report() {
     }
 }
 
+void Report::issue(FILE* file) {
+    struct timespec startTime;
+    struct timespec endTime;
+    
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
+    
+    for (auto it = asmList.begin(); it != asmList.end(); ++it) {
+        Assembly* curAsm = *it;
+        fprintf(file, "%s", curAsm->getString());
+        if (!curAsm->isError() && curAsm->getAsmResult() == 'E') {
+            fprintf(file, ": ERROR: %s", curAsm->getAsmError());
+        }
+        fprintf(file, ";");
+    }
+    Assembly* asm1 = *(asmList.begin());
+    const char* bytes = asm1->getBytes();
+    for (size_t i = 0; i < asm1->getNBytes(); i++) {
+        fprintf(file, "%x ", 0xFF & bytes[i]);
+    }
+    fprintf(file, "\n");
+    fflush(file);
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    totalReportIssueTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                  (endTime.tv_nsec - startTime.tv_nsec);
+
+}
+
 void Report::issue(const char* filename) {
+    struct timespec startTime;
+    struct timespec endTime;
+
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
+    
     FILE* f = fopen(filename, "a+");
     if (f == NULL) {
         std::cerr << "Could not open file: " << filename << "\n";
@@ -45,6 +79,10 @@ void Report::issue(const char* filename) {
     }
     fprintf(f, "\n");
     fclose(f);
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    totalReportIssueTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                  (endTime.tv_nsec - startTime.tv_nsec);
+
 }
 
 bool Report::isEquivalent(Report* r) {

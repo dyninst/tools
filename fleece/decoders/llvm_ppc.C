@@ -42,37 +42,20 @@ bool wouldLlvmPpcInsnSig(char* insn, int nBytes) {
         return false;
     }
 
-    if (insn[0] == (char)0x7C && (insn[1] == (char)0x10 || insn[1] == (char)0x90 || insn[1] ==
-    (char)0x50 || insn[1] == (char)0x30 || insn[1] == (char)0xb0) &&
-        insn[2] == (char)0x01 && insn[3] == (char)0x20) {
+    if ((insn[0] == (char)0x7C || insn[0] == (char)0x7D || insn[0] == (char)0x7E || insn[0] == (char)0x7F) && 
+        (insn[1] == (char)0x50 || insn[1] == (char)0x30 || insn[1] == (char)0x10 || insn[1] == (char)0x90 || insn[1] == (char)0xD0 ||
+         insn[1] == (char)0x70 || insn[1] == (char)0xB0) &&
+        (insn[2] == (char)0x01) && 
+        (insn[3] == (char)0x20)) {
         
         return true;
     }
     
-    if (insn[0] == (char)0x7D && insn[1] == (char)0x10 &&
-        insn[2] == (char)0x01 && insn[3] == (char)0x20) {
-        
-        return true;
-    }
-    
-    if ((insn[0] == (char)0x7D || insn[0] == (char)0x7E) && 
-        (insn[1] == (char)0x10 || insn[1] == (char)0x90) &&
+    if ((insn[0] == (char)0x7C || insn[0] == (char)0x7D || insn[0] == (char)0x7E || insn[0] == (char)0x7F) && 
+        (insn[1] == (char)0x50 || insn[1] == (char)0x30 || insn[1] == (char)0x10 || insn[1] == (char)0x90 || insn[1] == (char)0xD0 ||
+         insn[1] == (char)0x70 || insn[1] == (char)0xB0 || insn[1] == (char)0xF0) &&
         (insn[2] == (char)0x00) && 
         (insn[3] == (char)0x26)) {
-        
-        return true;
-    }
-    
-    if ((insn[0] == (char)0x7C || insn[0] == (char)0x7E || insn[0] == (char)0x7F) && 
-        (insn[1] == (char)0x50 || insn[1] == (char)0x30 || insn[1] == (char)0x10 || insn[1] == (char)0x90) &&
-        (insn[2] == (char)0x00) && 
-        (insn[3] == (char)0x26)) {
-        
-        return true;
-    }
-    
-    if (insn[0] == (char)0x7E && insn[1] == (char)0x10 &&
-        insn[2] == (char)0x01 && insn[3] == (char)0x20) {
         
         return true;
     }
@@ -91,18 +74,6 @@ bool wouldLlvmPpcInsnSig(char* insn, int nBytes) {
     
     if (insn[0] == (char)0x7D && insn[1] == (char)0xE1 &&
         insn[2] == (char)0x9E && insn[3] == (char)0x9D) {
-        
-        return true;
-    }
-    
-    if (insn[0] == (char)0x7F && insn[1] == (char)0x10 &&
-        insn[2] == (char)0x00 && insn[3] == (char)0x26) {
-        
-        return true;
-    }
-    
-    if (insn[0] == (char)0x7C && insn[1] == (char)0x10 &&
-        insn[2] == (char)0x00 && insn[3] == (char)0x26) {
         
         return true;
     }

@@ -21,7 +21,7 @@
 #ifndef _DECODER_H_
 #define _DECODER_H_
 
-#define DECODING_BUFFER_SIZE 1024
+#define DECODING_BUFFER_SIZE 256
 //#define EXPERIMENTAL_DECODERS
 
 #include <vector>
@@ -34,6 +34,7 @@ public:
             void (*normFunc)(char*, int),
             const char* name,
             const char* arch);
+    int decode(char* inst, int nBytes, char* buf, int bufLen, bool shouldNorm);
     int decode(char* inst, int nBytes, char* buf, int bufLen);
     void normalize (char* buf, int bufLen);
     int getNumBytesUsed(char* inst, int nBytes);
@@ -114,6 +115,9 @@ extern void llvm_armv6_norm(char*, int);
 extern int  capstone_x86_64_decode(char*, int, char*, int);
 extern void capstone_x86_64_norm(char*, int);
 
+extern int  capstone_x86_32_decode(char*, int, char*, int);
+extern void capstone_x86_32_norm(char*, int);
+
 extern int  capstone_aarch64_decode(char*, int, char*, int);
 extern void capstone_aarch64_norm(char*, int);
 
@@ -122,6 +126,9 @@ extern void capstone_ppc_norm(char*, int);
 
 extern int  null_aarch64_decode(char*, int, char*, int);
 extern void null_aarch64_norm(char*, int);
+
+extern int  null_x86_32_decode(char*, int, char*, int);
+extern void null_x86_32_norm(char*, int);
 
 extern int  null_x86_64_decode(char*, int, char*, int);
 extern void null_x86_64_norm(char*, int);

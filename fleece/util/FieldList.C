@@ -21,6 +21,10 @@
 #include <iostream>
 #include "FieldList.h"
 
+#define MAX_FIELDS 15
+
+unsigned long long FieldList::totalHasErrTime = 0;
+
 static bool* createSeparatorArray() {
     bool* sepArray = new bool[256];
     for (int i = 0; i < 256; ++i) {
@@ -90,8 +94,8 @@ size_t FieldList::detectNumFields(const char* buf) {
 }
 
 void FieldList::allocateFieldsAndSeparators() {
-    fields = new char*[nFields];
-    separators = new char*[nFields + 1];
+    fields = new char*[MAX_FIELDS/*nFields*/];
+    separators = new char*[MAX_FIELDS + 1/*nFields + 1*/];
     assert(fields != NULL && separators != NULL);
 }
 
@@ -146,6 +150,9 @@ void FieldList::initFieldsAndSeparators(const char* buf) {
                 newStr[len] = '\0'; // This should be redundant, but it's good to be safe.
                 fields[curField] = newStr;
                 curField++;
+                if (curField == MAX_FIELDS) {
+                    std::cout << "ERROR: MAXED ON FIELDS!\n";
+                }
             } else {
                 int len = cur - strStart;
                 char* newStr = new char[len + 1];
@@ -172,9 +179,10 @@ void FieldList::initFieldsAndSeparators(const char* buf) {
         strncpy(newStr, strStart, len);
         newStr[len] = '\0';
         fields[curField] = newStr;
-        separators[nFields] = new char[1];
-        assert(separators[nFields] != NULL);
-        separators[nFields][0] = '\0';
+        ++curField;
+        separators[curField] = new char[1];
+        assert(separators[curField] != NULL);
+        separators[curField][0] = '\0';
     } else {
         int len = cur - strStart;
         char* newStr = new char[len + 1];
@@ -183,14 +191,24 @@ void FieldList::initFieldsAndSeparators(const char* buf) {
         separators[curField] = newStr;
     }
 
+    nFields = curField;
     //std::cout << "Field list from: " << buf << "\n";
     //print(stdout);
 }
 
 FieldList::FieldList(const char* buf) {
-    nFields = detectNumFields(buf);
+    struct timespec startTime;
+    struct timespec endTime;
+
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
+    
+    //nFields = detectNumFields(buf);
     allocateFieldsAndSeparators();
     initFieldsAndSeparators(buf);
+    
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    totalHasErrTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                  (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 FieldList::~FieldList() {
@@ -279,14 +297,17 @@ bool FieldList::hasError() const {
 
 void FieldList::stripDigits() {
     for (size_t i = 0; i < nFields; i++) {
-        char* endPtr;
-        strtod(fields[i], &endPtr);
-        if (*endPtr == '\0') {
-            if (strlen(fields[i]) < 3) {
-                delete [] fields[i];
-                fields[i] = new char[4];
+        char first = *(fields[i]);
+        if (isdigit(first) || first == '-') {
+            char* endPtr;
+            strtod(fields[i], &endPtr);
+            if (*endPtr == '\0') {
+                if (strlen(fields[i]) < 3) {
+                    delete [] fields[i];
+                    fields[i] = new char[4];
+                }
+                strncpy(fields[i], "IMM", 4);
             }
-            strncpy(fields[i], "IMM", 4);
         }
     }
 }

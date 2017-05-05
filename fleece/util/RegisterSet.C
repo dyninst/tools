@@ -40,10 +40,15 @@ void RegisterSet::addRegName(const char* regName) {
     strncpy(name, regName, len);
 
     names.insert(std::make_pair(name, sym));
+    nameList.push_back(name);
 }
 
 bool RegisterSet::isReg(const char* str) {
     return (names.find((char*)str) != names.end());
+}
+
+const char* RegisterSet::getSymbol() {
+    return sym;
 }
    
 void RegisterSet::replaceRegNamesWithSymbol(FieldList& fl) {

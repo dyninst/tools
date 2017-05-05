@@ -25,6 +25,7 @@
 #include <string.h>
 #include <iostream>
 #include <unordered_map>
+#include <vector>
 #include "FieldList.h"
 #include "StringUtils.h"
 
@@ -34,8 +35,11 @@ public:
     ~RegisterSet();
     void addRegName(const char* regName);
     bool isReg(const char* str);
+    const char* getSymbol();
     void replaceRegNamesWithSymbol(FieldList& fl);
+    std::vector<const char*> getNameList() { return nameList; }
 private:
+    std::vector<const char*> nameList;
     char* sym;
     std::unordered_map<char*, char*, StringUtils::str_hash, StringUtils::str_eq> names;
 };

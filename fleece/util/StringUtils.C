@@ -19,7 +19,32 @@
 */
 
 #include <iostream>
+#include <unordered_map>
 #include "StringUtils.h"
+
+static std::unordered_map<const char*, int, StringUtils::str_hash, StringUtils::str_eq>* initErrorMap() {
+    std::unordered_map<const char*, int, StringUtils::str_hash, StringUtils::str_eq>* errMap = 
+        new std::unordered_map<const char*, int, StringUtils::str_hash, StringUtils::str_eq>();
+    errMap->insert(std::make_pair(strdup("llvm_decoding_error"), 1));
+    errMap->insert(std::make_pair(strdup("empty_decoding"), 1));
+    errMap->insert(std::make_pair(strdup("decoding_error"), 1));
+    errMap->insert(std::make_pair(strdup("no_entry"), 1));
+    errMap->insert(std::make_pair(strdup("No_Entry"), 1));
+    errMap->insert(std::make_pair(strdup("<invalid_reg>"), 1));
+    errMap->insert(std::make_pair(strdup("<INVALID_REG>"), 1)); 
+    errMap->insert(std::make_pair(strdup("nop"), 1)); 
+    errMap->insert(std::make_pair(strdup("bad"), 1));
+    errMap->insert(std::make_pair(strdup("?"), 1));
+    errMap->insert(std::make_pair(strdup("undefined"), 1));
+    errMap->insert(std::make_pair(strdup("nyi"), 1));
+    errMap->insert(std::make_pair(strdup("invalid"), 1));
+    errMap->insert(std::make_pair(strdup(".long"), 1));
+    errMap->insert(std::make_pair(strdup("long"), 1));
+    errMap->insert(std::make_pair(strdup(".byte"), 1));
+    errMap->insert(std::make_pair(strdup("%?"), 1)); 
+    errMap->insert(std::make_pair(strdup("would_sig"), 1));
+    return errMap;
+}
 
 /*
  * This function is used to cross-check the error reporting of multiple
@@ -28,6 +53,18 @@
  * decoder used during reporting.
  */
 bool signalsError(const char* token) {
+    
+    static std::unordered_map<const char*, int, StringUtils::str_hash, StringUtils::str_eq>* errMap = 
+        initErrorMap();
+    if (token == NULL || !*token) {
+        return false;
+    }
+    auto err = errMap->find(token);
+    if (err != errMap->end()) {
+        return true;
+    }
+    return false;
+    /*
    bool retval =  (
       !strcmp(token, "llvm_decoding_error")  ||
       !strcmp(token, "empty_decoding")  ||
@@ -49,6 +86,7 @@ bool signalsError(const char* token) {
       !strcmp(token, "would_sig")
    );
    return retval;
+   */
 }
 
 char negHex(char h) {

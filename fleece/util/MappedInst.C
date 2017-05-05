@@ -22,6 +22,14 @@
 
 #define NUM_OPTIONAL_BYTES_ALLOWED 2
 
+//#define INSN_QUEUE_COUNTING
+#define INSN_QUEUE_COUNTING_FILENAME "queue_counter.txt"
+
+unsigned long long MappedInst::totalQueueingTime = 0;
+unsigned long long MappedInst::totalLabellingTime = 0;
+unsigned long long MappedInst::t1 = 0;
+unsigned long long MappedInst::t2 = 0;
+
 std::map<MappedInst*, MappedInst*, MappedInst::insn_cmp> MappedInst::uniqueMaps;
 
 void setInstructionBitVector(char* bytes, int* switchBits, int nSwitchBits, int i);
@@ -42,7 +50,7 @@ MappedInst::MappedInst(MappedInst* toCopy) {
     int success = !decoder->decode(toCopy->bytes, 
                                    toCopy->nBytes, 
                                    decodedInstruction, 
-                                   DECODING_BUFFER_SIZE);
+                                   DECODING_BUFFER_SIZE, false);
    
     fields = new FieldList(decodedInstruction);
     if (success && fields->hasError()) {
@@ -53,10 +61,21 @@ MappedInst::MappedInst(MappedInst* toCopy) {
     this->bytes = (char*)malloc(this->nBytes);
     bcopy(toCopy->bytes, this->bytes, this->nBytes);
     this->map = new SimpleInsnMap(toCopy->map);
-
 }
 
-bool MappedInst::isByteOptional(size_t whichByte) {
+static bool fieldsMatch(const char* field1, const char* field2) {
+    if (!strcmp(field1, field2)) {
+        return true;
+    }
+    if (*field1 == '0' && *(field1 + 1) == 'x' && *field2 == '0' && *(field2 + 1) == 'x') {
+        if (atof(field1) == atof(field2) - 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MappedInst::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, size_t whichByte, FieldList* oldFields) {
 
     // Allocated a buffer that we can fill with the decoded version of this instruction.
     char newBuf[DECODING_BUFFER_SIZE];
@@ -65,8 +84,8 @@ bool MappedInst::isByteOptional(size_t whichByte) {
 
     // Allocate a buffer for the bytes of this instruction with a single byte removed.
     char newBytes[nBytes - 1];
-    bzero(newBytes, nBytes - 1);
-    int j = 0;
+    //bzero(newBytes, nBytes - 1);
+    size_t j = 0;
 
     // Copy over all bytes excluding the byte that we want to test. If the byte can be removed and
     // the instruction only changes in certain ways (or not at all), the byte is optional.
@@ -89,7 +108,7 @@ bool MappedInst::isByteOptional(size_t whichByte) {
 
     // Decode the instruction again with the new bytes created above.
     bool success = !decoder->decode(newBytes, nBytes - 1, newStr, 
-            DECODING_BUFFER_SIZE);
+            DECODING_BUFFER_SIZE, false);
 
     // If the instruction fails to decode, the removed byte is not optional.
     if (!success) {
@@ -99,6 +118,10 @@ bool MappedInst::isByteOptional(size_t whichByte) {
     // Construct a field list from the new instruction so we can compare field-by-field with the 
     // old instruction.
     FieldList new_fields = FieldList(newStr);
+
+    if (new_fields.size() > oldFields->size()) {
+        return false;
+    }
     
     // If the new instruction has a field that indicates a decoding error, the removed byte is
     // not optional.
@@ -109,25 +132,18 @@ bool MappedInst::isByteOptional(size_t whichByte) {
     // The byte was optional if and only if the new decoding constains a subset of the fields in
     // the old decoding. To verify this, we check if each field in the new decoding exists in the
     // old one.
+    j = 0;
+    const char* oldField = oldFields->getField(j);
     for (size_t i = 0; i < new_fields.size(); i++) {
-        const char* curField = new_fields.getField(i);
-        bool foundField = true;
-        if (!fields->hasField(curField)) {
-            foundField = false;
-
-            // Since we decreased the length of the instruction by one, jump
-            // destinations may be one byte less, so search for that field.
-            if (*curField == '0' && *(curField + 1) == 'x') {
-                double d = atof(curField);
-                for (size_t j = 0; j < fields->size(); j++) {
-                     const char* oldField = fields->getField(j);
-                     if (d == atof(oldField) - 1) {
-                        foundField = true;
-                     }
-                }
+        const char* newField = new_fields.getField(i);
+        while (j < oldFields->size() - 1 && !fieldsMatch(newField, oldField)) {
+            ++j;
+            if (oldFields->size() - j < new_fields.size() - i) {
+                return false;
             }
+            oldField = oldFields->getField(j);
         }
-        if (!foundField) {
+        if (j == oldFields->size() && !fieldsMatch(newField, oldField)) {
             return false;
         }
     }
@@ -135,142 +151,20 @@ bool MappedInst::isByteOptional(size_t whichByte) {
     return true;
 }
 
-void MappedInst::deleteDownToNOptionalBytes(size_t n) {
-
-    // Keep track of which bytes were optional an how many optional bytes were found.
-    bool optional[nBytes];
-    size_t nOptional = 0;
-
-    // Determine which bytes are optional.
-    for (size_t i = 0; i < nBytesUsed; i++) {
-        optional[i] = isByteOptional(i);
-        nOptional++;
-    }
-
-    // Skip the first nOptional - n bytes that were optional. This allows at most n optional bytes
-    // to remain.
-    size_t nSkipped = 0;
-    size_t nToSkip = nOptional - n;
-    size_t nextByteSlot = 0;
-
-    for (size_t i = 0; i < nBytesUsed; ++i) {
-        if (!optional[i] || nSkipped >= nToSkip) {
-            bytes[nextByteSlot] = bytes[i];
-            ++nextByteSlot;
-        } else {
-            ++nSkipped;
-        }
-    }
-
-    for (size_t i = nBytesUsed; i < nBytes; ++i) {
-        bytes[nextByteSlot] = bytes[i];
-        ++nextByteSlot;
-    }
-
-    // We should maintain instruction length, so fill it with random bytes.
-    for (size_t i = 0; i < nSkipped; ++i) {
-        bytes[nextByteSlot] = (char)(rand() & 0xFF);
-        ++nextByteSlot;
-    }
+void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
     
-    // Now that we have removed the optional bytes, we need to update this mapped instruction's
-    // fields to reflect this change.
-    char newBuf[DECODING_BUFFER_SIZE];
-    char* newStr = &newBuf[0];
-    decoder->decode(bytes, nBytes, newStr, DECODING_BUFFER_SIZE);
-    delete fields;
-    fields = new FieldList(newStr);
-   
-    /*
-    std::cout << "Final bytes:\n\t";
-    for (size_t j = 0; j < nBytes; j++) {
-        std::cout << std::hex << std::setfill('0') << std::setw(2)
-            << (unsigned int)(unsigned char)bytes[j] << " ";
-    }
-    std::cout << "\n";
-    */
-}
-
-/*
-void MappedInst::trimUnusedEnd() {
-    
-    // This method will remove all of the bytes at the end of an instruction that can be removed
-    // without affecting the outcome of decoding.
-    char oldBuf[DECODING_BUFFER_SIZE];
-    char* oldStr = &oldBuf[0];
-    
-    // The number of bytes required to produce an error isn't a defined quantity, so we won't trim
-    // any bytes from an error.
-    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE);
-    if (!success) {
-        return;
-    }
-
-    // This buffer will hold the new decoding after trailing bytes are removed.
-    char newBuf[DECODING_BUFFER_SIZE];
-    char* newStr = &newBuf[0];
-
-    // Start with an instruction of length one and increase the instruction length up to the
-    // original length. Return the shortest instruction whose output is identical to the
-    // original instruction.
-    for (size_t i = 1; i < nBytes; i++) {
-        int newSuc = !decoder->decode(bytes, i, newStr, DECODING_BUFFER_SIZE);
-        if (newSuc && !strcmp(newStr, oldStr)) {
-            nBytes = i;
-            //std::cout << "|-- UNUSED TRIMMED (len = " << nBytes << ") --|\n";
-            return;
-        }
-    }
-}
-*/
-
-void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
+    struct timespec startTime;
+    struct timespec endTime;
     static bool printQueue = (Options::get("-pig") != NULL);
-
-    /*
-    std::cout << "\n\n|---- BEGINNING QUEUEING ----|\n\n";
-    std::cout << "Bytes before removal:\n";
-    for (size_t j = 0; j < nBytes; j++) {
-        std::cout << std::hex << std::setfill('0') << std::setw(2)
-            << (unsigned int)(unsigned char)bytes[j] << " ";
-    }
-    std::cout << "\n" << std::dec;
-    */
-
-    char oldNBytes = nBytes;
-    char oldBytes[nBytes];
-    
     char oldBuf[DECODING_BUFFER_SIZE];
     char* oldStr = &oldBuf[0];
-    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE);
+    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE, false);
     if (!success) {
         return;
     }
-    
-    //std::cout << "Before trim: " << oldStr << "\n";
-    
-    memcpy(oldBytes, bytes, nBytes);
-    //trimUnusedEnd();
-    
-    /*
-    std::cout << "Bytes after trim:\n";
-    for (size_t j = 0; j < nBytes; j++) {
-        std::cout << std::hex << std::setfill('0') << std::setw(2)
-            << (unsigned int)(unsigned char)bytes[j] << " ";
-    }
-    std::cout << "\n" << std::dec;
-    */
 
-    FieldList* oldFields = fields;
-    fields = new FieldList(oldStr);
-    deleteDownToNOptionalBytes(NUM_OPTIONAL_BYTES_ALLOWED);
-    delete fields;
-    fields = oldFields;
-    
-    //success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE);
-    //assert(success);
-    
-    //std::cout << "After optional removal: " << oldStr << "\n";
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
+    bool seen = true;
 
     char decBuf[DECODING_BUFFER_SIZE];
     char* decStr = &decBuf[0];
@@ -278,80 +172,136 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     success = !decoder->decode(bytes,
                                     nBytes,
                                     decStr, 
-                                    DECODING_BUFFER_SIZE);
+                                    DECODING_BUFFER_SIZE, true);
     
-    if (success) {
-        FieldList tList(decStr);
-        if (!tList.hasError()) {
-            tList.stripHex();
-            tList.stripDigits();
-            Architecture::replaceRegSets(tList);
-            int len = tList.getTotalBytes();
-            char* hcString = (char*)malloc(len);
-            assert(hcString != NULL);
-            tList.fillBuf(hcString, len);
+    if (!success) {
+        return;
+    }
+    FieldList tList(decStr);
+    if (!tList.hasError()) {
 
-            if (hc->insert(std::make_pair(hcString, 1)).second) {
-             
-                if (printQueue) {  
-                    std::cout << decoder->getName();
-                    size_t decNameLen = strlen(decoder->getName());
-                    for (size_t j = 0; j < 9 - decNameLen; ++j) {
-                        std::cout << " ";
-                    }
-                    std::cout << "queue: ";
-                    for (size_t j = 0; j < nBytesUsed; ++j) {
-                        std::cout << std::hex << std::setfill('0') << std::setw(2)
-                            << (unsigned int)(unsigned char)bytes[j] << " ";
-                    }
-                    std::cout << "(";
-                    for (size_t j = nBytesUsed; j < nBytes; ++j) {
-                        std::cout << std::hex << std::setfill('0') << std::setw(2)
-                            << (unsigned int)(unsigned char)bytes[j] << " ";
-                    }
-                    std::cout << std::dec << "): " << hcString << "\n";
+        tList.stripHex();
+        tList.stripDigits();
+        Architecture::replaceRegSets(tList);
+        int len = tList.getTotalBytes();
+        char* hcString = (char*)malloc(len);
+        assert(hcString != NULL);
+        tList.fillBuf(hcString, len);
+
+        if (hc->insert(std::make_pair(hcString, 1)).second) {
+            seen = false;
+        } else {
+            free(hcString);
+        }
+    }
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    t1 += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                      (endTime.tv_nsec - startTime.tv_nsec);
+
+    if (seen) {
+        return;
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
+    FieldList oldFields = FieldList(oldStr);
+    int nOptional = 0;
+    for (size_t i = 0; i < nBytesUsed && nOptional < 3; ++i) {
+        if (isByteOptional(decoder, bytes, nBytes, i, &oldFields)) {
+            ++nOptional;
+        }
+    }
+    if (nOptional > 2) {
+        return;
+    }
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+
+    t2 += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                      (endTime.tv_nsec - startTime.tv_nsec);
+    
+    if (printQueue) {  
+        std::cout << decoder->getName();
+        size_t decNameLen = strlen(decoder->getName());
+        for (size_t j = 0; j < 9 - decNameLen; ++j) {
+            std::cout << " ";
+        }
+        std::cout << "queue: ";
+        for (size_t j = 0; j < nBytesUsed; ++j) {
+            std::cout << std::hex << std::setfill('0') << std::setw(2)
+                << (unsigned int)(unsigned char)bytes[j] << " ";
+        }
+        std::cout << "(";
+        for (size_t j = nBytesUsed; j < nBytes; ++j) {
+            std::cout << std::hex << std::setfill('0') << std::setw(2)
+                << (unsigned int)(unsigned char)bytes[j] << " ";
+        }
+        std::cout << std::dec << "): ";
+        tList.printInsn(stdout);
+        std::cout << "\n";
+    }
+    
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
+    for (size_t i = 0; i < decoders.size(); ++i) {
+        Decoder* otherDecoder = &(decoders[i]);
+        if (otherDecoder == decoder) {
+            continue;
+        }
+
+        success = !otherDecoder->decode(bytes,
+                                        nBytes,
+                                        decStr, 
+                                        DECODING_BUFFER_SIZE, true);
+        
+        if (success) {
+            FieldList tList(decStr);
+            if (!tList.hasError()) {
+
+                tList.stripHex();
+                tList.stripDigits();
+                Architecture::replaceRegSets(tList);
+                int len = tList.getTotalBytes();
+                char* hcString = (char*)malloc(len);
+                assert(hcString != NULL);
+                tList.fillBuf(hcString, len);
+
+                if (!hc->insert(std::make_pair(hcString, 1)).second) {
+                    free(hcString);
                 }
-                /*
-                if (strstr(decStr, "addr32") != NULL) {
-                    for (size_t j = 0; j < nBytes; j++) {
-                        std::cout << std::hex << std::setfill('0') << std::setw(2)
-                            << (unsigned int)(unsigned char)bytes[j] << " ";
-                    }
-                    std::cout << "\n" << std::dec;
-                    for (size_t j = 0; j < Architecture::maxInsnLen; j++) {
-                        std::cout << std::hex << std::setfill('0') << std::setw(2)
-                            << (unsigned int)(unsigned char)oldBytes[j] << " ";
-                    }
-                    std::cout << "\n" << std::dec;
-                    
-                    exit(-1);
-                }
-                */
-                char* queuedBytes = (char*)malloc(Architecture::maxInsnLen);
-                assert(queuedBytes != NULL);
-                randomizeBuffer(queuedBytes, Architecture::maxInsnLen);
-                bcopy(bytes, queuedBytes, nBytes);
-                queue->push(queuedBytes);
-            } else {
-                free(hcString);
             }
         }
     }
-    
-    nBytes = oldNBytes;
-    free(bytes);
-    bytes = (char*)malloc(nBytes);
-    assert(bytes != NULL);
-    memcpy(bytes, oldBytes, nBytes);
+    char* queuedBytes = (char*)malloc(Architecture::maxInsnLen);
+    assert(queuedBytes != NULL);
+    randomizeBuffer(queuedBytes, Architecture::maxInsnLen);
+    bcopy(bytes, queuedBytes, nBytes);
+    queue->push(queuedBytes);
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    t1 += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                      (endTime.tv_nsec - startTime.tv_nsec);
+
 }
 
-void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc) {
+void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
+    
+    struct timespec startTime;
+    struct timespec endTime;
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
   
     if (isError) {
         return;
     }
 
-    size_t nBits = 8 * nBytes;
+    #ifdef INSN_QUEUE_COUNTING
+        static FILE* INSN_QUEUE_COUNTING_FILE = fopen(INSN_QUEUE_COUNTING_FILENAME, "w+");
+        assert(INSN_QUEUE_COUNTING_FILE != NULL);
+        int nTriedToQueue = 0;
+        int nQueuedDoubleFlip = 0;
+        int nQueuedSingleFlip = 0;
+        int nQueuedRandom = 0;
+        int nQueuedSpecial = 0;
+        int lastQueueSize = queue->size();
+    #endif
+
+    size_t nBits = 8 * nBytesUsed;
     size_t i = 0;
     size_t j = 0;
 
@@ -368,54 +318,93 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
                 continue;
             }
             flipBufferBit(bytes, j);
-            enqueueInsnIfNew(queue, hc);
+            #ifdef INSN_QUEUE_COUNTING
+                ++nTriedToQueue;
+            #endif
+            enqueueInsnIfNew(queue, hc, decoders);
             flipBufferBit(bytes, j);
         }
 
-        //printf("%s %d\n", decStr, bitTypes[i]);
         flipBufferBit(bytes, i);
     }
+
+    #ifdef INSN_QUEUE_COUNTING
+        nQueuedDoubleFlip = queue->size() - lastQueueSize;
+        lastQueueSize = queue->size();
+    #endif
 
     for (i = 0; i < nBits; i++) {
         if (map->getBitType(i) != BIT_TYPE_SWITCH) {
             continue;
         }
         flipBufferBit(bytes, i);
-        enqueueInsnIfNew(queue, hc);
+        #ifdef INSN_QUEUE_COUNTING
+            ++nTriedToQueue;
+        #endif
+        enqueueInsnIfNew(queue, hc, decoders);
         flipBufferBit(bytes, i);
     }
 
-    char startBytes[nBytes];
-    for (i = 0; i < nBytes; i++) {
-        startBytes[i] = 0;
-    }
+    #ifdef INSN_QUEUE_COUNTING
+        nQueuedSingleFlip = queue->size() - lastQueueSize;
+        lastQueueSize = queue->size();
+    #endif
 
-    memcpy(bytes, startBytes, nBytes);
+    char startBytes[nBytes];
+    memcpy(&startBytes[0], bytes, nBytes);
+    
     for (i = 0; i < fields->size(); i++) {
         for (j = 0; j < nBits; ++j) {
             if (map->getBitType(j) == (int)i) {
-                setBufferBit(bytes, i, rand() & 0x01);
+                setBufferBit(bytes, j, rand() & 0x01);
             }
         }
-        enqueueInsnIfNew(queue, hc);
+        enqueueInsnIfNew(queue, hc, decoders);
+        #ifdef INSN_QUEUE_COUNTING
+            ++nTriedToQueue;
+            nQueuedRandom += queue->size() - lastQueueSize;
+            lastQueueSize = queue->size();
+        #endif
         for (j = 0; j < nBits; ++j) {
             if (map->getBitType(j) == (int)i) {
-                setBufferBit(bytes, i, 0);
+                setBufferBit(bytes, j, 0);
             }
         }
-        enqueueInsnIfNew(queue, hc);
+        enqueueInsnIfNew(queue, hc, decoders);
+
+        #ifdef INSN_QUEUE_COUNTING
+            ++nTriedToQueue;
+            nQueuedSpecial += queue->size() - lastQueueSize;
+            lastQueueSize = queue->size();
+        #endif
         for (j = 0; j < nBits; ++j) {
             if (map->getBitType(j) == (int)i) {
-                setBufferBit(bytes, i, 1);
+                setBufferBit(bytes, j, 1);
             }
         }
-        enqueueInsnIfNew(queue, hc);
-        memcpy(startBytes, bytes, nBytes);
+        enqueueInsnIfNew(queue, hc, decoders);
+        #ifdef INSN_QUEUE_COUNTING
+            ++nTriedToQueue;
+            nQueuedSpecial += queue->size() - lastQueueSize;
+            lastQueueSize = queue->size();
+        #endif
+        memcpy(bytes, &startBytes[0], nBytes);
     }
+    #ifdef INSN_QUEUE_COUNTING
+    fprintf(INSN_QUEUE_COUNTING_FILE, "Tried: %d\tDouble: %d\tSingle: %d\tRandom: %d\tSpecial: %d\n",
+        nTriedToQueue, nQueuedDoubleFlip, nQueuedSingleFlip, nQueuedRandom, nQueuedSpecial);
+    fflush(INSN_QUEUE_COUNTING_FILE);
+    #endif
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    totalQueueingTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                      (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
 
+    struct timespec startTime;
+    struct timespec endTime;
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
     char decodeBuf[DECODING_BUFFER_SIZE];
     char* decodedInstruction = &decodeBuf[0];
 
@@ -424,7 +413,7 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
     int success = !decoder->decode(bytes, 
                                    nBytes, 
                                    decodedInstruction, 
-                                   DECODING_BUFFER_SIZE);
+                                   DECODING_BUFFER_SIZE, false);
    
     fields = new FieldList(decodedInstruction);
     if (success && fields->hasError()) {
@@ -442,8 +431,10 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
     bcopy(bytes, this->bytes, nBytes);
 
     this->nBytesUsed = findNumBytesUsed(bytes, nBytes, dec);
-    deleteDownToNOptionalBytes(NUM_OPTIONAL_BYTES_ALLOWED);
     this->mapBitTypes();
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    totalLabellingTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                      (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 MappedInst::~MappedInst() {
@@ -457,10 +448,10 @@ MappedInst::~MappedInst() {
 
 void MappedInst::mapBitTypes() {
     size_t i = 0;
-    unsigned int nBits = 8 * nBytes;
+    unsigned int nBitsUsed = 8 * nBytesUsed;
     
     map = new SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
-
+    SimpleInsnMap prelimMap = SimpleInsnMap(map);
     #ifdef COUNTING_OPCODE_COMBOS
 
     MappedInst* storedMap = new MappedInst(this);
@@ -472,9 +463,8 @@ void MappedInst::mapBitTypes() {
 
     #endif
 
-    for (i = 0; i < nBits; i++) {
-        if (map->getBitType(i) == BIT_TYPE_UNUSED        ||
-            map->getBitType(i) == BIT_TYPE_SWITCH        ||
+    for (i = 0; i < nBitsUsed; i++) {
+        if (map->getBitType(i) == BIT_TYPE_SWITCH        ||
             map->getBitType(i) == BIT_TYPE_CAUSED_ERROR  ||
             map->isBitConfirmedImm(i)) {
 
@@ -483,7 +473,22 @@ void MappedInst::mapBitTypes() {
 
         flipBufferBit(bytes, i);
         SimpleInsnMap newMap = SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
-        if (!map->isMapEquivalent(newMap)) {
+        if (!prelimMap.isMapEquivalent(newMap)) {
+            
+            if (map->getBitType(i) != 0 && nBytesUsed <= 3) {
+                /*
+                std::cout << "Changing bit " << i << " from field " << (int)prelimMap.getBitType(i) << "\n";
+                for (size_t j = 0; j < nBytes; j++) {
+                    std::cout << std::hex << std::setfill('0') << std::setw(2)
+                        << (unsigned int)(unsigned char)bytes[j] << " " << std::dec;
+                }
+                fields->printInsn(stdout);
+                std::cout << "\nOld map: " << prelimMap.toString() << "\n";
+                std::cout << "New map: " << newMap.toString() << "\n";
+                */
+                //exit(-1);
+            }
+            
             map->overrideBitType(i, BIT_TYPE_SWITCH);
         }
         
@@ -499,6 +504,8 @@ void MappedInst::mapBitTypes() {
         
         flipBufferBit(bytes, i);
     }
+    //std::cout << "Final map: " << map->toString() << "\n";
+    //exit(-1);
 
     #ifdef COUNTING_OPCODE_COMBOS
 
@@ -582,10 +589,11 @@ size_t MappedInst::findNumBytesUsed(char* bytes, size_t nBytes, Decoder* dec) {
     // without affecting the outcome of decoding.
     char oldBuf[DECODING_BUFFER_SIZE];
     char* oldStr = &oldBuf[0];
+    char byteBuf[nBytes];
     
     // The number of bytes required to produce an error isn't a defined quantity, so we won't trim
     // any bytes from an error.
-    int success = !dec->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE);
+    int success = !dec->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE, false);
     if (!success) {
         return nBytes;
     }
@@ -598,7 +606,8 @@ size_t MappedInst::findNumBytesUsed(char* bytes, size_t nBytes, Decoder* dec) {
     // original length. Return the shortest instruction whose output is identical to the
     // original instruction.
     for (size_t i = 1; i < nBytes; i++) {
-        int newSuc = !decoder->decode(bytes, i, newStr, DECODING_BUFFER_SIZE);
+        byteBuf[i - 1] = bytes[i - 1];
+        int newSuc = !dec->decode(byteBuf, i, newStr, DECODING_BUFFER_SIZE, false);
         if (newSuc && !strcmp(newStr, oldStr)) {
             return i;
         }
