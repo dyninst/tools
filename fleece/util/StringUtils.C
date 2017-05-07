@@ -43,6 +43,7 @@ static std::unordered_map<const char*, int, StringUtils::str_hash, StringUtils::
     errMap->insert(std::make_pair(strdup(".byte"), 1));
     errMap->insert(std::make_pair(strdup("%?"), 1)); 
     errMap->insert(std::make_pair(strdup("would_sig"), 1));
+    errMap->insert(std::make_pair(strdup("nop/reserved"), 1));
     return errMap;
 }
 

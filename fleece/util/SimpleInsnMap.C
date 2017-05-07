@@ -20,7 +20,7 @@
 
 #include "SimpleInsnMap.h"
 
-#define DEBUG_SIMPLE_MAP
+//#define DEBUG_SIMPLE_MAP
     
 unsigned long long SimpleInsnMap::timeInFields = 0;
 unsigned long long SimpleInsnMap::timeInImmMatching = 0;
@@ -65,7 +65,7 @@ SimpleInsnMap::SimpleInsnMap(const char* bytes, size_t nBytes, size_t nBytesUsed
     char tmpBytes[nBytes];
     bcopy(bytes, tmpBytes, nBytes);
     mapBitTypes(tmpBytes, dec);
-    exit(-1);    
+    //exit(-1);    
     clock_gettime(CLOCK_MONOTONIC, &endTime);
     timeInFields += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                  (endTime.tv_nsec - startTime.tv_nsec);

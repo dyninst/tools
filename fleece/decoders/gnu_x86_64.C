@@ -245,12 +245,22 @@ void fixKRegs(char* buf, int bufLen) {
 FindList* initJumpHintsFindList() {
     FindList* fl = new FindList(409);
     //addReplaceTerm(*fl, "bq ", "b ");
+    addReplaceTerm(*fl, "jae, pn", "jae");
+    addReplaceTerm(*fl, "ja, pn", "ja");
+    addReplaceTerm(*fl, "jbe, pn", "jbe");
+    addReplaceTerm(*fl, "jbe, pt", "jbe");
+    addReplaceTerm(*fl, "jl, pn", "jl");
+    addReplaceTerm(*fl, "js, pn", "js");
+    addReplaceTerm(*fl, "jo, pn", "jo");
+    addReplaceTerm(*fl, "jg, pn", "jg");
+    addReplaceTerm(*fl, "jb, pn", "jb");
     addReplaceTerm(*fl, "jp, pn", "jp");
     addReplaceTerm(*fl, "jp, pt", "jp");
     addReplaceTerm(*fl, "js, pt", "js");
     addReplaceTerm(*fl, "js, pn", "js");
     addReplaceTerm(*fl, "jnp, pt", "jnp");
     addReplaceTerm(*fl, "jnp, pn", "jnp");
+    addReplaceTerm(*fl, "jecxz, pn", "jecxz");
     return fl;
 }
 
@@ -268,6 +278,7 @@ void gnu_x86_64_norm(char* buf, int bufLen) {
     removeUnusedOverridePrefixes(buf, bufLen);
     removeIzRegister(buf, bufLen);
     removeX86Hints(buf, bufLen);
+    removeJumpHints(buf, bufLen);
     fixKRegs(buf, bufLen);
     signedOperands(buf, bufLen);
     //trimHexFs(buf, bufLen);

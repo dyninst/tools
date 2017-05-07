@@ -230,7 +230,7 @@ void Assembly::makeAsmResult() {
     assert(asmError == NULL && asmBytes == NULL);
     asmError = new char[REASM_ERROR_BUF_LEN];
     asmBytes = new char[Architecture::maxInsnLen];
-    asmResult = reassemble(bytes, nBytes, decStr, NULL, REASM_FILENAME, 
+    asmResult = reassemble(bytes, nBytes, decStr,
             asmBytes, Architecture::maxInsnLen, (int*)&nAsmBytes, asmError, 
             REASM_ERROR_BUF_LEN);
 }

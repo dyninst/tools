@@ -95,7 +95,9 @@ int main(int argc, char** argv) {
     // Seed the random number generator with the time or a provided seed.
     const char* strSeed = Options::get("-seed=");
     if (strSeed == NULL) {
-        srand(time(NULL));
+        int seed = time(NULL);
+        std::cout << "Seed = " << seed << "\n";
+        srand(seed);
     } else {
         srand(strtoul(strSeed, NULL, 10));
     }
@@ -109,7 +111,6 @@ int main(int argc, char** argv) {
     
     // Initialize the architecture with the command line name.
     Architecture::init(archStr);
-    initReassembly();
 
     // Determine the instruction length. The default value is 15 bytes.
     unsigned long insnLen = Architecture::maxInsnLen;
@@ -283,8 +284,8 @@ int main(int argc, char** argv) {
                 nDecoded += dec.getTotalDecodedInsns();
                 totalDecodeTime += dec.getTotalDecodeTime();
                 //totalNormTime += dec.getTotalNormalizeTime();
-                //std::cerr << dec.getName() << " dec:  " << dec.getTotalDecodeTime() / 1000000000 << "\n";
-                //std::cerr << dec.getName() << " norm: " << dec.getTotalNormalizeTime() / 1000000000 << "\n";
+                std::cerr << dec.getName() << " dec:  " << dec.getTotalDecodeTime() / 1000000000 << "\n";
+                std::cerr << dec.getName() << " norm: " << dec.getTotalNormalizeTime() / 1000000000 << "\n";
             }
 
             // Output instructions decoded and summary of reporting done.
@@ -293,7 +294,6 @@ int main(int argc, char** argv) {
             std::cerr << "Total time: " << newTime - firstTime << "\n";
             std::cerr << "Output Verify Time: " << totalDisasmTime/1000000000 << "\n";
             std::cerr << "\tReasm Time: " << totalReasmTime/1000000000 << "\n";
-            std::cerr << "\tReasm Cache Hits: " << numReasmCacheHits << " / " << numReassembled << "\n";
             std::cerr << "\tIssue Time: " << totalReportIssueTime/1000000000 << "\n";
             std::cerr << "Input Gen Time: " << totalMapTime/1000000000 << "\n";
             //std::cerr << "\tDecode Time: " << totalDecodeTime/1000000000 << "\n";

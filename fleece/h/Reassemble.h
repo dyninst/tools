@@ -14,17 +14,22 @@
 #include <unistd.h>
 #include "Architecture.h"
 #include "Options.h"
+#include "ReassemblyDaemon.h"
 #include "StringUtils.h"
 
 #define REASM_BUF_LEN 700
 #define REASM_ERROR_BUF_LEN 256
-#define BYTE_COLON_COUNT 4
 
 extern unsigned long long totalReasmTime;
 extern const char* REASM_FILENAME;
 
 extern unsigned long long numReassembled;
-extern unsigned long long numReasmCacheHits;
+
+class ReassemblyDaemon;
+
+namespace Reassembly{
+    extern ReassemblyDaemon* daemon;
+}
 
 enum AsmResult { 
     ASM_RESULT_NONE = 'N', 
@@ -32,9 +37,8 @@ enum AsmResult {
     ASM_RESULT_SAME = 'S', 
     ASM_RESULT_DIFFERENT = 'D' };
 
-void initReassembly();
-char reassemble(const char* bytes, int nBytes, const char* str, FILE* tmp, 
-    const char* tmpname, char* byteBuf, int bufLen, int* outputLen,
+char reassemble(const char* bytes, int nBytes, const char* str,
+    char* byteBuf, int bufLen, int* outputLen,
     char* errorBuf, int errorBufLen);
 int readReassembledBytes(const char* filename, char* outBytes, int bufLen);
 
