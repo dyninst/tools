@@ -185,6 +185,14 @@ void addSymbolMaybe(string str) {
     }
 }
 
+bool isInt(string s) {
+    for(int idx = 0; idx < s.length(); idx++)
+        if(!isdigit(s[idx]))
+            return false;
+
+    return true;
+}
+
 bool haswback = false;
 
 %}
@@ -303,7 +311,13 @@ decl:       OPERAND                     {
                                             {
                                                 addSymbolMaybe(*$2);
 
-                                                ARGS_VEC(((*$2).find("carry_in") != string::npos?"bool":*$1), " ", *$2);
+                                                string dtype = *$1;
+                                                if((*$2).find("carry_in") != string::npos)
+                                                    dtype = "bool";
+                                                else if(dtype == "int" && (*$2).find("result") != string::npos)
+                                                    dtype = "BaseSemantics::SValuePtr";
+
+                                                ARGS_VEC(dtype, " ", *$2);
                                                 DEL_VEC($1, $2);
                                                 $$ = STR(makeStr(args, &del));
                                             }
@@ -656,6 +670,11 @@ funccall:   varname SYMBOL_OPENROUNDED args SYMBOL_CLOSEROUNDED    {
                                                                             ARGS_VEC("isTrue(d->", *$1, "(ops->number_(32, ", *$3, ")))");
                                                                             $$ = STR(makeStr(args, &del));
                                                                         }
+                                                                        else if((*$1) == "IsZero")
+                                                                        {
+                                                                            ARGS_VEC("isTrue(d->isZero(", *$3, "))");
+                                                                            $$ = STR(makeStr(args, &del));
+                                                                        }
                                                                         else
                                                                         {
                                                                             ARGS_VEC("d->", *$1, "(", *$3, ")");
@@ -695,8 +714,16 @@ args:       args SYMBOL_COMMA args      {
 
                                             if((*$2) == "+" || (*$2) == "/")
                                             {
-                                                ARGS_VEC(*$1, *$2, *$3);
-                                                $$ = STR(makeStr(args, &del));
+                                                if((*$2) == "/" && !isInt(*$3) && (*$1).find("d->") != string::npos && (*$3).find("d->") != string::npos)
+                                                {
+                                                    ARGS_VEC("ops->unsignedDivide(", *$1, ", ", *$3, ")");
+                                                    $$ = STR(makeStr(args, &del));
+                                                }
+                                                else
+                                                {
+                                                    ARGS_VEC(*$1, *$2, *$3);
+                                                    $$ = STR(makeStr(args, &del));
+                                                }
                                             }
                                             else if((*$2) == "MOD")
                                             {
