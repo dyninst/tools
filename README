@@ -1,0 +1,13 @@
+ARM64 Semantics Parser
+
+This project is for parsing the instruction pseudocode in the XML specification of the ARMv8 instructions. At a high-level, a Python script reads the XML file for each instruction, extracts the operation pseudocode from them and stores them in a file named after the instruction.
+The binary generated from this project can then read the generated file and output equivalent, ROSE-compliant C++ code which can then be placed into the Dispatcher class' code.
+
+There are two types of pseudocode in the XML specification:
+* Decode: Pseudocode for extracting relevant fields from the raw instruction that will be used in the actual execution of the instruction.
+* Operation: Pseudocode for the actual operation of the instruction.
+We currently do not parse the first one. This means that fields defined/declared/initialized in the decode PS and used in operation PS need to be generated somehow when we parse the operation PS in this project. Appropriate constructs are included to achieve this and comments are also included for them in the code. It should also be possible to extend the grammar used for parsing to parse the decode pseudocode, thereby building an instruction decoder automatically from the XML specification.
+
+The way the pseudocode is converted to C++ is by grammar-based parsing. A Bison (Yacc) grammar is defined to parse symbols returned by a lexer defined using Flex (Lex) - both of these were built from scratch. The grammar closely resembles the grammar for a regular language like C, but has lots of rules and special cases for handling situations that occur in the ARM pseudocode. Currently, only non-SIMD instructions are parsed - even among these, some are not yet parsed although overall the coverage for the non-SIMD is close to 93% and most of the remaining instructions are system instructions that are not really relevant for user-mode programs. To parse SIMD instructions, this grammar would have to be extended. Perhaps the most important thing for SIMD pseudocode is supporting loops and accessing a register as an array, but of course there could be more.
+
+The project is a regular CMAKE project.
