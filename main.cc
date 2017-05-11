@@ -30,6 +30,12 @@
 
 #include "driver.h"
 #include "scanner.h"
+#include <sys/stat.h>
+
+bool file_exists(const char *fname) {
+    struct stat buf;
+    return stat(fname, &buf) == 0;
+}
 
 int main() {
 
@@ -67,21 +73,34 @@ int main() {
                             "cls_int", "clz_int",
                             "madd", "msub", "mneg_msub", "mul_madd", "smaddl", "smsubl", "smnegl_smsubl","smulh", "smull_smaddl","umaddl", "umsubl", "umnegl_umsubl", "umulh", "umull_umaddl",
                             "ldar", "ldarb", "ldarh", "stlr", "stlrb", "stlrh",
-                            "udiv", "sdiv"*/};
+                            "udiv", */"sdsiv"};
 
     /** Root folder containing the pseudocode files created by the pseudocode extractor script. Change as necessary. */
     std::string pcode_files_dir("/u/s/s/ssunny/dev-home/dyninst/dyninst-code/instructionAPI/ISA_ps/");
 
     /** Iterate over all files in the list above and parse them. */
     Dyninst_aarch64::Driver driver;
+    std::map<const char *, bool> notExists;
     for(int fidx = 0; fidx < sizeof(fnames)/sizeof(char *); fidx++) {
-        driver.pcode_parse(pcode_files_dir + std::string(fnames[fidx]));
+        if(file_exists(fnames[fidx]))
+            driver.pcode_parse(pcode_files_dir + std::string(fnames[fidx]));
+        else
+            notExists[fnames[fidx]] = true;
     }
 
     /** For each file above, output the iproc_set statement for the corresponding instruction.
      * This needs to go into the iproc_init method of the Dispatcher. */
     for(int idx = 0; idx < sizeof(fnames)/sizeof(char *); idx++)
-        std::cout<<"iproc_set (rose_aarch64_op_"<<fnames[idx]<<", new ARM64::IP_"<<fnames[idx]<<"_execute);"<<std::endl;
+        if(!notExists.count(fnames[idx]))
+            std::cout<<"iproc_set (rose_aarch64_op_"<<fnames[idx]<<", new ARM64::IP_"<<fnames[idx]<<"_execute);"<<std::endl;
+
+    if(notExists.size()) {
+        std::cout<<std::endl;
+        std::cout<<"### Some files not found:"<<std::endl;
+        for (std::map<const char *, bool>::iterator itr = notExists.begin(); itr != notExists.end(); itr++) {
+            std::cout << "Could not find file " << itr->first << "." << std::endl;
+        }
+    }
 
     return 0;
 }

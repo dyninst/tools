@@ -150,8 +150,8 @@ address\ =\ (SP|(X|W)\[[a-z]\])[^\n]+		     {
     /*        Instruction Operands          */
     /****************************************/
 
-/* This can be simplified to use other rules that were added after this rule was created. It is also likely that this rule is redundant and
-   is already being handled by other rules - haven't verified this yet though. */
+    /* This can be simplified to use other rules that were added after this rule was created. It is also likely that this rule is redundant and
+       is already being handled by other rules - haven't verified this yet though. */
 bits\((datasize|64)\)\ (address|target|result|(operand[1|2]?))[^\n]+\n    {
                                                                                int operandIdx = -1;
                                                                                stringstream val;
