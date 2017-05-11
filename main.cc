@@ -1,89 +1,88 @@
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ *
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ *
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 #include "driver.h"
 #include "scanner.h"
 
 int main() {
+
+    /*
+     * List of files that need to be parsed. Currently roughly organized categorically.
+     *
+     * This would ideally contain all files under ISA_ps. However, currently, only a subset is included since I wanted to be selective about
+     * what to parse. It is possible to just include all files and later choose which ones to parse - shouldn't be too hard to implement; this
+     * solution works fine though for now.
+     *
+     * Even in this subset, comment the ones you don't need to filter parsing further.
+     */
     const char *fnames[] = {/*"add_addsub_imm", "adds_addsub_imm", "sub_addsub_imm", "subs_addsub_imm",
                             "add_addsub_ext", "adds_addsub_ext", "sub_addsub_ext", "subs_addsub_ext",
                             "add_addsub_shift", "adds_addsub_shift", "sub_addsub_shift", "subs_addsub_shift",
-                            "adc", "adcs", "adr", "adrp", "b_uncond", "b_cond", "br", "blr", "bl", "cbz", "cbnz", "tbz", "tbnz"/*,
+                            "adc", "adcs", "adr", "adrp", "tbz", "tbnz", "b_uncond", "b_cond", "br", "blr", "bl", "cbz", "cbnz",
                             "cmp_subs_addsub_imm", "cmp_subs_addsub_ext", "cmp_subs_addsub_shift",
                             "cmn_adds_addsub_imm", "cmn_adds_addsub_ext", "cmn_adds_addsub_shift",
-                            "ccmn_reg", "ccmn_imm"*/
-                            "ldr_imm_gen"};
+                            "ccmn_reg", "ccmn_imm",
+                            "ldr_imm_gen", "str_imm_gen", "ldrb_imm", "strb_imm", "ldrh_imm", "ldrsb_imm", "ldrsh_imm", "ldrsw_imm", "strh_imm",
+                            "ldr_reg_gen", "ldrb_reg", "ldrh_reg", "ldrsb_reg", "ldrsh_reg", "ldrsw_reg", "str_reg_gen", "strb_reg", "strh_reg",
+                            "ldr_lit_gen", "ldrsw_lit",
+                            "ubfm", "uxtb_ubfm", "uxth_ubfm", "ubfiz_ubfm", "ubfx_ubfm", "sbfm", "sxth_sbfm", "sxtb_sbfm", "sbfiz_sbfm", "sbfx_sbfm", "sxtw_sbfm",
+                            "movz", "mov_movz", "movn", "mov_movn", "movk",
+                            "orr_log_shift", "mov_orr_log_shift", "mov_orr_log_imm", "orn_log_shift", "orr_log_imm",
+                            "and_log_imm", "and_log_shift", "ands_log_imm", "ands_log_shift", "eor_log_shift", "eor_log_imm", "eon",
+                            "lsl_ubfm", "lsr_ubfm", "asr_sbfm",
+                            "bfm", "bfxil_bfm", "bfi_bfm", "bic_log_shift", "bics", "stp_gen", "ldp_gen", "stnp_gen", "ldpsw", "ldnp_gen", "stnp_gen",
+                            "ldtr", "ldtrb", "ldtrh", "ldtrsb", "ldtrsh", "sttr", "sttrb", "sttrh",
+                            "ldur_gen", "ldurb", "ldurh", "ldursb", "ldursh", "ldursw", "sturb", "sturh", "stur_gen",
+                            "asr_asrv", "asrv", "lsl_lslv", "lslv", "lsr_lsrv", "lsrv", "ror_rorv", "rorv"
+                            "tst_ands_log_imm", "tst_ands_log_shift", "sbc", "sbcs", "ngc_sbc", "ngcs_sbcs", "neg_sub_addsub_shift", "negs_subs_addsub_shift",
+                            "mvn_orn_log_shift", "mov_add_addsub_imm",
+                            "csinv", "csinc", "csneg", "csel",
+                            "cls_int", "clz_int",
+                            "madd", "msub", "mneg_msub", "mul_madd", "smaddl", "smsubl", "smnegl_smsubl","smulh", "smull_smaddl","umaddl", "umsubl", "umnegl_umsubl", "umulh", "umull_umaddl",
+                            "ldar", "ldarb", "ldarh", "stlr", "stlrb", "stlrh",
+                            "udiv", "sdiv"*/};
+
+    /** Root folder containing the pseudocode files created by the pseudocode extractor script. Change as necessary. */
     std::string pcode_files_dir("/u/s/s/ssunny/dev-home/dyninst/dyninst-code/instructionAPI/ISA_ps/");
 
+    /** Iterate over all files in the list above and parse them. */
     Dyninst_aarch64::Driver driver;
-    for(int fidx = 0; fidx < sizeof(fnames)/sizeof(char *); fidx++)
+    for(int fidx = 0; fidx < sizeof(fnames)/sizeof(char *); fidx++) {
         driver.pcode_parse(pcode_files_dir + std::string(fnames[fidx]));
-	//driver.pcode_parse(pcode_files_dir + std::string("adrp"));
+    }
 
+    /** For each file above, output the iproc_set statement for the corresponding instruction.
+     * This needs to go into the iproc_init method of the Dispatcher. */
     for(int idx = 0; idx < sizeof(fnames)/sizeof(char *); idx++)
-        std::cout<<"iproc_set(rose_aarch64_op_"<<fnames[idx]<<", new ARM64::IP_"<<fnames[idx]<<"_execute);"<<std::endl;
+        std::cout<<"iproc_set (rose_aarch64_op_"<<fnames[idx]<<", new ARM64::IP_"<<fnames[idx]<<"_execute);"<<std::endl;
 
     return 0;
 }
-/*boolean wb_unknown = FALSE;
-boolean rt_unknown = FALSE;
 
-if memop == MemOp_LOAD && wback && n == t && n != 31 then
-    c = ConstrainUnpredictable(Unpredictable_WBOVERLAPLD);
-    assert c IN {Constraint_WBSUPPRESS, Constraint_UNKNOWN, Constraint_UNDEF, Constraint_NOP};
-    case c of
-        when Constraint_WBSUPPRESS wback = FALSE;       // writeback is suppressed
-        when Constraint_UNKNOWN    wb_unknown = TRUE;   // writeback is UNKNOWN
-        when Constraint_UNDEF      UnallocatedEncoding();
-        when Constraint_NOP        EndOfInstruction();
-end
-
-if memop == MemOp_STORE && wback && n == t && n != 31 then
-    c = ConstrainUnpredictable(Unpredictable_WBOVERLAPST);
-    assert c IN {Constraint_NONE, Constraint_UNKNOWN, Constraint_UNDEF, Constraint_NOP};
-    case c of
-        when Constraint_NONE       rt_unknown = FALSE;  // value stored is original value
-        when Constraint_UNKNOWN    rt_unknown = TRUE;   // value stored is UNKNOWN
-        when Constraint_UNDEF      UnallocatedEncoding();
-        when Constraint_NOP        EndOfInstruction();
-end
-
-if n == 31 then
-    if memop != MemOp_PREFETCH then CheckSPAlignment();
-    address = SP[];
-else
-    address = X[n];
-end
-
-if ! postindex then
-    address = address + offset;
-end
-
-case memop of
-    when MemOp_STORE
-        if rt_unknown then
-            data = bits(datasize) UNKNOWN;
-        else
-            data = X[t];
-        Mem[address, datasize DIV 8, acctype] = data;
-        end
-
-    when MemOp_LOAD
-        data = Mem[address, datasize DIV 8, acctype];
-        if signed then
-            X[t] = SignExtend(data, regsize);
-        else
-            X[t] = ZeroExtend(data, regsize);
-        end
-
-    when MemOp_PREFETCH
-        Prefetch(address, t<4:0>);
-
-if wback then
-    if wb_unknown then
-        address = bits(64) UNKNOWN;
-    elsif postindex then
-        address = address + offset;
-    if n == 31 then
-        SP[] = address;
-    else
-        X[n] = address;
-end
-*/
