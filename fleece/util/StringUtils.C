@@ -111,20 +111,6 @@ char negHex(char h) {
    return h;
 }
 
-int getStdinBytes(char* buf, unsigned int nBytes) {
-   char* end = buf + nBytes;
-   int c;
-   for (char* cur = buf; cur < end; cur++) {
-      c = fgetc(stdin);
-      if (c != EOF) {
-        *cur = (char)c; 
-      } else {
-         return -1;
-      }
-   }
-   return 0;
-}
-
 bool isHex(char c) {
    return ((c >= '0' && c <= '9') ||
            (c >= 'a' && c <= 'f'));

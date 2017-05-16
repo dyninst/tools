@@ -18,7 +18,7 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include "Fleece.h"
+#include "fleece.h"
 
 void signalHandler(int sig) {
     if (sig == SIGSEGV) {
@@ -43,13 +43,13 @@ int main(int argc, char** argv) {
     Options::parse(argc, argv);
 
     // The user selected the "-help" option, so print help and exit.
-    if (Options::get("-help") || Options::get("-h")) {
+    if (Options::get("--help") != NULL || Options::get("-h") != NULL) {
         Info::printOptions();
         exit(0);
     }
 
     // The user selected the "-version" option, so print the version and exit.
-    if (Options::get("-version") != NULL) {
+    if (Options::get("--version") != NULL || Options::get("-v") != NULL) {
         Info::printVersion();
         exit(0);
     }
@@ -62,9 +62,6 @@ int main(int argc, char** argv) {
 
     // Should the raw bytes of an insn be printed right before decoding?
     bool showInsn = (Options::get("-bytes") != NULL);
-
-    // Should the program read input from stdio?
-    bool pipe     = (Options::get("-pipe")  != NULL);
 
     // Seed the random number generator with the time or a provided seed.
     const char* strSeed = Options::get("-seed=");
@@ -88,10 +85,6 @@ int main(int argc, char** argv) {
 
     // Determine the instruction length. The default value is 15 bytes.
     unsigned long insnLen = Architecture::maxInsnLen;
-    const char* strInsnLen = Options::get("-len=");
-    if (strInsnLen != NULL) {
-        insnLen = strtoul(strInsnLen, NULL, 10);
-    }
 
     /* Initialize our decoders */
     Decoder::initAllDecoders();
@@ -118,10 +111,10 @@ int main(int argc, char** argv) {
     // random instruction.
     unsigned long nRuns = 0;
     const char* strRuns = Options::get("-n=");
-    if (strRuns == NULL && !pipe) {
-        std::cout << "FLEECE FATAL: Need \"-n=<# of insns>\" or \"-pipe\"\n";
+    if (strRuns == NULL) {
+        std::cout << "FLEECE FATAL: Need \"-n=<# of insns>\"\n";
         exit(0);
-    } else if (!pipe) {
+    } else {
         nRuns = strtoul(strRuns, NULL, 10);
     }
 
@@ -198,7 +191,7 @@ int main(int argc, char** argv) {
     std::map<char*, int, StringUtils::str_cmp> seenMap;
     std::queue<char*> remainingInsns;
 
-    if (!random && !pipe) {
+    if (!random) {
         for (i = 0; i < nRuns; i++) {
             // Create an initial random instructions for the queue.
             randomizeBuffer(baseInsn, insnLen);
@@ -219,7 +212,7 @@ int main(int argc, char** argv) {
     // The current instruction in the loop.
     char* curInsn = NULL;
 
-    if (random || pipe) {
+    if (random) {
         curInsn = (char*)malloc(insnLen);
     }
 
@@ -230,10 +223,8 @@ int main(int argc, char** argv) {
 
     i = 0;
 
-    while ((pipe || (!random && !remainingInsns.empty()) 
-                || (random && i < nRuns))) {
-
-        i++;
+    while ((!random && !remainingInsns.empty()) || (random && i < nRuns)) {
+        ++i;
 
         // If it has been 10 seconds, output a new line to std::cerr with data.
         unsigned long newTime = time(NULL);
@@ -275,8 +266,6 @@ int main(int argc, char** argv) {
             //if (i > 1) exit(-1);
 
         }
-
-        bool pipeEmpty = false;
 
         // Get the next instruction.
         if (random) {
@@ -320,14 +309,7 @@ int main(int argc, char** argv) {
             if (!formatStrSeen) {
                 ++nFormatsSeen;
             }
-
-        } else if (pipe) {
-         
-            // Read from stdin if we're in pipe mode.
-            pipeEmpty = (getStdinBytes(curInsn, insnLen) == -1);
-            if (pipeEmpty) {
-                break;
-            }
+        
         } else {
          
         // If insns are not random, take them from the queue.
@@ -350,7 +332,7 @@ int main(int argc, char** argv) {
             clock_gettime(CLOCK_MONOTONIC, &startTime);
         #endif
 
-        if (!random && !pipe) {
+        if (!random) {
 
             // If the input is non-random, we need to add to the queue now.
             MappedInst* mInsn;
@@ -391,9 +373,7 @@ int main(int argc, char** argv) {
 
         // If the instruction was from the queue, it was malloced at somepoint
         // and we need to free it.
-        if (!random && !pipe) {
-            free(curInsn);
-        }
+        free(curInsn);
     }
 
     // Print a summary at the end of execution.
@@ -419,7 +399,7 @@ int main(int argc, char** argv) {
     }
     free(decBufs); 
 
-    if (!random && !pipe) {
+    if (!random) {
         free(baseInsn);
     }
     free(tempInsn);
