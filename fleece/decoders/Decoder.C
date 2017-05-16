@@ -257,14 +257,7 @@ int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen, bool shouldNo
     clock_gettime(CLOCK_MONOTONIC, &startTime);
     *buf = 0;
     int rc = func(inst, nBytes, buf, bufLen);
-    std::cerr << "Current insn = (" << curInsnLen << " bytes): ";
-    for (int j = 0; j < curInsnLen; j++) {
-        std::cerr << std::hex << std::setfill('0') << std::setw(2)
-            << (unsigned int)(unsigned char)curInsn[j] << " ";
-    }
-    std::cout << "result: " << buf << "\n";
     clock_gettime(CLOCK_MONOTONIC, &endTime);
-
     totalDecodeTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                    (endTime.tv_nsec - startTime.tv_nsec);
  
