@@ -17,7 +17,8 @@ along with this software; if not, see www.gnu.org/licenses
 
 # Fleece
 
-Fleece is a fuzzing tool used to compare assembly decoders. Currently LLVM, binutils (libopcodes) and dyninst are supported.
+Fleece is a fuzzing tool used to compare assembly decoders. Currently LLVM, binutils (libopcodes),
+capstone and dyninst are supported.
 
 ## Building Dependancies
 
@@ -30,6 +31,7 @@ Fleece depends on the following libraries:
 - LLVM
 - libiberty
 - libdl
+- capstone
 
 ### Xed
 
