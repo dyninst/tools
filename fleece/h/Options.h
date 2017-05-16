@@ -25,15 +25,6 @@
 #include <iostream>
 #include <string.h>
 
-typedef struct OptionArg {
-   char* str;
-   bool mandatory;
-   bool given;
-   bool hasPostfix;
-   void (*action)(char*, void*);
-   struct OptionArg* next;
-} OptionsArg;
-
 namespace Options {
     /**
      * Make global copies of argc and argv for use
@@ -51,12 +42,6 @@ namespace Options {
      * Deallocates memory allocated by parse().
      */
     void destroy();
-
-    /**
-     * Check for unused arguments. Prints out errors and
-     * stops if an argument is found that isn't used.
-     */
-    void check_unused();
 }
 
 #endif
