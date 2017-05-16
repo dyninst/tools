@@ -34,6 +34,7 @@ void removeX86Hints    (char* buf, int bufLen);
 void removeEmptyParens (char* buf, int bufLen);
 void removeUnusedRepPrefixes(char* buf, int bufLen);
 void removeUnusedOverridePrefixes(char* buf, int bufLen);
+void removeUnused64BitSegRegs(char* buf, int bufLen);
 void removePoundComment(char* buf, int bufLen);
 void signedOperands    (char* buf, int bufLen);
 void removeImplicitST0 (char* buf, int bufLen);

@@ -26,13 +26,12 @@
 #include <dis-asm.h>
 #include <sstream>
 #include <stdio.h>
-#include "aarch64_common.h"
 #include "bfd.h"
 #include "Decoder.h"
 #include "Normalization.h"
 #include "StringUtils.h"
 
-int gnu_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+int gnu_ppc_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
      
     disassemble_info disInfo;
     static char fbuf[DECODING_BUFFER_SIZE];
@@ -44,20 +43,21 @@ int gnu_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
     INIT_DISASSEMBLE_INFO(disInfo, outf, (fprintf_ftype)fprintf);
     disInfo.buffer = (bfd_byte*)(inst);
     disInfo.buffer_length = nBytes;
-    disInfo.arch = bfd_arch_aarch64;
+    disInfo.arch = bfd_arch_powerpc;
+    disInfo.mach = bfd_mach_ppc;
+    disassemble_init_powerpc (&disInfo);
     
     int rc = 0;
 
-    rc = print_insn_aarch64((bfd_vma)0, &disInfo);
+    rc = print_insn_big_powerpc((bfd_vma)0, &disInfo);
     fflush(outf);
     strcpy(buf, fbuf);
     
     return !(rc > 0);
 }
 
-void gnu_aarch64_norm(char* buf, int bufLen) {
-    cleanSpaces(buf, bufLen);
+void gnu_ppc_32_norm(char* buf, int bufLen) {
     toLowerCase(buf, bufLen);
+    cleanSpaces(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
-    removeComments(buf, bufLen);
 }

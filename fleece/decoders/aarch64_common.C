@@ -34,6 +34,7 @@ void negCond(char* dest, char* src) {
     }
 }
 
+/*
 void aliasCsInsns(char* buf, int bufLen) {
     
     bool inv = !strncmp(buf, "csinv", 5);
@@ -156,6 +157,7 @@ void aliasCsInsns(char* buf, int bufLen) {
     place += 2;
     *place = '\0';
 }
+*/
 
 void removeExtraZeroesFromFmovImm(char* buf, int bufLen) {
    

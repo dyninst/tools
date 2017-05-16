@@ -3,6 +3,20 @@
 #include <string.h>
 #include "Normalization.h"
 
+static FindList* initUnused64BitSegRegsFindList() {
+    FindList* fl = new FindList(877);
+    addReplaceTerm(*fl, "%es:", "");
+    addReplaceTerm(*fl, "%cs:", "");
+    addReplaceTerm(*fl, "%ds:", "");
+    addReplaceTerm(*fl, "%ss:", "");
+    return fl;
+}
+
+void removeUnused64BitSegRegs(char* buf, int bufLen) {
+    static FindList* fl = initUnused64BitSegRegsFindList();
+    fl->process(buf, bufLen);
+}
+
 void addImpliedX86Index(char* buf, int bufLen) {
     char* cur = buf;
     bool inParens = false;
@@ -210,9 +224,11 @@ void removeUnusedOverridePrefixes(char* buf, int bufLen) {
     std::string result(buf);
    
     removeAtSubStr(result, "data16", 7);
-    removeAtSubStr(result, "addr32", 7);
     removeAtSubStr(result, "data16", 7);
     removeAtSubStr(result, "addr32", 7);
+    removeAtSubStr(result, "addr32", 7);
+    removeAtSubStr(result, "addr16", 7);
+    removeAtSubStr(result, "addr16", 7);
     
     strncpy(buf, result.c_str(), bufLen);
     buf[bufLen - 1] = 0;

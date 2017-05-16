@@ -22,13 +22,8 @@
 
 #define NUM_OPTIONAL_BYTES_ALLOWED 2
 
-//#define INSN_QUEUE_COUNTING
-#define INSN_QUEUE_COUNTING_FILENAME "queue_counter.txt"
-
 unsigned long long MappedInst::totalQueueingTime = 0;
 unsigned long long MappedInst::totalLabellingTime = 0;
-unsigned long long MappedInst::t1 = 0;
-unsigned long long MappedInst::t2 = 0;
 
 std::map<MappedInst*, MappedInst*, MappedInst::insn_cmp> MappedInst::uniqueMaps;
 
@@ -153,8 +148,6 @@ bool MappedInst::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, si
 
 void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
     
-    struct timespec startTime;
-    struct timespec endTime;
     static bool printQueue = (Options::get("-pig") != NULL);
     char oldBuf[DECODING_BUFFER_SIZE];
     char* oldStr = &oldBuf[0];
@@ -163,9 +156,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
         return;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
     bool seen = true;
-
     char decBuf[DECODING_BUFFER_SIZE];
     char* decStr = &decBuf[0];
 
@@ -194,15 +185,11 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
             free(hcString);
         }
     }
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    t1 += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                      (endTime.tv_nsec - startTime.tv_nsec);
 
     if (seen) {
         return;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
     FieldList oldFields = FieldList(oldStr);
     int nOptional = 0;
     for (size_t i = 0; i < nBytesUsed && nOptional < 3; ++i) {
@@ -213,10 +200,6 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     if (nOptional > 2) {
         return;
     }
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-
-    t2 += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                      (endTime.tv_nsec - startTime.tv_nsec);
     
     if (printQueue) {  
         std::cout << decoder->getName();
@@ -239,7 +222,6 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
         std::cout << "\n";
     }
     
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
     for (size_t i = 0; i < decoders.size(); ++i) {
         Decoder* otherDecoder = &(decoders[i]);
         if (otherDecoder == decoder) {
@@ -274,10 +256,6 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     randomizeBuffer(queuedBytes, Architecture::maxInsnLen);
     bcopy(bytes, queuedBytes, nBytes);
     queue->push(queuedBytes);
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    t1 += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                      (endTime.tv_nsec - startTime.tv_nsec);
-
 }
 
 void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {

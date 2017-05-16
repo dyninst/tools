@@ -104,7 +104,7 @@ static void removeUnusedSegRegs(char* buf, int bufLen) {
     buf[bufLen - 1] = 0;
 }
 
-int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
    
     // This loop detects the objdump-aborting byte sequences regardless of
     // offset. It will return some false positives, but it will at least allow
@@ -159,7 +159,7 @@ int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
     disInfo.buffer = (bfd_byte*)(inst);
     disInfo.buffer_length = nBytes;
     disInfo.arch = bfd_arch_i386;
-    disInfo.mach = bfd_mach_x86_64;
+    disInfo.mach = bfd_mach_i386_i386;
 
     int rc = 0;
 
@@ -174,8 +174,8 @@ int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
         !strcmp(buf, "ds") ||
         !strcmp(buf, "es") ||
         !strcmp(buf, "data16") || 
-        !strcmp(buf, "addr32")) {
-        if (gnu_x86_64_decode(inst + 1, nBytes - 1, buf, bufLen)) {
+        !strcmp(buf, "addr16")) {
+        if (gnu_x86_32_decode(inst + 1, nBytes - 1, buf, bufLen)) {
             rc = -1;
         }
     } else if (!strncmp(buf, "rex", 3)) {
@@ -268,14 +268,13 @@ static void removeJumpHints(char* buf, int bufLen) {
     fl->process(buf, bufLen);
 }
 
-void gnu_x86_64_norm(char* buf, int bufLen) {
+void gnu_x86_32_norm(char* buf, int bufLen) {
 
     cleanSpaces(buf, bufLen);
     toLowerCase(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
     removeUnusedRepPrefixes(buf, bufLen);
     removeUnusedOverridePrefixes(buf, bufLen);
-    removeUnused64BitSegRegs(buf, bufLen);
     removeIzRegister(buf, bufLen);
     removeX86Hints(buf, bufLen);
     removeJumpHints(buf, bufLen);

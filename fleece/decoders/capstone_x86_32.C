@@ -32,15 +32,25 @@ csh makeX86_32CSHandle() {
     return handle;
 }
 
+static bool capstoneWillCrash(char* inst, int nBytes) {
+    for (int i = 0; i < nBytes - 4; ++i) {
+        if (nBytes >= 5 && inst[i + 1] == (char)0x62 && inst[i + 4] == (char)0x03) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 int capstone_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
     static csh handle = makeX86_32CSHandle();
     cs_insn *insn;
 
-    //if (capstoneWillCrash(inst, nBytes)) {
-    //    strncpy(buf, "would_sig", bufLen);
-    //    return 0;
-    //}
+    if (capstoneWillCrash(inst, nBytes)) {
+        strncpy(buf, "would_sig", bufLen);
+        return 0;
+    }
 
     int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0, 0, &insn);
    

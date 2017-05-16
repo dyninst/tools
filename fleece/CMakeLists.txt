@@ -34,7 +34,28 @@ set (DEPS_INCLUDEDIR ${DYNINST_INCLUDEDIR} ${XED_INCLUDEDIR} ${GNU_INCLUDEDIR} $
 
 # Which custom libraries should be linked against fleece?
 set (FLEECE_LIBRARIES fleeceutil fleecedecoders fleecereporting)
-set (OTHER_LIBRARIES z instructionAPI xed LLVM opcodes capstone rt bfd iberty dl elf)
+set (OTHER_LIBRARIES z instructionAPI xed
+LLVMMC
+LLVMMCDisassembler
+LLVMX86Disassembler
+LLVMX86Desc
+LLVMARMDisassembler
+LLVMXCoreDisassembler
+LLVMXCoreDesc
+LLVMPowerPCDisassembler
+LLVMPowerPCDesc
+LLVMHexagonDisassembler
+LLVMSparcDisassembler
+LLVMSparcDesc
+LLVMSystemZDisassembler
+LLVMAArch64Disassembler
+LLVMAMDGPUDisassembler
+LLVMMipsDisassembler
+LLVMMipsDesc
+LLVMNVPTXDesc
+LLVMMSP430Desc
+LLVMBPFDesc
+opcodes capstone rt bfd iberty dl elf)
 set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${OTHER_LIBRARIES})
 
 set (CMAKE_CXX_FLAGS "-std=c++0x")

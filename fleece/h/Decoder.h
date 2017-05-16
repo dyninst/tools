@@ -75,8 +75,14 @@ private:
 extern int xedInit(void);
 extern int LLVMInit(void);
 
+extern int  xed_x86_32_decode(char*, int, char*, int);
+extern void xed_x86_32_norm(char*, int);
+
 extern int  xed_x86_64_decode(char*, int, char*, int);
 extern void xed_x86_64_norm(char*, int);
+
+extern int  dyninst_x86_32_decode(char*, int, char*, int);
+extern void dyninst_x86_32_norm(char*, int);
 
 extern int  dyninst_x86_64_decode(char*, int, char*, int);
 extern void dyninst_x86_64_norm(char*, int);
@@ -85,11 +91,17 @@ extern int  dyninst_aarch64_decode(char*, int, char*, int);
 extern void dyninst_aarch64_norm(char*, int);
 extern int  dyninst_aarch64_init(void);
 
+extern int  dyninst_ppc_32_decode(char*, int, char*, int);
+extern void dyninst_ppc_32_norm(char*, int);
+
 extern int  dyninst_ppc_decode(char*, int, char*, int);
 extern void dyninst_ppc_norm(char*, int);
 
 extern int  dyninst_armv6_decode(char*, int, char*, int);
 extern void dyninst_armv6_norm(char*, int);
+
+extern int  gnu_x86_32_decode(char*, int, char*, int);
+extern void gnu_x86_32_norm(char*, int);
 
 extern int  gnu_x86_64_decode(char*, int, char*, int);
 extern void gnu_x86_64_norm(char*, int);
@@ -97,14 +109,23 @@ extern void gnu_x86_64_norm(char*, int);
 extern int  gnu_aarch64_decode(char*, int, char*, int);
 extern void gnu_aarch64_norm(char*, int);
 
+extern int  gnu_ppc_32_decode(char*, int, char*, int);
+extern void gnu_ppc_32_norm(char*, int);
+
 extern int  gnu_ppc_decode(char*, int, char*, int);
 extern void gnu_ppc_norm(char*, int);
+
+extern int  llvm_x86_32_decode(char*, int, char*, int);
+extern void llvm_x86_32_norm(char*, int);
 
 extern int  llvm_x86_64_decode(char*, int, char*, int);
 extern void llvm_x86_64_norm(char*, int);
 
 extern int  llvm_aarch64_decode(char*, int, char*, int);
 extern void llvm_aarch64_norm(char*, int);
+
+extern int  llvm_ppc_32_decode(char*, int, char*, int);
+extern void llvm_ppc_32_norm(char*, int);
 
 extern int  llvm_ppc_decode(char*, int, char*, int);
 extern void llvm_ppc_norm(char*, int);

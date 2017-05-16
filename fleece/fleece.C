@@ -18,33 +18,7 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <ios>
-#include <map>
-#include <queue>
-#include <sstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-#include <vector>
-#include "BitTypes.h"
-#include "Decoder.h"
-#include "Info.h"
-#include "Mask.h"
-#include "MappedInst.h"
-#include "Options.h"
-#include "ReportingContext.h"
-#include "StringUtils.h"
-
-#define DECODED_BUFFER_LEN 256
-#define FLUSH_FREQ 100
-#define DIR_ACCESS_PERMS S_IRUSR | S_IWUSR | S_IXUSR
-
+#include "Fleece.h"
 
 void signalHandler(int sig) {
     if (sig == SIGSEGV) {
@@ -260,11 +234,9 @@ int main(int argc, char** argv) {
     struct timespec startTime, endTime;
     size_t nFormatsSeen = 0;
 
-    int cur_generation = 0;
-    uint64_t next_generation = 0;
     i = 0;
 
-    while (cur_generation != 7 && (pipe || (!random && !remainingInsns.empty()) 
+    while ((pipe || (!random && !remainingInsns.empty()) 
                 || (random && i < nRuns))) {
 
         i++;
@@ -301,8 +273,6 @@ int main(int argc, char** argv) {
             //std::cerr << "\tImm Time: " << SimpleInsnMap::timeInImmMatching/1000000000 << "\n";
             std::cerr << "\tLabelling Time: " << MappedInst::totalLabellingTime/1000000000 << "\n";
             std::cerr << "\tQueueing Time: " << MappedInst::totalQueueingTime/1000000000 << "\n";
-            std::cerr << "\t\tFiltering Time: " << MappedInst::t1/1000000000 << "\n";
-            std::cerr << "\t\tMisc Queueing Time: " << MappedInst::t2/1000000000 << "\n";
             std::cerr << "\t\tTotal Check Err Time: " << FieldList::totalHasErrTime/1000000000 << "\n";
             //std::cerr << "\tNorm. Time: " << totalNormTime/1000000000 << "\n";
             std::cerr << "Num. Inputs: " << i << "\n";
@@ -377,15 +347,24 @@ int main(int argc, char** argv) {
 
         // If the user selected to see the instruction before decode, print it
         // now.
+
         if (showInsn) {
+            printByteBuffer(std::cout, curInsn, insnLen);
+            std::cout << std::endl;
+        }
+        /*
             for (j = 0; j < insnLen; j++) {
                 std::cout << std::hex << std::setfill('0') << std::setw(2)
                     << (unsigned int)(unsigned char)curInsn[j] << " ";
             }
             std::cout << "\n" << std::dec;
         }
+        */
 
-        clock_gettime(CLOCK_MONOTONIC, &startTime);
+        #ifdef DEBUG_TIME
+            clock_gettime(CLOCK_MONOTONIC, &startTime);
+        #endif
+
         if (!random && !pipe) {
 
             // If the input is non-random, we need to add to the queue now.
@@ -400,68 +379,37 @@ int main(int argc, char** argv) {
                 delete mInsn;
             }
         }
-        clock_gettime(CLOCK_MONOTONIC, &endTime);
+        
+        #ifdef DEBUG_TIME
+            clock_gettime(CLOCK_MONOTONIC, &endTime);
+            totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                         (endTime.tv_nsec - startTime.tv_nsec);
 
-        totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                     (endTime.tv_nsec - startTime.tv_nsec);
-
-
-        clock_gettime(CLOCK_MONOTONIC, &startTime);
+            clock_gettime(CLOCK_MONOTONIC, &startTime);
+        #endif
         
         std::vector<Assembly*> asmList;
 
-        if (!Options::get("-notest")) {
-            // Use each decoder to decode the instruction.
-            for (j = 0; j < decCount; j++) {
-                asmList.push_back(new Assembly(curInsn, insnLen, &decoders[j]));
-            }
-
-            // Process the resulting decoding and report it if necessary
-            repContext->processDecodings(asmList);
+        // Use each decoder to decode the instruction.
+        for (j = 0; j < decCount; j++) {
+            asmList.push_back(new Assembly(curInsn, insnLen, &decoders[j]));
         }
 
-        clock_gettime(CLOCK_MONOTONIC, &endTime);
+        // Process the resulting decoding and report it if necessary
+        repContext->processDecodings(asmList);
 
-        totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                        (endTime.tv_nsec - startTime.tv_nsec);
+        #ifdef DEBUG_TIME
+            clock_gettime(CLOCK_MONOTONIC, &endTime);
+            totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
+                                            (endTime.tv_nsec - startTime.tv_nsec);
+        #endif
+
         // If the instruction was from the queue, it was malloced at somepoint
         // and we need to free it.
-        if (!random) {
+        if (!random && !pipe) {
             free(curInsn);
         }
-        //random = true;
-        //nRuns = 0;
     }
-
-    std::cout << "----- MAP -----\n";
-    std::cout << "size = " << MappedInst::uniqueMaps.size() << "\n";
-    auto it = MappedInst::uniqueMaps.begin();
-    while(it != MappedInst::uniqueMaps.end()) {
-        MappedInst* a = (*it).first;
-        for (size_t j = 0; j < 8 * a->getNumBytes(); j++) {
-            if (a->getBitType(j) == BIT_TYPE_SWITCH) {
-                std::cout << "*";
-            } else if (a->getBitType(j) == BIT_TYPE_UNUSED) {
-                std::cout << "x";
-            } else if (a->getBitType(j) == BIT_TYPE_CAUSED_ERROR) {
-                std::cout << "E";
-            } else {
-                std::cout << a->getBitType(j);
-            }
-        }
-        std::cout << "  ";
-        char* bytes = a->getRawBytes();
-        for (size_t j = 0; j < a->getNumBytes(); j++) {
-            std::cout << std::hex << std::setfill('0') << std::setw(2)
-                << (unsigned int)(unsigned char)bytes[j] << " ";
-        }
-        std::cout << std::dec;
-        std::cout << "  " << a->getDecoder()->getName() << "  ";
-        a->getFields()->printInsn(stdout);
-        std::cout << "\n";
-        ++it;
-    }
-    std::cout << "----- END OF MAP -----\n";
 
     // Print a summary at the end of execution.
     repContext->printSummary(stdout);
@@ -477,10 +425,6 @@ int main(int argc, char** argv) {
 
     delete repContext;
     
-    /* Code for printing values when testing input "generations" */
-    //}
-    //gen_stream.close();
-
     if (hasMask) {
         delete mask;
     }

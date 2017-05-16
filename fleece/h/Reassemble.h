@@ -18,7 +18,7 @@
 #include "StringUtils.h"
 
 #define REASM_BUF_LEN 700
-#define REASM_ERROR_BUF_LEN 256
+#define REASM_ERROR_BUF_LEN 512
 
 extern unsigned long long totalReasmTime;
 extern const char* REASM_FILENAME;

@@ -24,15 +24,22 @@
 #include "MappedInst.h"
 
 Decoder* dec_xed_x86_64;
+Decoder* dec_xed_x86_32;
 Decoder* dec_dyninst_x86_64;
+Decoder* dec_dyninst_x86_32;
 Decoder* dec_dyninst_aarch64;
+Decoder* dec_dyninst_ppc_32;
 Decoder* dec_dyninst_ppc;
 Decoder* dec_dyninst_armv6;
+Decoder* dec_gnu_x86_32;
 Decoder* dec_gnu_x86_64;
 Decoder* dec_gnu_aarch64;
+Decoder* dec_gnu_ppc_32;
 Decoder* dec_gnu_ppc;
+Decoder* dec_llvm_x86_32;
 Decoder* dec_llvm_x86_64;
 Decoder* dec_llvm_aarch64;
+Decoder* dec_llvm_ppc_32;
 Decoder* dec_llvm_ppc;
 Decoder* dec_llvm_armv6;
 Decoder* dec_capstone_x86_64;
@@ -77,7 +84,10 @@ Decoder::Decoder(
     // Execute any initialization required for this decoder.
     if (initFunc != NULL) {
         int rc = (*initFunc)();
-        assert(rc != -1);
+        if (rc != 0) {
+            std::cerr << "Error: Could not initialize decoder: " << arch << ":" << name << std::endl;
+            exit(-1);
+        }
     }
     
     this->arch = arch;
@@ -91,26 +101,40 @@ Decoder::Decoder(
 
 void Decoder::initAllDecoders()
 {
+    dec_xed_x86_32 = new Decoder(&xed_x86_32_decode, &xedInit, 
+            &xed_x86_32_norm, "xed", "x86_32");
+    dec_dyninst_x86_32 = new Decoder(&dyninst_x86_32_decode, NULL, 
+            &dyninst_x86_32_norm, "dyninst", "x86_32");
     dec_xed_x86_64 = new Decoder(&xed_x86_64_decode, &xedInit, 
             &xed_x86_64_norm, "xed", "x86_64");
     dec_dyninst_x86_64 = new Decoder(&dyninst_x86_64_decode, NULL, 
             &dyninst_x86_64_norm, "dyninst", "x86_64");
     dec_dyninst_aarch64 = new Decoder(&dyninst_aarch64_decode, 
             &dyninst_aarch64_init, &dyninst_aarch64_norm, "dyninst", "aarch64");
+    dec_dyninst_ppc_32 = new Decoder(&dyninst_ppc_32_decode, 
+            NULL, &dyninst_ppc_32_norm, "dyninst", "ppc32");
     dec_dyninst_ppc = new Decoder(&dyninst_ppc_decode, 
             NULL, &dyninst_ppc_norm, "dyninst", "ppc");
     dec_dyninst_armv6 = new Decoder(&dyninst_armv6_decode, NULL,
             &dyninst_armv6_norm, "dyninst", "armv6");
+    dec_gnu_x86_32 = new Decoder(&gnu_x86_32_decode, NULL, 
+            &gnu_x86_32_norm, "gnu", "x86_32");
     dec_gnu_x86_64 = new Decoder(&gnu_x86_64_decode, NULL, 
             &gnu_x86_64_norm, "gnu", "x86_64");
     dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
             &gnu_aarch64_norm, "gnu", "aarch64");
+    dec_gnu_ppc_32 = new Decoder(&gnu_ppc_32_decode, NULL, 
+            &gnu_ppc_32_norm, "gnu", "ppc32");
     dec_gnu_ppc = new Decoder(&gnu_ppc_decode, NULL, 
             &gnu_ppc_norm, "gnu", "ppc");
+    dec_llvm_x86_32 = new Decoder(&llvm_x86_32_decode, &LLVMInit, 
+            &llvm_x86_64_norm, "llvm", "x86_32");
     dec_llvm_x86_64 = new Decoder(&llvm_x86_64_decode, &LLVMInit, 
             &llvm_x86_64_norm, "llvm", "x86_64");
     dec_llvm_aarch64 = new Decoder(&llvm_aarch64_decode, &LLVMInit, 
             &llvm_aarch64_norm, "llvm", "aarch64");
+    dec_llvm_ppc_32 = new Decoder(&llvm_ppc_32_decode, &LLVMInit, 
+            &llvm_ppc_32_norm, "llvm", "ppc32");
     dec_llvm_ppc = new Decoder(&llvm_ppc_decode, &LLVMInit, 
             &llvm_ppc_norm, "llvm", "ppc");
     dec_llvm_armv6 = new Decoder(&llvm_armv6_decode, &LLVMInit,
@@ -135,16 +159,23 @@ void Decoder::initAllDecoders()
 
 void Decoder::destroyAllDecoders()
 {
+    delete dec_xed_x86_32;
     delete dec_xed_x86_64;
+    delete dec_dyninst_x86_32;
     delete dec_dyninst_x86_64;
     delete dec_dyninst_aarch64;
+    delete dec_dyninst_ppc_32;
     delete dec_dyninst_ppc;
     delete dec_dyninst_armv6;
+    delete dec_gnu_x86_32;
     delete dec_gnu_x86_64;
     delete dec_gnu_aarch64;
+    delete dec_gnu_ppc_32;
     delete dec_gnu_ppc;
+    delete dec_llvm_x86_32;
     delete dec_llvm_x86_64;
     delete dec_llvm_aarch64;
+    delete dec_llvm_ppc_32;
     delete dec_llvm_ppc;
     delete dec_llvm_armv6;
     delete dec_capstone_x86_32;
@@ -159,17 +190,24 @@ void Decoder::destroyAllDecoders()
 
 std::vector<Decoder> Decoder::getAllDecoders() {
     std::vector<Decoder> dec;
+    dec.push_back(*dec_llvm_x86_32);
     dec.push_back(*dec_llvm_x86_64);
     dec.push_back(*dec_llvm_aarch64);
+    dec.push_back(*dec_llvm_ppc_32);
     dec.push_back(*dec_llvm_ppc);
     dec.push_back(*dec_llvm_armv6);
+    dec.push_back(*dec_gnu_x86_32);
     dec.push_back(*dec_gnu_x86_64);
     dec.push_back(*dec_gnu_aarch64);
+    dec.push_back(*dec_gnu_ppc_32);
     dec.push_back(*dec_gnu_ppc);
+    dec.push_back(*dec_dyninst_x86_32);
     dec.push_back(*dec_dyninst_x86_64);
     dec.push_back(*dec_dyninst_aarch64);
+    dec.push_back(*dec_dyninst_ppc_32);
     dec.push_back(*dec_dyninst_ppc);
     dec.push_back(*dec_dyninst_armv6);
+    dec.push_back(*dec_xed_x86_32);
     dec.push_back(*dec_xed_x86_64);
     dec.push_back(*dec_capstone_x86_32);
     dec.push_back(*dec_capstone_x86_64);
@@ -219,13 +257,12 @@ int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen, bool shouldNo
     clock_gettime(CLOCK_MONOTONIC, &startTime);
     *buf = 0;
     int rc = func(inst, nBytes, buf, bufLen);
-    /*
-    if (rc == 0) {
-        std::cout << name << ": " << buf << "\n";
-    } else {
-        std::cout << name << ": " << "decoding error" << "\n";
+    std::cerr << "Current insn = (" << curInsnLen << " bytes): ";
+    for (int j = 0; j < curInsnLen; j++) {
+        std::cerr << std::hex << std::setfill('0') << std::setw(2)
+            << (unsigned int)(unsigned char)curInsn[j] << " ";
     }
-    */
+    std::cout << "result: " << buf << "\n";
     clock_gettime(CLOCK_MONOTONIC, &endTime);
 
     totalDecodeTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
@@ -258,12 +295,7 @@ const char* Decoder::getName(void) {
 int Decoder::getNumBytesUsed(char* inst, int nBytes) {
     std::cerr << "DEPRECATED Decoder::getNumBytesUsed\n";
     exit(-1);
-    /*
-    MappedInst* mInst = new MappedInst(inst, nBytes, this);
-    int nUsed = mInst->getNumUsedBytes();
-    delete mInst;
-    return nUsed;
-    */
+    return 0;
 }
 
 unsigned long Decoder::getTotalDecodeTime() {

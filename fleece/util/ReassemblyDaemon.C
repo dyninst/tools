@@ -24,8 +24,10 @@ ReassemblyDaemon::~ReassemblyDaemon() {
 void ReassemblyDaemon::start() {
     int fleeceToDaemon[2];
     int daemonToFleece[2];
-    pipe(fleeceToDaemon);
-    pipe(daemonToFleece);
+    int rc = pipe(fleeceToDaemon);
+    assert(rc == 0 && "Pipe failed!");
+    rc = pipe(daemonToFleece);
+    assert(rc == 0 && "Pipe failed!");
     pid_t pid = fork();
     if (pid == -1) {
         std::cerr << "ERROR: failed to fork() for reassembly\n";
@@ -87,14 +89,16 @@ int ReassemblyDaemon::reassemble(const char* str, char* errorBuf, int errorBufLe
             errexit("Could not read from daemon process\n");
         }
         if (*errPlace == '~') {
+            *(errPlace + 1) = '\0';
             done = true;
-            if (*(errPlace - 1) == 'F') {
+            if (*(errPlace - 1) != 'S') {
                 result = 1;
             }
             *(errPlace - 1) = '\0';
         }
         ++errPlace;
     }
+    assert(done && "Could not receive full error message from assembler");
     return result;
 }
 
@@ -159,6 +163,7 @@ int ReassemblyDaemon::spawnAssembler(const char* asmInsn, char* errorBuf, int er
         // Wait until the assember has finished.
         waitpid(pid, &status, 0);
     } else {
+        // std::cerr << "Spawning reassembly daemon with args " << asArgs[0] << " " << asArgs[1] << " " << asArgs[2] << "\n";
         close(daemonToAs[1]);
         close(asToDaemon[0]);
         dup2(daemonToAs[0], STDIN_FILENO);

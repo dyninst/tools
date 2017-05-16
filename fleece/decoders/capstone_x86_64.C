@@ -34,8 +34,10 @@ void swapTestOperands(char* buf, int bufLen) {
 }
 
 bool capstoneWillCrash(char* inst, int nBytes) {
-    if (nBytes >= 5 && inst[0] == (char)0x62 && inst[4] == (char)0x03) {
-        return true;
+    for (int i = 0; i < nBytes - 4; ++i) {
+        if (nBytes >= 5 && inst[i + 1] == (char)0x62 && inst[i + 4] == (char)0x03) {
+            return true;
+        }
     }
     return false;
 }

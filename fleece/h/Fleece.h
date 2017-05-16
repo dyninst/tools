@@ -18,19 +18,36 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#ifndef _AARCH64_COMMON_H_
-#define _AARCH64_COMMON_H_
+#ifndef _FLEECE_H_
+#define _FLEECE_H_
 
-#include <assert.h>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <ios>
+#include <map>
+#include <queue>
+#include <sstream>
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
+#include <vector>
+#include "BitTypes.h"
+#include "Decoder.h"
+#include "Info.h"
+#include "Mask.h"
+#include "MappedInst.h"
+#include "Options.h"
+#include "ReportingContext.h"
 #include "StringUtils.h"
 
-void negCond(char* dest, char* src);
-void aliasIns(char* buf, int bufLen);
-void aliasMovn(char* buf, int bufLen);
-void aliasMovz(char* buf, int bufLen);
-//void aliasCsInsns(char* buf, int bufLen);
-void removeExtraZeroesFromFmovImm(char* buf, int bufLen);
+#define DECODED_BUFFER_LEN 256
+#define FLUSH_FREQ 100
+#define DIR_ACCESS_PERMS S_IRUSR | S_IWUSR | S_IXUSR
 
-#endif // _AARCH64_COMMON_H_
+#define DEBUG_TIME
+
+#endif /* _FLEECE_H_ */

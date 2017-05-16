@@ -35,6 +35,10 @@ static std::unordered_map<const char*, int, StringUtils::str_hash, StringUtils::
     errMap->insert(std::make_pair(strdup("nop"), 1)); 
     errMap->insert(std::make_pair(strdup("bad"), 1));
     errMap->insert(std::make_pair(strdup("?"), 1));
+    errMap->insert(std::make_pair(strdup("%,"), 1));
+    errMap->insert(std::make_pair(strdup("%("), 1));
+    errMap->insert(std::make_pair(strdup("%{"), 1));
+    errMap->insert(std::make_pair(strdup("fixme"), 1));
     errMap->insert(std::make_pair(strdup("undefined"), 1));
     errMap->insert(std::make_pair(strdup("nyi"), 1));
     errMap->insert(std::make_pair(strdup("invalid"), 1));
@@ -553,4 +557,15 @@ std::string asmErrorToFilename(const char* asmError) {
     }
 
     return std::string(buf);
+}
+
+void printByteBuffer(std::ostream& stream, const char* bytes, int nBytes) {
+    stream << std::hex << std::setfill('0') << std::setw(2);
+    for (int j = 0; j < nBytes; j++) {
+        stream << (unsigned int)(unsigned char)bytes[j];
+        if (j < nBytes - 1) {
+            stream << " ";
+        }
+    }
+    stream << std::dec;
 }

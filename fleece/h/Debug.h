@@ -18,19 +18,10 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#ifndef _AARCH64_COMMON_H_
-#define _AARCH64_COMMON_H_
+#ifndef _DEBUG_H_
+#define _DEBUG_H_
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-#include "StringUtils.h"
+//#define DEBUG_TIMERS
+//#define DEBUG_CLASS_SIMPLEINSNMAP
 
-void negCond(char* dest, char* src);
-void aliasIns(char* buf, int bufLen);
-void aliasMovn(char* buf, int bufLen);
-void aliasMovz(char* buf, int bufLen);
-//void aliasCsInsns(char* buf, int bufLen);
-void removeExtraZeroesFromFmovImm(char* buf, int bufLen);
-
-#endif // _AARCH64_COMMON_H_
+#endif /* _FLEECE_H_ */

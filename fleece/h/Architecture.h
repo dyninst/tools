@@ -9,7 +9,15 @@
 #include "RegisterSet.h"
 
 namespace Architecture {
+
+    /*
+     * The maximum length of instructions for this architecture, in bytes.
+     */
     extern int maxInsnLen;
+
+    /*
+     * The name of this architecture as a string. This will be 
+     */
     extern std::string name;
     void init(const char* arch);
     bool isReg(const char* str);

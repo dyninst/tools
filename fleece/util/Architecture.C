@@ -968,6 +968,8 @@ void Architecture::init(const char* arch) {
         Architecture::name = "x86_32";
     } else if (!strcmp(arch, "aarch64")) {
         init_aarch64();
+    } else if (!strcmp(arch, "ppc32")) {
+        init_ppc();
     } else if (!strcmp(arch, "ppc")) {
         init_ppc();
     } else if (!strcmp(arch, "armv6")) {

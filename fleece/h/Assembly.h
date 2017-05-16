@@ -35,6 +35,15 @@
 #include "Reassemble.h"
 #include "StringUtils.h"
 
+
+/*
+ * This class provides access to relevant information based on the assembly language output of a
+ * decoder. This class should be constructed by providing the input bytes for a decoder and the
+ * decoder.
+ *
+ * This class uses delayed evaluation to return data. This means that reassembly is not performed
+ * until 
+ */
 class Assembly {
 public:
     Assembly(const Assembly& other);

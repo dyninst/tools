@@ -27,7 +27,7 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
-void signedDisplacements(char* buf, int bufLen) {
+static void signedDisplacements(char* buf, int bufLen) {
     char* cur = buf;
     char* place;
     while (*cur) {
@@ -55,7 +55,7 @@ void signedDisplacements(char* buf, int bufLen) {
     }
 }
 
-void removeImplicitFlags(char* buf, int bufLen) {
+static void removeImplicitFlags(char* buf, int bufLen) {
     std::string result(buf);
    
     removeAtSubStr(result, ", %flags", 8);
@@ -65,7 +65,7 @@ void removeImplicitFlags(char* buf, int bufLen) {
     buf[bufLen - 1] = 0;
 }
 
-void removeImplicitMulOperands(char* buf, int bufLen) {
+static void removeImplicitMulOperands(char* buf, int bufLen) {
     std::string result(buf);
    
     if (result.find("mul") == std::string::npos) {
@@ -81,7 +81,7 @@ void removeImplicitMulOperands(char* buf, int bufLen) {
     buf[bufLen - 1] = 0;
 }
 
-void removeImplicitRIP(char* buf, int bufLen) {
+static void removeImplicitRIP(char* buf, int bufLen) {
     std::string result(buf);
    
     if (strncmp(buf, "call", 4) && result.find(" call") == std::string::npos &&
@@ -96,7 +96,7 @@ void removeImplicitRIP(char* buf, int bufLen) {
     buf[bufLen - 1] = 0;
 }
 
-void formatSegRegs(char* buf, int bufLen) {
+static void formatSegRegs(char* buf, int bufLen) {
     char* cur = buf;
     while (*cur) {
         while (*cur && *cur != '(') {
@@ -130,7 +130,7 @@ void formatSegRegs(char* buf, int bufLen) {
     }
 }
 
-FindList* initDyninstSTToMMFindList() {
+static FindList* initDyninstSTToMMFindList() {
     FindList* fl = new FindList(877);
     addReplaceTerm(*fl, "st(0)", "mm0");
     addReplaceTerm(*fl, "st(1)", "mm1");
@@ -143,7 +143,7 @@ FindList* initDyninstSTToMMFindList() {
     return fl;
 }
 
-void dyninstSTToMM(char* buf, int bufLen) {
+static void dyninstSTToMM(char* buf, int bufLen) {
     static FindList* fl = initDyninstSTToMMFindList();
     std::string result(buf);
      
@@ -153,46 +153,9 @@ void dyninstSTToMM(char* buf, int bufLen) {
     fl->process(buf, bufLen);
 }
 
-FindList* initSwapWithFirstMemOperandsFindList() {
-    FindList* fl = new FindList(877);
-    /*
-    addOperandSwapTerm(*fl, "vextract", 1, 2);
-    addOperandSwapTerm(*fl, "fcmovbe", 1, 2);
-    addOperandSwapTerm(*fl, "pcmp", 1, 2);
-    addOperandSwapTerm(*fl, "pextrd", 1, 2);
-    addOperandSwapTerm(*fl, "pshulw", 1, 2);
-    addOperandSwapTerm(*fl, "lgs", 1, 2);
-    addOperandSwapTerm(*fl, "lss", 1, 2);
-    addOperandSwapTerm(*fl, "shld", 1, 2);
-    addOperandSwapTerm(*fl, "shrd", 1, 2);
-    addOperandSwapTerm(*fl, "pmulhw", 1, 2);
-    addOperandSwapTerm(*fl, "vor", 1, 2);
-    addOperandSwapTerm(*fl, "vmax", 1, 2);
-    addOperandSwapTerm(*fl, "vmin", 1, 2);
-    //addOperandSwapTerm(*fl, "vpsll", 1, 2);
-    addOperandSwapTerm(*fl, "vpsrad", 1, 2);
-    addOperandSwapTerm(*fl, "vpor", 1, 2);
-    addOperandSwapTerm(*fl, "vpxor", 1, 2);
-    addOperandSwapTerm(*fl, "vpab", 1, 2);
-    addOperandSwapTerm(*fl, "vphadd", 1, 2);
-    addOperandSwapTerm(*fl, "vpmov", 1, 2);
-    addOperandSwapTerm(*fl, "vpsra", 1, 2);
-    addOperandSwapTerm(*fl, "vpsrld", 1, 2);
-    addOperandSwapTerm(*fl, "vmask", 1, 2);
-    addOperandSwapTerm(*fl, "vexp", 1, 2);
-    addOperandSwapTerm(*fl, "vrcp", 1, 2);
-    addOperandSwapTerm(*fl, "vrange", 1, 2);
 
-    addOperandSwapTerm(*fl, "vunpck", 1, 2);
-    */
-    return fl;
-}
-
-FindList* initVecSwapFindList() {
+static FindList* initVecSwapFindList() {
     FindList* fl = new FindList(877);
-    //addOperandSwapTerm(*fl, "vshuf", 1, 3);
-    // addOperandSwapTerm(*fl, "vsub", 1, 2); // evex diff
-    //addOperandSwapTerm(*fl, "vadd", 1, 2);
     addOperandSwapTerm(*fl, "vmax", 1, 2);
     addOperandSwapTerm(*fl, "vmin", 1, 2);
     addOperandSwapTerm(*fl, "vdiv", 1, 2);
@@ -200,96 +163,62 @@ FindList* initVecSwapFindList() {
     addOperandSwapTerm(*fl, "vpadd", 1, 2);
     addOperandSwapTerm(*fl, "vfmadd", 1, 2);
     addOperandSwapTerm(*fl, "vfmsub", 1, 2);
-    // addOperandSwapTerm(*fl, "vget", 1, 2); // evex diff
     addOperandSwapTerm(*fl, "vpinsr", 1, 3);
-    // addOperandSwapTerm(*fl, "vpermil", 1, 3); // evex difft
     addOperandSwapTerm(*fl, "valign", 1, 3);
-    // addOperandSwapTerm(*fl, "vgather", 1, 3); // evex diff
-    //addOperandSwapTerm(*fl, "vinsert", 1, 3);
     addOperandSwapTerm(*fl, "vfixup", 1, 3);
     addOperandSwapTerm(*fl, "vshuff", 1, 3);
     addOperandSwapTerm(*fl, "vptern", 1, 3);
     addOperandSwapTerm(*fl, "vpalign", 1, 3);
-    // addOperandSwapTerm(*fl, "vgetman", 1, 3); // evex diff
-    // addOperandSwapTerm(*fl, "vreduce", 1, 3); // evex diff
-    // addOperandSwapTerm(*fl, "vrnd", 1, 3);
     addOperandSwapTerm(*fl, "vdbp", 1, 3);
     addOperandSwapTerm(*fl, "vpxor", 1, 2);
-    // addOperandSwapTerm(*fl, "vpsll", 1, 2);
     addOperandSwapTerm(*fl, "vpack", 1, 2);
     addOperandSwapTerm(*fl, "vpavg", 1, 2);
     addOperandSwapTerm(*fl, "vpsad", 1, 2);
     addOperandSwapTerm(*fl, "vpsub", 1, 2);
-    // addOperandSwapTerm(*fl, "vunpck", 1, 2); // evex right
     addOperandSwapTerm(*fl, "vphsub", 1, 2);
     addOperandSwapTerm(*fl, "vpmul", 1, 2);
     addOperandSwapTerm(*fl, "vpmadd", 1, 2);
     addOperandSwapTerm(*fl, "vpcmp", 1, 2);
-    // addOperandSwapTerm(*fl, "vperm", 1, 2);
     addOperandSwapTerm(*fl, "vpmax", 1, 2);
     addOperandSwapTerm(*fl, "vmwrite", 1, 2);
-    //addOperandSwapTerm(*fl, "vmul", 1, 2);
-    //addOperandSwapTerm(*fl, "vmov", 1, 2);
     addOperandSwapTerm(*fl, "vpunpck", 1, 2);
     addOperandSwapTerm(*fl, "vpinsr", 1, 2);
-    // addOperandSwapTerm(*fl, "vpmin", 1, 2);
     addOperandSwapTerm(*fl, "vphadd", 1, 2);
     addOperandSwapTerm(*fl, "vpxor", 1, 2);
-    // addOperandSwapTerm(*fl, "vor", 1, 2);
-    // addOperandSwapTerm(*fl, "vxor", 1, 2);
     addOperandSwapTerm(*fl, "vpor", 1, 2);
-    // addOperandSwapTerm(*fl, "vpgather", 1, 2);
-    // addOperandSwapTerm(*fl, "vfnmadd", 1, 2); // normal vex right, evex swapped
-    // addOperandSwapTerm(*fl, "vfnmsub", 1, 2);
     addOperandSwapTerm(*fl, "vand", 1, 2);
-    // addOperandSwapTerm(*fl, "vpsr", 1, 2); // evex right
-    // addOperandSwapTerm(*fl, "vpshuf", 1, 2);
-    // addOperandSwapTerm(*fl, "vpex", 1, 2);
     return fl;
 }
 
-FindList* initSwapAlwaysFindList() {
+static FindList* initSwapAlwaysFindList() {
     FindList* fl = new FindList(877);
     addOperandSwapTerm(*fl, "cmpps", 1, 2);
-    //addOperandSwapTerm(*fl, "shufps", 1, 2);
-    //addOperandSwapTerm(*fl, "pshuf", 1, 3);
     addOperandSwapTerm(*fl, "pinsr", 1, 2);
-    addOperandSwapTerm(*fl, "enter", 1, 2);
+    
     addOperandSwapTerm(*fl, "imul", 1, 2);
     return fl;
 }
 
-void swapEnterOperands(char* buf, int bufLen) {
-    static FindList* fl1 = initSwapWithFirstMemOperandsFindList();
+static void swapOperands(char* buf, int bufLen) {
     static FindList* fl2 = initSwapAlwaysFindList();
     static FindList* vecSwapFl = initVecSwapFindList();
     fl2->process(buf, bufLen);
     std::string str = std::string(buf);
     if (*buf == 'v' || str.find(" v") != std::string::npos) {
         vecSwapFl->process(buf, bufLen);
-        return;
     }
-    if (str.find("{") == std::string::npos && str.find(", 0x") == std::string::npos && str.find(", -0x") == std::string::npos) {
-        return;
-    }
-    fl1->process(buf, bufLen);
 }
 
-FindList* initDyninstMnemonicsFindList() {
+static FindList* initDyninstMnemonicsFindList() {
     FindList* fl = new FindList(877);
-    //addReplaceTerm(*fl, "bq ", "b ");
     addReplaceTerm(*fl, "{%k0}", "");
-    addReplaceTerm(*fl, "vporlv", "vprolv");
-    addReplaceTerm(*fl, "pcmpgdt ", "pcmpgtd ");
-    addReplaceTerm(*fl, "minsl ", "minsd ");
-    addReplaceTerm(*fl, "punpcklqd ", "punpckldq ");
+    addReplaceTerm(*fl, "pminsl ", "pminsd ");
     addReplaceTerm(*fl, "movhps/movlhps", "movlhps");
     addReplaceTerm(*fl, "movlps/movhlps ", "movlps ");
     addReplaceTerm(*fl, "pinsrd/pinsrq ", "pinsrd ");
     addReplaceTerm(*fl, "pextrd/pextrq ", "pextrd ");
     addReplaceTerm(*fl, "pushfd ", "pushfq ");
     addReplaceTerm(*fl, "popfd ", "popfq ");
-    //addReplaceTerm(*fl, "imul ", "imull ");
     addReplaceTerm(*fl, "insd ", "insl ");
     addReplaceTerm(*fl, "cmpxch", "cmpxchg");
     addReplaceTerm(*fl, "outsd ", "outsl ");
@@ -303,9 +232,6 @@ FindList* initDyninstMnemonicsFindList() {
     addReplaceTerm(*fl, "sqrtsd $", "sqrtsd ");
     addReplaceTerm(*fl, "comiss $", "comiss ");
     addReplaceTerm(*fl, "stmxcsr $", "stmxcsr ");
-    addReplaceTerm(*fl, "loopn ", "loopne ");
-    addReplaceTerm(*fl, "loopne %ecx, ", "loopne ");
-    addReplaceTerm(*fl, "loopne %cx, ", "loopne ");
     addReplaceTerm(*fl, "loopn %ecx, ", "loopne ");
     addReplaceTerm(*fl, "loopn %cx, ", "loopne ");
     addReplaceTerm(*fl, "loop %ecx, ", "loop ");
@@ -326,12 +252,12 @@ FindList* initDyninstMnemonicsFindList() {
     return fl;
 }
 
-void fixDyninstMnemonics(char* buf, int bufLen) {
+static void fixDyninstMnemonics(char* buf, int bufLen) {
     static FindList* fl = initDyninstMnemonicsFindList();
     fl->process(buf, bufLen);
 }
 
-void removeUnusedStar(char* buf, int bufLen) {
+static void removeUnusedStar(char* buf, int bufLen) {
     char* cur = buf;
     while(*cur) {
         if (*cur == '*') {
@@ -341,26 +267,7 @@ void removeUnusedStar(char* buf, int bufLen) {
     }
 }
 
-/*
- * Removes all implicit operands from the memory compare and exchange instructions.
- *
- * Input:  cmpxchg8b $-0x4882a00d, ebx(%ecx, 22), eax(%edx, 22)
- * Output: cmpxchg8b $-0x4882a00d
- */ 
-void removeImplicitCMPXCHGOperands(char* buf, int bufLen) {
-    if (strncmp(buf, "cmpxchg8b", 9) && strncmp(buf, "cmpxchg16b", 10)) {
-        return;
-    }
-    char* cur = buf;
-    while (*cur && *cur != ',') {
-        ++cur;
-    }
-    if (*cur) {
-        *cur = '\0';
-    }
-}
-
-void dyninst_x86_64_norm(char* buf, int bufLen) {
+void dyninst_x86_32_norm(char* buf, int bufLen) {
     toLowerCase(buf, bufLen);
     removeUnusedStar(buf, bufLen);
     removeUnusedRepPrefixes(buf, bufLen);
@@ -373,15 +280,14 @@ void dyninst_x86_64_norm(char* buf, int bufLen) {
     removeImplicitST0(buf, bufLen);
     removeImplicitFlags(buf, bufLen);
     removeImplicitRIP(buf, bufLen);
-    removeImplicitCMPXCHGOperands(buf, bufLen);
     formatSegRegs(buf, bufLen);
     fixDyninstMnemonics(buf, bufLen);
     dyninstSTToMM(buf, bufLen);
-    swapEnterOperands(buf, bufLen);
+    swapOperands(buf, bufLen);
     removeImplicitMulOperands(buf, bufLen);
 }
 
-int dyninst_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+int dyninst_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
     if (nBytes < 1) {
         return -1;
@@ -392,23 +298,11 @@ int dyninst_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
         return 0;
     }
 
-    InstructionDecoder d = InstructionDecoder(inst, nBytes, Arch_x86_64);
+    InstructionDecoder d = InstructionDecoder(inst, nBytes, Arch_x86);
     Instruction::Ptr p = d.decode();
     InstructionAPI::Instruction* insn_ptr = p.get();
     assert(insn_ptr);
 
     strncpy(buf, insn_ptr->format().c_str(), bufLen);
-    
-    // Sometimes when it fails to decode a register completely, Dyninst will
-    // produce a decoder that ends in a '%' sign. Often, these correspond to
-    // invalid instructions, and that seems like the most sensible way to
-    // treat them, so the decoder returns an error if it cannot completely
-    // decode a register.
-    while (*buf) {
-        ++buf;
-    }
-    if (*(buf - 1) == '%') {
-        return -1;
-    }
     return 0;
 }

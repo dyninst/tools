@@ -79,6 +79,5 @@ void llvm_aarch64_norm(char* buf, int bufLen) {
     removeComments(buf, bufLen);
     toLowerCase(buf, bufLen);
     trimBraceSpaces(buf, bufLen);
-    aliasCsInsns(buf, bufLen);
 }
 

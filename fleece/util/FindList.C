@@ -83,11 +83,19 @@ void FindList::process(char* buf, int bufLen) {
             factor *= 31;
             uint32_t index = curHash;
             FLEntry term = terms[index];
-            while (term.str != NULL && strncmp(term.str, base, curLen)) {
-                index = (index * 3 + 1) % size;
+            bool done = false;
+            bool matched = false;
+            while (!done) {
                 term = terms[index];
+                if (term.str == NULL) {
+                    done = true;
+                } else if (!strncmp(term.str, base, curLen) && strlen(term.str) == curLen) {
+                    done = true;
+                    matched = true;
+                }
+                index = (index * 3 + 1) % size;
             }
-            if (term.str != NULL) {
+            if (matched) {
                 term.func(base, bufEnd - base, term.arg);
             }
             cur++;

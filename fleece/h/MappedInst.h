@@ -41,8 +41,6 @@ class Decoder;
 
 class MappedInst {
 public:
-    static unsigned long long t1;
-    static unsigned long long t2;
     static unsigned long long totalQueueingTime;
     static unsigned long long totalLabellingTime;
     MappedInst(char* bytes, unsigned int nBytes, Decoder* dec);

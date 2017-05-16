@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <cstring>
+#include <iomanip>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -177,4 +178,6 @@ void strStripDigits(char* str);
 void strStripHex(char* str);
 
 std::string asmErrorToFilename(const char* asmError);
+
+void printByteBuffer(std::ostream& stream, const char* bytes, int nBytes);
 #endif /* _MYSTRING_H_ */

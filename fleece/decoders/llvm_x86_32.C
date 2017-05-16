@@ -68,7 +68,7 @@ static bool llvmWillAssert(char* inst, int nBytes) {
     return false;
 }
 
-int llvm_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+int llvm_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
     if (llvmWillAssert(inst, nBytes)) {
         strncpy(buf, "would_sig", bufLen);
@@ -76,7 +76,7 @@ int llvm_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
     }
 
     static LLVMDisasmContextRef disasm = 
-            LLVMCreateDisasm("x86_64-linux-gnu", 
+            LLVMCreateDisasm("i386-linux-gnu", 
                              nullptr, 
                              0, 
                              nullptr, 
@@ -103,10 +103,11 @@ int llvm_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
         !strcmp(buf, "\trepnz") ||
         !strcmp(buf, "\trepne") ||
         !strcmp(buf, "\tdata16") || 
+        !strcmp(buf, "\taddr16") ||
         !strcmp(buf, "\taddr32") ||
         !strcmp(buf, "\txacquire") ||
         !strcmp(buf, "\txrelease")) {
-        if (llvm_x86_64_decode(inst + 1, nBytes - 1, buf, bufLen)) {
+        if (llvm_x86_32_decode(inst + 1, nBytes - 1, buf, bufLen)) {
             rc = -1;
         }
     }
@@ -114,7 +115,7 @@ int llvm_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
     return rc;
 }
 
-void llvm_x86_64_norm(char* buf, int bufLen) {
+void llvm_x86_32_norm(char* buf, int bufLen) {
     cleanSpaces(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
     decToHexConstants(buf, bufLen);
