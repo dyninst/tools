@@ -19,7 +19,6 @@
 */
 
 #include <iostream>
-#include "aarch64_common.h"
 #include "Normalization.h"
 #include "capstone/capstone.h"
 

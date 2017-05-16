@@ -19,7 +19,6 @@
 */
 
 #include <sys/mman.h>
-#include "aarch64_common.h"
 #include "llvm_common.h"
 #include "Normalization.h"
 #include "StringUtils.h"

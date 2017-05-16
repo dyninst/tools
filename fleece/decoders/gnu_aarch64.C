@@ -26,7 +26,6 @@
 #include <dis-asm.h>
 #include <sstream>
 #include <stdio.h>
-#include "aarch64_common.h"
 #include "bfd.h"
 #include "Decoder.h"
 #include "Normalization.h"
