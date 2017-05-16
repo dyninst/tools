@@ -24,7 +24,6 @@ namespace Architecture {
     void addRegSet(RegisterSet* regSet);
     void replaceRegSets(FieldList& fl);
     void destroy();
-    const char* getOpcode(FieldList& fl);
     extern std::unordered_map<const char*, const char*, StringUtils::str_hash, StringUtils::str_eq> names;
 }
 

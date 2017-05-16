@@ -1004,42 +1004,10 @@ void Architecture::replaceRegSets(FieldList& fl) {
             fl.setField(i, name->second);
         }       
     }
-    
-    /*
-    for (size_t i = 0; i < regSets.size(); i++) {
-       regSets[i]->replaceRegNamesWithSymbol(fl);
-    }
-    */
 }
 
 void Architecture::destroy() {
     for (size_t i = 0; i < regSets.size(); i++) {
         delete regSets[i];
     }
-}
-
-bool isX86Prefix(const char* field) {
-    return !strcmp(field, "repz") ||
-           !strcmp(field, "repnz") ||
-           !strcmp(field, "repe") ||
-           !strcmp(field, "repne") ||
-           !strcmp(field, "ss") ||
-           !strcmp(field, "es") ||
-           !strcmp(field, "fs") ||
-           !strcmp(field, "gs") ||
-           !strcmp(field, "ds") ||
-           !strcmp(field, "lock");
-}
-
-const char* Architecture::getOpcode(FieldList& fl) {
-    if (name != "x86_64") {
-        return fl.getField(0);
-    }
-    for (size_t i = 0; i < fl.size(); ++i) {
-        const char* field = fl.getField(i);
-        if (!isX86Prefix(field)) {
-            return field;
-        }
-    }
-    return fl.getField(0);
 }

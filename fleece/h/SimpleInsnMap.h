@@ -21,12 +21,6 @@
 #ifndef _SIMPLE_INSN_MAP_H_
 #define _SIMPLE_INSN_MAP_H_
 
-#ifndef CONSECUTIVE_UNUSED_THRESHOLD
-#define CONSECUTIVE_UNUSED_THRESHOLD 256
-#endif
-
-//#define COUNTING_OPCODE_COMBOS
-
 #include <iomanip>
 #include <iostream>
 #include <queue>
@@ -92,14 +86,6 @@ public:
      */
     void overrideBitType(size_t whichBit, BitType newType);
 
-    #ifdef COUNTING_OPCODE_COMBOS
-    /*
-     * Returns true if a change in the bit whichBit caused a change in the opcode. If changing bit
-     * whichBit resulted in an error, this method returns false.
-     */
-    char isOpcodeBit(size_t whichBit) { return opcodeBit[whichBit]; }
-    #endif
-
     /*
      * Returns the number of bytes used in the instruction.
      */
@@ -135,25 +121,11 @@ private:
      */
     size_t nBitsUsed;
 
-    #ifdef COUNTING_OPCODE_COMBOS
-    /*
-     * An array of boolean values. opcodeBit[i] == true implies that bit i changes the opcode of
-     * the instruction when flipped.
-     */
-    char* opcodeBit;
-    #endif
-
     /*
      * Determines the BitType for each bit of an instruction. This method is only called internally
      * after the number of bits and instruction has been set.
      */
     void mapBitTypes(char* bytes, Decoder* dec);
-
-    /*
-     * Determines the minimum number of bytes in the instruction that result in the same decoding
-     * as all of the bytes (any more bytes would be unnecessary).
-     */
-    //size_t SimpleInsnMap::findNumBytesUsed(const char* bytes, size_t nBytes, Decoder* dec) {
 };
 
 #endif /* _SIMPLE_INSN_MAP_H_ */

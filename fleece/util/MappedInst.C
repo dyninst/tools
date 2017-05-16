@@ -430,16 +430,6 @@ void MappedInst::mapBitTypes() {
     
     map = new SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
     SimpleInsnMap prelimMap = SimpleInsnMap(map);
-    #ifdef COUNTING_OPCODE_COMBOS
-
-    MappedInst* storedMap = new MappedInst(this);
-    bool operandUse[nBits];
-
-    for (size_t i = 0; i < nBits; ++i) {
-        operandUse[i] = false;
-    }
-
-    #endif
 
     for (i = 0; i < nBitsUsed; i++) {
         if (map->getBitType(i) == BIT_TYPE_SWITCH        ||
@@ -452,102 +442,10 @@ void MappedInst::mapBitTypes() {
         flipBufferBit(bytes, i);
         SimpleInsnMap newMap = SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
         if (!prelimMap.isMapEquivalent(newMap)) {
-            
-            if (map->getBitType(i) != 0 && nBytesUsed <= 3) {
-                /*
-                std::cout << "Changing bit " << i << " from field " << (int)prelimMap.getBitType(i) << "\n";
-                for (size_t j = 0; j < nBytes; j++) {
-                    std::cout << std::hex << std::setfill('0') << std::setw(2)
-                        << (unsigned int)(unsigned char)bytes[j] << " " << std::dec;
-                }
-                fields->printInsn(stdout);
-                std::cout << "\nOld map: " << prelimMap.toString() << "\n";
-                std::cout << "New map: " << newMap.toString() << "\n";
-                */
-                //exit(-1);
-            }
-            
             map->overrideBitType(i, BIT_TYPE_SWITCH);
         }
-        
-        #ifdef COUNTING_OPCODE_COMBOS
-        if (!map->isOpcodeBit(i)) {
-            for (size_t j = 0; j < nBits; ++j) {
-                if (newMap.getBitType(j) >= 0) {
-                    operandUse[j] = true;
-                }
-            }
-        }
-        #endif
-        
         flipBufferBit(bytes, i);
     }
-    //std::cout << "Final map: " << map->toString() << "\n";
-    //exit(-1);
-
-    #ifdef COUNTING_OPCODE_COMBOS
-
-    //std::cout << "Operand use map: ";
-
-    for (size_t i = 0; i < nBits; ++i) {
-
-        /*
-        if (operandUse[i]) {
-            std::cout << "O";
-        } else {
-            std::cout << "*";
-        }
-        */
-
-        if (storedMap->map->isOpcodeBit(i) == (char)107) {
-            std::cerr << "Found unset upcode bit! (i = " << i << ")" << std::endl;
-            exit(-1);
-        }
-        if (storedMap->map->isOpcodeBit(i)) {
-            storedMap->map->overrideBitType(i, BIT_TYPE_SWITCH);
-        } else if (storedMap->map->getBitType(i) == BIT_TYPE_CAUSED_ERROR && !operandUse[i]) {
-            storedMap->map->overrideBitType(i, BIT_TYPE_SWITCH);
-        } else {
-            storedMap->map->overrideBitType(i, 0);
-        }
-    }
-
-    //std::cout << std::endl;
-    
-    bool mapWasNew = false;
-    if (!storedMap->isError && !storedMap->fields->hasError() && MappedInst::uniqueMaps.count(storedMap) == 0) {
-        MappedInst::uniqueMaps[storedMap] = storedMap;
-        std::cout << "Num maps = " << MappedInst::uniqueMaps.size() << "\n";
-        mapWasNew = true;
-    
-        for (size_t j = 0; j < 8 * storedMap->getNumBytes(); j++) {
-            if (storedMap->getBitType(j) == BIT_TYPE_SWITCH) {
-                std::cout << "*";
-            } else if (storedMap->getBitType(j) == BIT_TYPE_UNUSED) {
-                std::cout << "x";
-            } else if (storedMap->getBitType(j) == BIT_TYPE_CAUSED_ERROR) {
-                std::cout << "E";
-            } else {
-                std::cout << storedMap->getBitType(j);
-            }
-        }
-        std::cout << "  ";
-        char* bytes = storedMap->getRawBytes();
-        for (size_t j = 0; j < storedMap->getNumBytes(); j++) {
-            std::cout << std::hex << std::setfill('0') << std::setw(2)
-                << (unsigned int)(unsigned char)bytes[j] << " ";
-        }
-        std::cout << std::dec;
-        std::cout << "  ";
-        storedMap->getFields()->printInsn(stdout);
-        std::cout << "\n";
-    }
-  
-    if (!mapWasNew) {
-        delete storedMap;
-    }
-
-    #endif
 }
 
 void setInstructionBitVector(char* inst, int* bitPositions, unsigned int nBit, int value) {

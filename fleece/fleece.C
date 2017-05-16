@@ -172,12 +172,6 @@ int main(int argc, char** argv) {
         decBufs[i] = (char*)malloc(DECODED_BUFFER_LEN);
         assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
     }
-
-    /* Generation testing code */
-    /*    
-    std::ofstream gen_stream("generations.txt", std::ofstream::out);
-    for (int test_num = 0; test_num < 30; test_num++) {
-    //*/
     
     // Instantiate a reporting context with the chosen output file.
     ReportingContext* repContext = new ReportingContext(outputDir, FLUSH_FREQ);
@@ -336,9 +330,9 @@ int main(int argc, char** argv) {
             }
         } else {
          
-            // If insns are not random, take them from the queue.
-            curInsn = remainingInsns.front();
-            remainingInsns.pop();
+        // If insns are not random, take them from the queue.
+        curInsn = remainingInsns.front();
+        remainingInsns.pop();
         }
         if (hasMask) {
             mask->apply(curInsn, insnLen);
@@ -347,19 +341,10 @@ int main(int argc, char** argv) {
 
         // If the user selected to see the instruction before decode, print it
         // now.
-
         if (showInsn) {
             printByteBuffer(std::cout, curInsn, insnLen);
             std::cout << std::endl;
         }
-        /*
-            for (j = 0; j < insnLen; j++) {
-                std::cout << std::hex << std::setfill('0') << std::setw(2)
-                    << (unsigned int)(unsigned char)curInsn[j] << " ";
-            }
-            std::cout << "\n" << std::dec;
-        }
-        */
 
         #ifdef DEBUG_TIME
             clock_gettime(CLOCK_MONOTONIC, &startTime);

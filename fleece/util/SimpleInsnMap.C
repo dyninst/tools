@@ -35,11 +35,6 @@ SimpleInsnMap::SimpleInsnMap(SimpleInsnMap* toCopy) {
 
     bcopy(toCopy->bitTypes, bitTypes, nBits * sizeof(*bitTypes));
     bcopy(toCopy->confirmedImm, confirmedImm, nBits * sizeof(*confirmedImm));
-
-    #ifdef COUNTING_OPCODE_COMBOS
-    opcodeBit = new char[nBits * sizeof(*opcodeBit)];
-    bcopy(toCopy->opcodeBit, opcodeBit, nBits * sizeof(*opcodeBit));
-    #endif
 }
 
 SimpleInsnMap::SimpleInsnMap(const char* bytes, size_t nBytes, size_t nBytesUsed, Decoder* dec) {
@@ -55,17 +50,9 @@ SimpleInsnMap::SimpleInsnMap(const char* bytes, size_t nBytes, size_t nBytesUsed
         confirmedImm[i] = false;
     }
     
-    #ifdef COUNTING_OPCODE_COMBOS
-    opcodeBit = new char[nBits * sizeof(*opcodeBit)];
-    for (size_t i = 0; i < nBits; ++i) {
-        opcodeBit[i] = 107;
-    }
-    #endif
-
     char tmpBytes[nBytes];
     bcopy(bytes, tmpBytes, nBytes);
     mapBitTypes(tmpBytes, dec);
-    //exit(-1);    
     clock_gettime(CLOCK_MONOTONIC, &endTime);
     timeInFields += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
                                  (endTime.tv_nsec - startTime.tv_nsec);
@@ -74,21 +61,7 @@ SimpleInsnMap::SimpleInsnMap(const char* bytes, size_t nBytes, size_t nBytesUsed
 SimpleInsnMap::~SimpleInsnMap() {
     delete [] bitTypes;
     delete [] confirmedImm;
-
-    #ifdef COUNTING_OPCODE_COMBOS
-    delete [] opcodeBit;
-    #endif
 }
-
-/*
-size_t SimpleInsnMap::determineOpcodeField(const char* bytes, Decoder* dec) {
-    size_t result = 0; 
-    char decStr[DECODING_BUFFER_SIZE];
-    decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE);
-    FieldList fields = FieldList(decStr);
-    return Architecture::getOpcodeField(startFields);
-}
-*/
 
 void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
     bool success = false;
@@ -96,8 +69,6 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
     int consecutiveUnused = 0;
     struct timespec startTime;
     struct timespec endTime;
-
-
 
     bool isError = (bool)dec->decode(bytes, nBits / 8, decStr, DECODING_BUFFER_SIZE,
         false);
@@ -112,14 +83,7 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
         std::cout << std::hex << std::setfill('0') << std::setw(2)
             << (unsigned int)(unsigned char)bytes[j] << " ";
     }
-    std::cout << std::dec << "\n";
-    #endif
-    
-    #ifdef COUNTING_OPCODE_COMBOS
-    const char* startOpcode = Architecture::getOpcode(startFields);
-    #ifdef DEBUG_SIMPLE_MAP
-    std::cout << "Starting opcode = " << startOpcode << "\n";
-    #endif
+    std::cout << std::dec << std::endl;
     #endif
 
     clock_gettime(CLOCK_MONOTONIC, &startTime);
@@ -136,7 +100,7 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
     // at the instruction. The second pass will try to identify operand
     // switches that don't alter multiple operands at once.
     size_t i = 0;
-    for (i = 0; consecutiveUnused < CONSECUTIVE_UNUSED_THRESHOLD && i < nBitsUsed; i++) {
+    for (i = 0; i < nBitsUsed; i++) {
         #ifdef DEBUG_SIMPLE_MAP
         std::cout << std::setfill('0') << std::setw(2) << i << ": ";
         #endif
@@ -145,11 +109,6 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
             #ifdef DEBUG_SIMPLE_MAP
             std::cout << decStr << " (field " << bitTypes[i] << " C) \n";
             #endif
-
-            #ifdef COUNTING_OPCODE_COMBOS
-            opcodeBit[i] = 0; //false;
-            #endif
-
             continue;
         }
         flipBufferBit(bytes, i);
@@ -170,18 +129,7 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
             std::cout << std::hex << std::setfill('0') << std::setw(2)
                 << (unsigned int)(unsigned char)bytes[j] << " ";
         }
-        std::cout << std::dec << "): " << decStr;
-        #endif
-    
-        #ifdef COUNTING_OPCODE_COMBOS
-        opcodeBit[i] = (success && strcmp(startOpcode, Architecture::getOpcode(newFields)) != 0);
-        #ifdef DEBUG_SIMPLE_MAP
-        std::cout << "(opcode = " << (opcodeBit[i] == true ? "1" : "0")  << ")";
-        #endif
-        #endif
-
-        #ifdef DEBUG_SIMPLE_MAP
-        std::cout << "\n";
+        std::cout << std::dec << "): " << decStr << std::endl;
         #endif
 
         // Default the bit type to unused.
@@ -220,10 +168,6 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
                     } else {
                         flipBufferBit(bytes, i);
                     }
-                    //if (!confirmedImm[i]) {
-                    //    delete bf;
-                    //    bitfields[bitTypes[i]] = NULL;
-                    //}
                 }
                 clock_gettime(CLOCK_MONOTONIC, &endTime);
                 timeInImmMatching += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
@@ -246,9 +190,6 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
     // If we didn't make it to the end of the string, it was unused, so mark all
     // remaining bits unused.
     while (i < nBits) {
-        #ifdef COUNTING_OPCODE_COMBOS
-        opcodeBit[i] = false;
-        #endif
         bitTypes[i] = BIT_TYPE_UNUSED;
         i++;
     }
@@ -258,7 +199,6 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
             delete *it;
         }
     }
-    //exit(-1);
 }
 
 int getBitTypeByChanges(FieldList& startFields, FieldList& newFields) {
@@ -295,10 +235,6 @@ bool SimpleInsnMap::isMapEquivalent(const SimpleInsnMap& otherMap) const {
             if (bitTypes[i] == BIT_TYPE_SWITCH && otherMap.bitTypes[i] == BIT_TYPE_CAUSED_ERROR) {
             } else if (bitTypes[i] == BIT_TYPE_CAUSED_ERROR &&
                 otherMap.bitTypes[i] == BIT_TYPE_SWITCH) {
-            //} else if (isError && bitTypes[k] == BIT_TYPE_SWITCH &&
-            //    tmpBitTypes[k] == BIT_TYPE_UNUSED) {
-            //} else if (isError && bitTypes[k] == BIT_TYPE_UNUSED &&
-            //    tmpBitTypes[k] == BIT_TYPE_SWITCH) {
             } else {
                 return false;
             }
