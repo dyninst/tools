@@ -104,8 +104,8 @@ static void removeUnusedSegRegs(char* buf, int bufLen) {
     buf[bufLen - 1] = 0;
 }
 
-int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
-   
+bool gnuWillCrash(char* inst, int nBytes) {
+    
     // This loop detects the objdump-aborting byte sequences regardless of
     // offset. It will return some false positives, but it will at least allow
     // me to run without issue.
@@ -120,10 +120,7 @@ int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
                 ((0xf0 & inst[curByte + 3]) == 0xe0 || 
                  (0xf0 & inst[curByte + 3]) == 0xc0) &&
                 ((0x0f & inst[curByte + 3]) > 0x0b)) {
-
-                // Return an error
-                strncpy(buf, "would_sig", bufLen - 1);
-                return 0;
+                return true;
             }
         }
       
@@ -136,15 +133,26 @@ int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
                 if ((inst[curByte + 1] & 0x0d) == 0x01 && 
                     (inst[curByte + 2] & 0x07) == 0x05) {
                     if ((inst[curByte + 3] & 0x60) == 0x20) {
-                        // Return an error
-                        strncpy(buf, "would_sig", bufLen - 1);
-                        return 0;
+                        return true;
                     }
                 }
             }
         }
     }
-    
+    return false;
+}
+
+static void removeNonAssemblyPrinting(char* buf, int bufLen) {
+    removeUnusedSegRegs(buf, bufLen);
+    removeRexPrinting(buf, bufLen);
+    removePoundComment(buf, bufLen);
+}
+
+int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+   
+    if (gnuWillCrash(inst, nBytes)) {
+        strncpy(buf, "would_sig", bufLen - 1);
+    }
     disassemble_info disInfo;
    
     static char fbuf[DECODING_BUFFER_SIZE];
@@ -159,7 +167,7 @@ int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
     disInfo.buffer = (bfd_byte*)(inst);
     disInfo.buffer_length = nBytes;
     disInfo.arch = bfd_arch_i386;
-    disInfo.mach = bfd_mach_i386_i386;
+    disInfo.mach = bfd_mach_x86_64;
 
     int rc = 0;
 
@@ -174,20 +182,11 @@ int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
         !strcmp(buf, "ds") ||
         !strcmp(buf, "es") ||
         !strcmp(buf, "data16") || 
-        !strcmp(buf, "addr16")) {
-        if (gnu_x86_32_decode(inst + 1, nBytes - 1, buf, bufLen)) {
-            rc = -1;
-        }
-    } else if (!strncmp(buf, "rex", 3)) {
-        char* cur = buf;
-        while (*cur && *cur != ' ') {
-            cur++;
-        }
-        if (!*cur) {
-            if (gnu_x86_64_decode(inst + 1, nBytes - 1, buf, bufLen)) {
-                rc = -1;
-            }
-        }
+        !strcmp(buf, "addr32")) {
+        
+        rc = gnu_x86_64_decode(inst + 1, nBytes - 1, buf, bufLen);
+    } else if (!strncmp(buf, "rex", 3) && !strchr(buf, ' ')) {
+        rc = gnu_x86_64_decode(inst + 1, nBytes - 1, buf, bufLen);
     }
 
     /* 
@@ -196,9 +195,7 @@ int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
      * should be applied to all decoding so that my use of libopcodes mirrors real tools, 
      * so they are done with decoding instead of normalization.
      */
-    removeUnusedSegRegs(buf, bufLen);
-    removeRexPrinting(buf, bufLen);
-    removePoundComment(buf, bufLen);
+    removeNonAssemblyPrinting(buf, bufLen);
 
     buf[bufLen - 1] = 0;
    
@@ -268,8 +265,77 @@ static void removeJumpHints(char* buf, int bufLen) {
     fl->process(buf, bufLen);
 }
 
-void gnu_x86_32_norm(char* buf, int bufLen) {
+int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
+    if (gnuWillCrash(inst, nBytes)) {
+        strncpy(buf, "would_sig", bufLen - 1);
+    }
+    disassemble_info disInfo;
+   
+    static char fbuf[DECODING_BUFFER_SIZE];
+    static FILE* outf = fmemopen(fbuf, DECODING_BUFFER_SIZE - 1, "r+");
+    bzero(fbuf, DECODING_BUFFER_SIZE);
+    assert(outf != NULL);
+    rewind(outf);
 
+    assert(outf != NULL);
+
+    INIT_DISASSEMBLE_INFO(disInfo, outf, (fprintf_ftype)fprintf);
+    disInfo.buffer = (bfd_byte*)(inst);
+    disInfo.buffer_length = nBytes;
+    disInfo.arch = bfd_arch_i386;
+    disInfo.mach = bfd_mach_i386_i386;
+
+    int rc = 0;
+
+    rc = print_insn_i386((bfd_vma)0, &disInfo);
+    fflush(outf);
+    strcpy(buf, fbuf);
+
+    if (!strcmp(buf, "gs") || 
+        !strcmp(buf, "cs") ||
+        !strcmp(buf, "ss") ||
+        !strcmp(buf, "fs") ||
+        !strcmp(buf, "ds") ||
+        !strcmp(buf, "es") ||
+        !strcmp(buf, "data16") || 
+        !strcmp(buf, "addr16")) {
+        
+        rc = gnu_x86_32_decode(inst + 1, nBytes - 1, buf, bufLen);
+    } else if (!strncmp(buf, "rex", 3) && !strchr(buf, ' ')) {
+        rc = gnu_x86_32_decode(inst + 1, nBytes - 1, buf, bufLen);
+    }
+
+    /* 
+     * The libopcodes function does not exactly match the output of objdump and GDB that
+     * are used by binutils. In order to obtain that output, I make these changes here. They
+     * should be applied to all decoding so that my use of libopcodes mirrors real tools, 
+     * so they are done with decoding instead of normalization.
+     */
+    removeNonAssemblyPrinting(buf, bufLen);
+
+    buf[bufLen - 1] = 0;
+   
+    return !rc;
+}
+
+
+void gnu_x86_64_norm(char* buf, int bufLen) {
+    cleanSpaces(buf, bufLen);
+    toLowerCase(buf, bufLen);
+    spaceAfterCommas(buf, bufLen);
+    removeUnusedRepPrefixes(buf, bufLen);
+    removeUnusedOverridePrefixes(buf, bufLen);
+    removeUnused64BitSegRegs(buf, bufLen);
+    removeIzRegister(buf, bufLen);
+    removeX86Hints(buf, bufLen);
+    removeJumpHints(buf, bufLen);
+    fixKRegs(buf, bufLen);
+    signedOperands(buf, bufLen);
+    cleanSpaces(buf, bufLen);
+    cleanX86NOP(buf, bufLen);
+}
+
+void gnu_x86_32_norm(char* buf, int bufLen) {
     cleanSpaces(buf, bufLen);
     toLowerCase(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
