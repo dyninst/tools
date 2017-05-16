@@ -51,10 +51,8 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
-
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/AsmParser/Parser.h"
-//#include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/CommandLine.h"
@@ -66,16 +64,12 @@
 #include "llvm/Support/SystemUtils.h"
 #include "llvm/Support/ToolOutputFile.h"
 
-#if 0
-static const char* LLVMCallback(
-   void* info, 
-   uint64_t refVal, 
-   uint64_t* refType, 
-   uint64_t refPC, 
-   const char** refName
-);
-#endif
-
+/*
+ * Initializes all of the LLVM structures required to decode instructions
+ * for any architecture. This is somewhat wasteful, because each run of Fleece
+ * uses at most one architecture, but it means fewer steps to include a new
+ * LLVM decoder in the Fleece process.
+ */
 int LLVMInit(void);
 
 #endif
