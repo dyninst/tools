@@ -56,10 +56,6 @@ namespace StringUtils {
 
 bool signalsError(const char* token);
 
-void removeFirst(char* buf, int bufLen, const char* str);
-
-void removeTrailing(char* buf, int bufLen, const char* str);
-
 void removeOperand(std::string& str, const std::string& op, const std::string& operand);
 
 /*
@@ -67,17 +63,6 @@ void removeOperand(std::string& str, const std::string& op, const std::string& o
  * first instance of <substr>.
  */
 void removeAtSubStr(std::string& str, const std::string& substr, int len);
-
-/*
- * Replaces a substring within a buffer.
- */
-void replaceStr(char* buf, int bufLen, const char* oldStr, const char* newStr);
-
-/*
- * Adds '0x' before each string of valid hex characters, except after a '*'
- * character.
- */
-void prepend0x(std::string& str);
 
 /*
  * Fills a buffer with <len> random bytes. No bounds checking is performed.
@@ -130,48 +115,7 @@ void setBufferBitVector(char* buf, unsigned int* pos, char* value, unsigned int 
  */
 unsigned char getBufferBit(char* buf, int bit);
 
-/*
- * Reads <nBytes> bytes from stdin and places them at the beginning of buf. No
- * bounds checking is done.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
-int getStdinBytes(char* buf, unsigned int nBytes);
-
-/*
- * Returns the value of a hexidecimal character, so '0' = 0, '1' = 1, 'a' = 10,
- * 'A' = 10, and so on. This function does NOT check if the character is a
- * hexidecimal character, and the behavor is undefined if the input is not in
- * hexidecimal.
- */
-int getCharHexVal(char c);
-
-/*
- * Returns the hex equivalent of a character, so 0 = '0', 1 = '1', 10 = 'a',
- * and so on. Assumes the number is between 0 and 15 inclusively.
- */
-char valToHex(int val);
-
-/*
- * Fills the buffer buf with the string equivalent of the hex value shifted by
- * the shift amount.
- *
- * WARNING: This function makes no checks for validity of the hex string. The
- * string must contain ONLY the characters with hexidecimal values, not a
- * leading '0x' or other formatting.
- *
- * Returns 0 on success, -1 on failure.
- */
-int shiftHex(char* hex, int shift, char* buf, int bufLen);
-
-char negHex(char);
-
-int getMinBits(long l);
-
 void removeCharacter(char* buf, int bufLen, char c);
-
-void writeStrToFile(const char* file, long offset, char* str);
 
 void strStripDigits(char* str);
 
