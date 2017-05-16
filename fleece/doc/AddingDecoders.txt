@@ -1,0 +1,24 @@
+Adding a decoder to Fleece:
+
+To add a decoder to Fleece, you must provide two functions:
+
+1. a decode function with the following signature and behavior:
+    
+    int decode(char* insn, int nBytes, char* buffer, int bufferLen);
+
+    This function shall:
+    1. Return 0 on success, non-zero value on failure
+    2. Decode the first instruction from the buffer of bytes given by the insn argument,
+       up to a maximum of nBytes bytes.
+    3. Place at most bufferLen characters of the assembly language representation into
+       the c-style string given by buffer. This must be null-terminated.
+
+2. a normalize function with the following signature and behavior:
+
+    void normalize(char* buffer, int bufLen);
+
+    This function shall:
+    1. Modify the null-terminated string contained in buffer such that the string
+       can be assembled by the assembler used for testing.
+    2. Place at most bufLen characters into the buffer.
+    3. Maintain the null terminator of the c-string.
