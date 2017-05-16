@@ -1,6 +1,7 @@
 #ifndef _REPORTING_CONTEXT_H_
 #define _REPORTING_CONTEXT_H_
 
+#include <fcntl.h>
 #include <list>
 #include <map>
 #include <queue>
@@ -61,6 +62,11 @@ public:
     unsigned int getNumSuppressed() { return nSuppressed; }
 
 private:
+
+    /*
+     * Writes a header containing the list of decoders to the file outf.
+     */
+    void writeHeader(FILE* outf);
    
     /*
      * Reports a difference to the file that was passed at creation time.

@@ -1,11 +1,9 @@
 
-#include <fcntl.h>
 #include "ReportingContext.h"
 
 ReportingContext::ReportingContext(const char* outputDir, int flushFreq) {
   
     diffMap = new std::map<char*, std::list<Report*>*, StringUtils::str_cmp>();
-    matchMap = new std::map<char*, Report*, StringUtils::str_cmp>();
     fileMap = new std::map<char*, FILE*, StringUtils::str_cmp>();
     assert(diffMap != NULL && "Report hashcounter should not be null!");
 
@@ -34,9 +32,6 @@ ReportingContext::~ReportingContext() {
     for (auto it = diffMap->begin(); it != diffMap->end(); ++it) {
         delete it->second;
     }
-    for (auto it = matchMap->begin(); it != matchMap->end(); ++it) {
-        delete it->second;
-    }
     for (auto it = fileMap->begin(); it != fileMap->end(); ++it) {
         fclose(it->second);
     }
@@ -51,6 +46,12 @@ FILE* ReportingContext::getOpenFileByName(const char* filename) {
         assert(outf != NULL);
         fcntl(fileno(outf), F_SETFD, fcntl(fileno(outf), F_GETFD) | FD_CLOEXEC);
         fileMap->insert(std::make_pair(strdup(filename), outf));
+        fseek(outf, 0, SEEK_END);
+        size_t flen = ftell(outf);
+        fseek(outf, 0, SEEK_SET);
+        if (flen == 0) {
+            writeHeader(outf);
+        }
         return outf;
     } else {
         return fileMapEntry->second;
@@ -64,6 +65,13 @@ void ReportingContext::closeOpenFiles() {
         free(it->first);
         it = fileMap->erase(it);
     }
+}
+
+void ReportingContext::writeHeader(FILE* outf) {
+    for (size_t i = 0; i < decoderNames.size(); ++i) {
+        fprintf(outf, "%s; ", decoderNames[i]);
+    }
+    fprintf(outf, "bytes\n");
 }
 
 void ReportingContext::reportDiff(Report* r) {
@@ -210,18 +218,6 @@ int ReportingContext::processDecodings(std::vector<Assembly*>& asmList) {
     // We want to only report unique matches, so we need to keep track of which instructions we
     // have seen for matches. All others should count as suppressed.
     if (allMatch) {
-       /*
-       char* buf = (char*)malloc(256 * r.size());
-       assert(buf != NULL);
-       r.makeTemplate(buf, 256 * r.size());
-       if (matchMap->count(buf) == 0) {
-          ++nMatches;
-          matchMap->insert(std::make_pair(strdup(buf), new Report(&r)));
-       } else {
-          ++nSuppressed;
-       }
-       free(buf);
-       */
        ++nMatches;
        return asm1->getNBytes();
     }
@@ -248,7 +244,7 @@ void ReportingContext::printSummary(FILE* outf) {
     // Verify that we have a valid file and report data.
     assert(outf != NULL && "File for summary should not be null!");
 
-    fprintf(outf, "%d, %d, %d\n", nReports, nMatches, nSuppressed);
+    fprintf(outf, "Reports: %d, Matches: %d, Suppressed: %d\n", nReports, nMatches, nSuppressed);
    
     // Below is data formatted better for human reading, but worse for periodic
     // reporting to measure activity over time, so it has be commented out.
