@@ -119,6 +119,10 @@ private:
      * The frequency (in reports) with which the report file should be flushed.
      */
     int flushFreq;
+
+    /*
+     * The number of reports issued since the last flush.
+     */
     int flushCount;
 
     /*

@@ -33,14 +33,8 @@ public:
     ~Report();
 
     /*
-     * Appends this report to a provided filename. The first version will
-     * open, append to and close the file.
-     *
-     * Note: This is inefficient because writes to the same files are not
-     * grouped. This should be optimized if it proves to be a significant
-     * portion of execution time.
+     * Appends this report to a provided file.
      */
-    void issue(const char* filename);
     void issue(FILE* file);
 
     /*
@@ -82,12 +76,24 @@ public:
      */
     void makeTemplate(char* buf, size_t bufLen);
 
+    /*
+     * Returns a pointer to a specific Assembly object in this report.
+     *
+     * Note: The assembly structure is not const, but altering it will alter
+     * the report, so it should be treated as const.
+     */
     Assembly* getAsm(int index) { return asmList[index]; }
 
+    /*
+     * Prints debug information for this object.
+     */
     void printDebug();
 
 private:
 
+    /*
+     * The list of Assembly objects used in this report.
+     */
     std::vector<Assembly*> asmList;
 
 };

@@ -50,55 +50,11 @@ void Report::issue(FILE* file) {
 
 }
 
-void Report::issue(const char* filename) {
-    struct timespec startTime;
-    struct timespec endTime;
-
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
-    
-    FILE* f = fopen(filename, "a+");
-    if (f == NULL) {
-        std::cerr << "Could not open file: " << filename << "\n";
-        std::cerr << "Error was: " << strerror(errno) << "\n";
-        exit(-1);
-    }
-    assert(f != NULL);
-    assert(asmList.size() >= 2);
-    for (auto it = asmList.begin(); it != asmList.end(); ++it) {
-        Assembly* curAsm = *it;
-        fprintf(f, "%s", curAsm->getString());
-        if (!curAsm->isError() && curAsm->getAsmResult() == 'E') {
-            fprintf(f, ": ERROR: %s", curAsm->getAsmError());
-        }
-        fprintf(f, ";");
-    }
-    Assembly* asm1 = *(asmList.begin());
-    const char* bytes = asm1->getBytes();
-    for (size_t i = 0; i < asm1->getNBytes(); i++) {
-        fprintf(f, "%x ", 0xFF & bytes[i]);
-    }
-    fprintf(f, "\n");
-    fclose(f);
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    totalReportIssueTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                  (endTime.tv_nsec - startTime.tv_nsec);
-
-}
-
 bool Report::isEquivalent(Report* r) {
+    
+    // Equivalent reports must have the same number of decoders used to
+    // create them.
     if (r->asmList.size() != asmList.size()) {
-        std::cout << "first:\n";
-        for (auto it = asmList.begin(); it != asmList.end();
-        ++it) {
-            std::cout << (*it)->getString() << "\n";
-        }
-        std::cout << "second:\n";
-        for (auto it = r->asmList.begin(); it != r->asmList.end();
-        ++it) {
-            std::cout << (*it)->getString() << "\n";
-        }
-        std::cout << "REPORTS NOT EQUIVALENT!\n";
-        exit(-1);
         return false;
     }
 
