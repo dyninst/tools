@@ -58,8 +58,8 @@ LLVMBPFDesc
 opcodes capstone rt bfd iberty dl elf)
 set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${OTHER_LIBRARIES})
 
-set (CMAKE_CXX_FLAGS "-std=c++0x")
-set (CMAKE_C_FLAGS "")
+set (CMAKE_CXX_FLAGS "-std=c++0x -g")
+set (CMAKE_C_FLAGS "-g")
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb -gdwarf-2 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
