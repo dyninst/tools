@@ -26,12 +26,10 @@ RegisterSet::RegisterSet(const char* symbol) {
 }
 
 RegisterSet::~RegisterSet() {
-   
     for (auto it = names.begin(); it != names.end(); ++it) {
         delete [] (*it).first;
     }
-
-   delete [] sym;
+    delete [] sym;
 }
 
 void RegisterSet::addRegName(const char* regName) {
