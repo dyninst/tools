@@ -163,7 +163,6 @@ int ReassemblyDaemon::spawnAssembler(const char* asmInsn, char* errorBuf, int er
         // Wait until the assember has finished.
         waitpid(pid, &status, 0);
     } else {
-        // std::cerr << "Spawning reassembly daemon with args " << asArgs[0] << " " << asArgs[1] << " " << asArgs[2] << "\n";
         close(daemonToAs[1]);
         close(asToDaemon[0]);
         dup2(daemonToAs[0], STDIN_FILENO);
