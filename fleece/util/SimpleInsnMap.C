@@ -163,7 +163,7 @@ void SimpleInsnMap::mapBitTypes(char* bytes, Decoder* dec) {
                 }
             }
         } else {
-            bitTypes[i] = BIT_TYPE_CAUSED_ERROR;
+            bitTypes[i] = BIT_TYPE_RESERVED;
             if (isError) {
                 bitTypes[i] = BIT_TYPE_UNUSED;
             }
@@ -189,7 +189,7 @@ int getBitTypeByChanges(FieldList& startFields, FieldList& newFields) {
     BitType result = BIT_TYPE_UNUSED;
    
     if (newFields.size() != startFields.size()) {
-        return BIT_TYPE_SWITCH;
+        return BIT_TYPE_STRUCTURAL;
     } else {
             
         // We have the same operator, so we can continue looking at
@@ -202,7 +202,7 @@ int getBitTypeByChanges(FieldList& startFields, FieldList& newFields) {
                 if (result == BIT_TYPE_UNUSED) {
                     result = i;
                 } else {
-                    return BIT_TYPE_SWITCH;
+                    return BIT_TYPE_STRUCTURAL;
                 }
             }
         }
@@ -216,8 +216,8 @@ bool SimpleInsnMap::isMapEquivalent(const SimpleInsnMap& otherMap) const {
     }
     for (size_t i = 0; i < nBitsUsed; ++i) {
         if (bitTypes[i] != otherMap.bitTypes[i] && 
-            !(bitTypes[i] == BIT_TYPE_SWITCH && otherMap.bitTypes[i] == BIT_TYPE_CAUSED_ERROR) &&
-            !(bitTypes[i] == BIT_TYPE_CAUSED_ERROR && otherMap.bitTypes[i] == BIT_TYPE_SWITCH)) {
+            !(bitTypes[i] == BIT_TYPE_STRUCTURAL && otherMap.bitTypes[i] == BIT_TYPE_RESERVED) &&
+            !(bitTypes[i] == BIT_TYPE_RESERVED && otherMap.bitTypes[i] == BIT_TYPE_STRUCTURAL)) {
             
             return false;
         }

@@ -21,14 +21,10 @@
 #ifndef _BIT_TYPES_H_
 #define _BIT_TYPES_H_
 
-#define BIT_TYPE_SWITCH -3
-#define BIT_TYPE_CAUSED_ERROR -2
+#define BIT_TYPE_STRUCTURAL -3
+#define BIT_TYPE_RESERVED -2
 #define BIT_TYPE_UNUSED -1
 
-#define INST_LEN 15
-
-typedef int BitType;
-
-unsigned long hashBitTypes(BitType* bitTypes, unsigned int nBits);
+typedef int8_t BitType;
 
 #endif /* _BIT_TYPES_H_ */

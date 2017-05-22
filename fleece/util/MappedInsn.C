@@ -273,14 +273,14 @@ void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
 
     for (i = 0; i < nBits; i++) {
 
-        if (map->getBitType(i) != BIT_TYPE_SWITCH) {
+        if (map->getBitType(i) != BIT_TYPE_STRUCTURAL) {
             continue;
         }
 
         flipBufferBit(bytes, i);
         
         for (j = i + 1; j < nBits; j++) {
-            if (map->getBitType(j) != BIT_TYPE_SWITCH) {
+            if (map->getBitType(j) != BIT_TYPE_STRUCTURAL) {
                 continue;
             }
             flipBufferBit(bytes, j);
@@ -300,7 +300,7 @@ void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
     #endif
 
     for (i = 0; i < nBits; i++) {
-        if (map->getBitType(i) != BIT_TYPE_SWITCH) {
+        if (map->getBitType(i) != BIT_TYPE_STRUCTURAL) {
             continue;
         }
         flipBufferBit(bytes, i);
@@ -413,7 +413,7 @@ MappedInsn::~MappedInsn() {
 void MappedInsn::mapBitTypes() {
     size_t i = 0;
     unsigned int nBitsUsed = 8 * nBytesUsed;
-    
+   
     // Create a SimpleInsnMap for the input bytes (this is the preliminary
     // labelling step).
     map = new SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
@@ -423,8 +423,8 @@ void MappedInsn::mapBitTypes() {
     // or a confirmed immediate, flip the bit and recompute the preliminary
     // labels. If they differ, override the bit type to be structural.
     for (i = 0; i < nBitsUsed; i++) {
-        if (map->getBitType(i) == BIT_TYPE_SWITCH        ||
-            map->getBitType(i) == BIT_TYPE_CAUSED_ERROR  ||
+        if (map->getBitType(i) == BIT_TYPE_STRUCTURAL ||
+            map->getBitType(i) == BIT_TYPE_RESERVED   ||
             map->isBitConfirmedImm(i)) {
 
             continue;
@@ -433,7 +433,7 @@ void MappedInsn::mapBitTypes() {
         flipBufferBit(bytes, i);
         SimpleInsnMap newMap = SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
         if (!prelimMap.isMapEquivalent(newMap)) {
-            map->overrideBitType(i, BIT_TYPE_SWITCH);
+            map->overrideBitType(i, BIT_TYPE_STRUCTURAL);
         }
         flipBufferBit(bytes, i);
     }
