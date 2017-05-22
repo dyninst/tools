@@ -136,7 +136,7 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     char* decStr = &decBuf[0];
 
     // Test if the instruction has been seen before.
-    success = !decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE,
+    int success = !decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE,
         true);
     if (!success) {
         return;
@@ -166,7 +166,7 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     // Test if the instruction has too many optional bytes.
     char oldBuf[DECODING_BUFFER_SIZE];
     char* oldStr = &oldBuf[0];
-    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE,
+    success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE,
         false);
     
     if (!success) {
