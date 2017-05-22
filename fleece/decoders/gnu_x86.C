@@ -152,6 +152,7 @@ int gnu_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
    
     if (gnuWillCrash(inst, nBytes)) {
         strncpy(buf, "would_sig", bufLen - 1);
+        return 0;
     }
     disassemble_info disInfo;
    
@@ -268,6 +269,7 @@ static void removeJumpHints(char* buf, int bufLen) {
 int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
     if (gnuWillCrash(inst, nBytes)) {
         strncpy(buf, "would_sig", bufLen - 1);
+        return 0;
     }
     disassemble_info disInfo;
    
