@@ -214,14 +214,14 @@ int ReportingContext::processDecodings(std::vector<Assembly*>& asmList) {
         ++asmIt;
     }
     
+    Report r = Report(asmList);
+    
     // We want to only report unique matches, so we need to keep track of which instructions we
     // have seen for matches. All others should count as suppressed.
     if (allMatch) {
        ++nMatches;
        return asm1->getNBytes();
     }
-    
-    Report r = Report(asmList);
 
     if (Options::get("-rand") != NULL) {
         // Check if we need to report the difference and do so. Update summary data.
