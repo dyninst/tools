@@ -31,17 +31,17 @@ extern "C" {
 #include "Normalization.h"
 #include "StringUtils.h"
 
-#define XED_MACHINE_MODE XED_MACHINE_MODE_LEGACY_32
-#define XED_ADDRESS_WIDTH XED_ADDRESS_WIDTH_32b
+#define XED_MACHINE_MODE XED_MACHINE_MODE_LONG_64
+#define XED_ADDRESS_WIDTH XED_ADDRESS_WIDTH_64b
 
 #define FIND_LIST_SIZE 877
 
-static int xedInit(void) {
+int xedInit(void) {
    xed_tables_init();
    return 0;
 }
 
-static void fixMmxRegs(char* buf, int bufLen) {
+void fixMmxRegs(char* buf, int bufLen) {
 
     // We are looking for the 'x' in 'mmx', so the string must be at least 3
     // letters, and we can skip the first two.
@@ -62,7 +62,7 @@ static void fixMmxRegs(char* buf, int bufLen) {
     *place = '\0';
 }
 
-static void fixVexMaskOperations(char* buf, int bufLen) {
+void fixVexMaskOperations(char* buf, int bufLen) {
     
     // Start at the beginning of the buffer and go to the end.
     char* cur = buf;
@@ -147,7 +147,7 @@ static void fixVexMaskOperations(char* buf, int bufLen) {
     *(opPos + opLen + 1) = ' ';
 }
 
-static void fixVexTrailingX(char* buf, int bufLen) {
+void fixVexTrailingX(char* buf, int bufLen) {
     char* cur = buf;
     
     while (*cur && !((cur == buf || *(cur - 1) == ' ') && 
@@ -172,7 +172,21 @@ static void fixVexTrailingX(char* buf, int bufLen) {
     }
 }
 
-static void fixPFInsnSuffix(char* buf, int bufLen) {
+static FindList* initFixPSRInsnSuffixFindList() {
+    FindList* fl = new FindList(FIND_LIST_SIZE);
+    addReplaceTerm(*fl, "psrldq ", "psrld ");
+    addReplaceTerm(*fl, "pslldq ", "pslld ");
+    return fl;
+}
+
+static void fixPSRInsnSuffix(char* buf, int bufLen) {
+    static FindList* fl = initFixPSRInsnSuffixFindList();
+    if (strstr(buf, " %mm") != NULL) {
+        fl->process(buf, bufLen);
+    }
+}
+
+void fixPFInsnSuffix(char* buf, int bufLen) {
     char* cur = buf;
     bool done = false;
     while (!done && *cur) {
@@ -192,7 +206,7 @@ static void fixPFInsnSuffix(char* buf, int bufLen) {
     }
 }
 
-static void fixPrefetchSuffix(char* buf, int bufLen) {
+void fixPrefetchSuffix(char* buf, int bufLen) {
     char* cur = buf;
     bool done = false;
     while (!done && *cur) {
@@ -213,18 +227,18 @@ static void fixPrefetchSuffix(char* buf, int bufLen) {
     }
 }
 
-static FindList* initMaskNameFindList() {
+FindList* initMaskNameFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
     addReplaceTerm(*fl, "rne-sae", "rn-sae");
     return fl;
 }
 
-static void fixMaskName(char* buf, int bufLen) {
+void fixMaskName(char* buf, int bufLen) {
     static FindList* fl = initMaskNameFindList();
     fl->process(buf, bufLen);
 }
 
-static FindList* initConvertFindList() {
+FindList* initConvertFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
     addReplaceTerm(*fl, "ssq ", "ss ");
     addReplaceTerm(*fl, "ssl ", "ss ");
@@ -243,14 +257,14 @@ static FindList* initConvertFindList() {
     return fl;
 }
 
-static FindList* initNonConvertFindList() {
+FindList* initNonConvertFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
     addReplaceTerm(*fl, "y ", " ");
     addReplaceTerm(*fl, "x ", " ");
     return fl;
 }
 
-static FindList* initVecFindList() {
+FindList* initVecFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
     /* Removes all instructions that fall under "no such instruction" */
     addReplaceTerm(*fl, "bx ", "b ");
@@ -487,6 +501,7 @@ static FindList* initVecFindList() {
     addRemoveLastLetterTerm(*fl, "vpunpckldql");
     addRemoveLastLetterTerm(*fl, "vpunpcklqdqq");
     addRemoveLastLetterTerm(*fl, "vpxorqq");
+    addRemoveLastLetterTerm(*fl, "vmovdqay");
     addRemoveLastLetterTerm(*fl, "vrangepdq");
     addRemoveLastLetterTerm(*fl, "vrangepsl");
     addRemoveLastLetterTerm(*fl, "vrangesdq");
@@ -521,11 +536,40 @@ static FindList* initVecFindList() {
     addRemoveLastLetterTerm(*fl, "vunpcklpdq");
     addRemoveLastLetterTerm(*fl, "vxorpdq");
     addRemoveLastLetterTerm(*fl, "vxorpsl");
-    
+    addRemoveLastLetterTerm(*fl, "vblendmpdq");
+    addRemoveLastLetterTerm(*fl, "vcmppdq");
+    addRemoveLastLetterTerm(*fl, "vcomisdq");
+    addRemoveLastLetterTerm(*fl, "vcomissl");
+    addRemoveLastLetterTerm(*fl, "vcvtdq2pdq");
+    addRemoveLastLetterTerm(*fl, "vcvtps2pdq");
+    addRemoveLastLetterTerm(*fl, "vfmsubadd213pdq");
+    addRemoveLastLetterTerm(*fl, "vgetexpsdq");
+    addRemoveLastLetterTerm(*fl, "vgetexpssl");
+    addRemoveLastLetterTerm(*fl, "vldmxcsrl");
+    addRemoveLastLetterTerm(*fl, "vmovqq");
+    addRemoveLastLetterTerm(*fl, "vpblendmqq");
+    addRemoveLastLetterTerm(*fl, "vpmadd52huqq");
+    addRemoveLastLetterTerm(*fl, "vpmullqq");
+    addRemoveLastLetterTerm(*fl, "vpsllqq");
+    addRemoveLastLetterTerm(*fl, "vpsllvqq");
+    addRemoveLastLetterTerm(*fl, "vpsravqq");
+    addRemoveLastLetterTerm(*fl, "vpsrlqq");
+    addRemoveLastLetterTerm(*fl, "vpsrlvqq");
+    addRemoveLastLetterTerm(*fl, "vptestmqq");
+    addRemoveLastLetterTerm(*fl, "vrcp14ssl");
+    addRemoveLastLetterTerm(*fl, "vrsqrt14sdq");
+    addRemoveLastLetterTerm(*fl, "vrsqrt14ssl");
+    addRemoveLastLetterTerm(*fl, "vshufi32x4l");
+    addRemoveLastLetterTerm(*fl, "vshufpdq");
+    addRemoveLastLetterTerm(*fl, "vstmxcsrl");
+    addRemoveLastLetterTerm(*fl, "vucomisdq");
+    addRemoveLastLetterTerm(*fl, "vucomissl");
+    addRemoveLastLetterTerm(*fl, "vunpckhpsl");
+    addRemoveLastLetterTerm(*fl, "vunpcklpsl");
     return fl;
 }
 
-static FindList* initPInsnSuffixFindList() {
+FindList* initPInsnSuffixFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
 
     /* Removes all instructions that fall under "no such instruction" */
@@ -603,7 +647,9 @@ static FindList* initPInsnSuffixFindList() {
     addRemoveLastLetterTerm(*fl, "punpckhbwx");
     addRemoveLastLetterTerm(*fl, "punpcklbwx");
     addRemoveLastLetterTerm(*fl, "punpcklqd");
-    
+   
+    addRemoveLastLetterTerm(*fl, "pextrqq");
+    addRemoveLastLetterTerm(*fl, "pinsrqq");
     
     addRemoveLastLetterTerm(*fl, "packssdwq");
     addRemoveLastLetterTerm(*fl, "packsswbq");
@@ -699,7 +745,7 @@ static FindList* initPInsnSuffixFindList() {
     return fl;
 }
 
-static FindList* initRemoveLastLetterFindList() {
+FindList* initRemoveLastLetterFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
     addRemoveLastLetterTerm(*fl, "cflush");
     addRemoveLastLetterTerm(*fl, "clflush");
@@ -708,7 +754,7 @@ static FindList* initRemoveLastLetterFindList() {
     return fl;
 }
 
-static FindList* initStrInsnDressingFindList() {
+FindList* initStrInsnDressingFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
     addReplaceTerm(*fl, "stosqq", "stosq");
     addReplaceTerm(*fl, "movsqq", "movsq");
@@ -727,8 +773,12 @@ static FindList* initStrInsnDressingFindList() {
     return fl;
 }
 
-static FindList* initOpcodeDressingFindList() {
+FindList* initOpcodeDressingFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
+    addReplaceTerm(*fl, "lslw ", "lsl ");
+    addReplaceTerm(*fl, "larw ", "lar ");
+    addReplaceTerm(*fl, "lgsw ", "lgs ");
+    addReplaceTerm(*fl, "lfsw ", "lfs ");
     addReplaceTerm(*fl, "upq ", "up ");
     addReplaceTerm(*fl, "bx ", "b ");
     addReplaceTerm(*fl, "wx ", "w ");
@@ -814,7 +864,7 @@ static FindList* initOpcodeDressingFindList() {
     return fl;
 }
 
-static void fixExtraOpcodeDressing(char* buf, int bufLen) {
+void fixExtraOpcodeDressing(char* buf, int bufLen) {
     static FindList* fl = initOpcodeDressingFindList();
     static FindList* strInsnFl = initStrInsnDressingFindList();
     static FindList* nonConvertFl = initNonConvertFindList();
@@ -839,7 +889,7 @@ static void fixExtraOpcodeDressing(char* buf, int bufLen) {
     }
 }
 
-static void removeExtraAddr32(char* buf, int bufLen) {
+void removeExtraAddr32(char* buf, int bufLen) {
     std::string str = std::string(buf);
     
     if (str.find("addr32 j") == std::string::npos) {
@@ -854,7 +904,7 @@ static void removeExtraAddr32(char* buf, int bufLen) {
     }
 }
 
-static void removeExtraData16(char* buf, int bufLen) {
+void removeExtraData16(char* buf, int bufLen) {
     std::string str = std::string(buf);
     
     if (str.find("data16") == std::string::npos) {
@@ -873,7 +923,7 @@ static void removeExtraData16(char* buf, int bufLen) {
     }
 }
 
-static void fixFloatSuffixes(char* buf, int bufLen) {
+void fixFloatSuffixes(char* buf, int bufLen) {
     char* cur = buf;
     bool done = false;
     while (*cur && !done) {
@@ -912,7 +962,7 @@ static void fixFloatSuffixes(char* buf, int bufLen) {
     }
 }
 
-static void addImplicitRegs(char* buf, int bufLen) {
+void addImplicitRegs(char* buf, int bufLen) {
     std::string str = std::string(buf);
     if (str.find("outs") != std::string::npos) {
         char* cur = buf;
@@ -925,13 +975,38 @@ static void addImplicitRegs(char* buf, int bufLen) {
     }
 }
 
-static void removeImplicitEnclOperands(char* buf, int bufLen) {
+static void removeImplicitOperands(char* buf, int bufLen) {
     if (!strncmp(buf, "encl", 4)) {
         *(buf + 5) = '\0';
     }
+    if (!strncmp(buf, "invlpga", 7)) {
+        *(buf + 8) = '\0';
+    }
+    if (!strncmp(buf, "vmrun", 5)) {
+        *(buf + 6) = '\0';
+    }
+    if (!strncmp(buf, "vmload", 6)) {
+        *(buf + 7) = '\0';
+    }
 }
 
-static FindList* initSwapXEDOperandOrderFindList() {
+FindList* initFormatSegRegsFindList() {
+    FindList* fl = new FindList(FIND_LIST_SIZE);
+    addReplaceTerm(*fl, " fs:", " %fs:");
+    addReplaceTerm(*fl, " gs:", " %gs:");
+    addReplaceTerm(*fl, " cs:", " %cs:");
+    addReplaceTerm(*fl, " es:", " %es:");
+    addReplaceTerm(*fl, " ss:", " %ss:");
+    addReplaceTerm(*fl, " ds:", " %ds:");
+    return fl;
+}
+
+static void formatSegRegs(char* buf, int bufLen) {
+    static FindList* fl = initFormatSegRegsFindList();
+    fl->process(buf, bufLen);
+}
+
+FindList* initSwapXEDOperandOrderFindList() {
     FindList* fl = new FindList(FIND_LIST_SIZE);
     addOperandSwapTerm(*fl, "vrange", 1, 2);
     addOperandSwapTerm(*fl, "vfix", 1, 2);
@@ -940,16 +1015,72 @@ static FindList* initSwapXEDOperandOrderFindList() {
     return fl;
 }
 
-static void swapXEDOperandOrder(char* buf, int bufLen) {
+void swapXEDOperandOrder(char* buf, int bufLen) {
     static FindList* fl = initSwapXEDOperandOrderFindList();
     fl->process(buf, bufLen);
 }
 
-static void removeLockColon(char* buf, int bufLen) {
+void removeLockColon(char* buf, int bufLen) {
     std::string str = std::string(buf);
     auto index = str.find("lock :");
     if (index != std::string::npos) {
         buf[index + 5] = ' ';
+    }
+}
+
+void xed_x86_64_norm(char* buf, int bufLen) {
+    cleanSpaces(buf, bufLen);
+    toLowerCase(buf, bufLen);
+    spaceAfterCommas(buf, bufLen);
+    fixStRegs(buf, bufLen);
+    fixMmxRegs(buf, bufLen);
+    fixExtraOpcodeDressing(buf, bufLen);
+    fixVexTrailingX(buf, bufLen);
+    fixVexMaskOperations(buf, bufLen);
+    removeUnusedOverridePrefixes(buf, bufLen);
+    removeImplicitOperands(buf, bufLen);
+    cleanX86NOP(buf, bufLen);
+    removeExtraData16(buf, bufLen);
+    removeExtraAddr32(buf, bufLen);
+    fixFloatSuffixes(buf, bufLen);
+    removeLockColon(buf, bufLen);
+    fixPrefetchSuffix(buf, bufLen);
+    fixPFInsnSuffix(buf, bufLen);
+    fixPSRInsnSuffix(buf, bufLen);
+    signedOperands(buf, bufLen);
+    removeX86Hints(buf, bufLen);
+    cleanSpaces(buf, bufLen);
+    addImplicitRegs(buf, bufLen);
+    addMissing0x0(buf, bufLen);
+    spaceAfterCommas(buf, bufLen);
+    fixMaskName(buf, bufLen);
+    formatSegRegs(buf, bufLen);
+    removeImplicitST0(buf, bufLen);
+}
+
+int xed_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+    xed_machine_mode_enum_t mmode = XED_MACHINE_MODE;
+    xed_address_width_enum_t stack_addr_width = XED_ADDRESS_WIDTH;
+
+    xed_error_enum_t err;
+    xed_decoded_inst_t decoded_inst;
+
+    xed_decoded_inst_zero(&decoded_inst);
+    xed_decoded_inst_set_mode(&decoded_inst, mmode, stack_addr_width);
+    err = xed_decode(&decoded_inst, (xed_uint8_t*)inst, nBytes);
+    if (err != XED_ERROR_NONE) {
+        return -1;
+    }
+    if (!xed_format_context(XED_SYNTAX_ATT, 
+            &decoded_inst, buf, bufLen, 0, 0, 0)) {
+        return -1;
+    }
+    return 0;
+}
+
+static void removeImplicitEnclOperands(char* buf, int bufLen) {
+    if (!strncmp(buf, "encl", 4)) {
+        *(buf + 5) = '\0';
     }
 }
 
@@ -982,8 +1113,8 @@ void xed_x86_32_norm(char* buf, int bufLen) {
 }
 
 int xed_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
-    xed_machine_mode_enum_t mmode = XED_MACHINE_MODE;
-    xed_address_width_enum_t stack_addr_width = XED_ADDRESS_WIDTH;
+    xed_machine_mode_enum_t mmode = XED_MACHINE_MODE_LEGACY_32;
+    xed_address_width_enum_t stack_addr_width = XED_ADDRESS_WIDTH_32b;
 
     xed_error_enum_t err;
     xed_decoded_inst_t decoded_inst;
