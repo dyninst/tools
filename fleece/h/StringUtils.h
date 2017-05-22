@@ -32,7 +32,6 @@
 #include <time.h>
 #include <unistd.h>
 
-
 namespace StringUtils {
     struct str_cmp {
         bool operator()(const char* a, const char* b) const {
@@ -54,6 +53,10 @@ namespace StringUtils {
     };
 }
 
+/*
+ * Returns true if the token suggests that a decoder was unable to decoder a
+ * complete instruction from its input.
+ */
 bool signalsError(const char* token);
 
 void removeOperand(std::string& str, const std::string& op, const std::string& operand);
@@ -83,31 +86,6 @@ void flipBufferBit(char* buf, int bit);
 void setBufferBit(char* buf, int bit, int val);
 
 /*
- * Prints the 0s and 1s of a buffer to standard output.
- */
-void printBufferBits(char* buf, unsigned int len);
-
-/*
- * Randomizes a vector of bits within the buffer. The position array <pos> must
- * contain <len> elements, each of which specifies which bit should recieve a
- * random value.
- */
-void randomizeBufferBitVector(char* buf, unsigned int* pos, unsigned int len);
-
-/*
- * Sets a vector of bits within the buffer. The position array <pos> must
- * contain <len> elements, each of which specifies which bit should recieve a
- * bit from <value>. The order bits are set is dictated by the order of the
- * <pos> argument. The values in the buffer will be:
- *
- * buf[pos[i]] = value[i]
- *
- * Where i runs from 0 to len - 1 (inclusively) and both buf and value are
- * treated as bit arrays.
- */
-void setBufferBitVector(char* buf, unsigned int* pos, char* value, unsigned int len);
-
-/*
  * Provides the value of a single bit in a buffer. No bounds checking is done.
  *
  * Returns 0 if the value at buf[bit] (with buffer as an array of bits) is 0.
@@ -115,13 +93,21 @@ void setBufferBitVector(char* buf, unsigned int* pos, char* value, unsigned int 
  */
 unsigned char getBufferBit(char* buf, int bit);
 
+/*
+ * Removes all instances of the given character from the input c-string.
+ */
 void removeCharacter(char* buf, int bufLen, char c);
 
-void strStripDigits(char* str);
-
-void strStripHex(char* str);
-
+/*
+ * Sanitizes and truncates the input assembly error message so that it forms
+ * a reasonable filename.
+ */
 std::string asmErrorToFilename(const char* asmError);
 
+/*
+ * Prints the buffer of bytes as space-separated hex values to the given output
+ * stream.
+ */
 void printByteBuffer(std::ostream& stream, const char* bytes, int nBytes);
+
 #endif /* _MYSTRING_H_ */
