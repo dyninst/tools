@@ -110,7 +110,7 @@ void FieldList::initFieldsAndSeparators(const char* buf) {
     const char* cur = buf;
     const char* strStart = buf;
     bool inField = !isSeparator(*buf);
-    char* lastSepChar;
+    char* lastSepChar = NULL;
 
     // If we start out the game in a field, the first separator will be and empty string.
     if (inField) {
