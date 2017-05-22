@@ -253,11 +253,8 @@ int main(int argc, char** argv) {
             std::cerr << "\tReasm Time: " << totalReasmTime/1000000000 << "\n";
             std::cerr << "\tIssue Time: " << totalReportIssueTime/1000000000 << "\n";
             std::cerr << "Input Gen Time: " << totalMapTime/1000000000 << "\n";
-            //std::cerr << "\tDecode Time: " << totalDecodeTime/1000000000 << "\n";
-            //std::cerr << "\tField Time: " << SimpleInsnMap::timeInFields/1000000000 << "\n";
-            //std::cerr << "\tImm Time: " << SimpleInsnMap::timeInImmMatching/1000000000 << "\n";
-            std::cerr << "\tLabelling Time: " << MappedInst::totalLabellingTime/1000000000 << "\n";
-            std::cerr << "\tQueueing Time: " << MappedInst::totalQueueingTime/1000000000 << "\n";
+            std::cerr << "\tLabelling Time: " << MappedInsn::totalLabellingTime/1000000000 << "\n";
+            std::cerr << "\tQueueing Time: " << MappedInsn::totalQueueingTime/1000000000 << "\n";
             std::cerr << "\t\tTotal Check Err Time: " << FieldList::totalHasErrTime/1000000000 << "\n";
             //std::cerr << "\tNorm. Time: " << totalNormTime/1000000000 << "\n";
             std::cerr << "Num. Inputs: " << i << "\n";
@@ -279,10 +276,10 @@ int main(int argc, char** argv) {
                     Decoder dec = decoders[j];
                     Assembly insnAsm = Assembly(curInsn, insnLen, &dec);
                     if (!insnAsm.isError()) {
-                        size_t nBytesUsed = MappedInst::findNumBytesUsed(curInsn, insnLen, &dec);
+                        size_t nBytesUsed = MappedInsn::findNumBytesUsed(curInsn, insnLen, &dec);
                         size_t nOptional = 0;
                         for (size_t k = 0; k < nBytesUsed; ++k) {
-                            if (MappedInst::isByteOptional(&dec, curInsn, nBytesUsed, k, (FieldList*)insnAsm.getFields())) {
+                            if (MappedInsn::isByteOptional(&dec, curInsn, nBytesUsed, k, (FieldList*)insnAsm.getFields())) {
                                 ++nOptional;
                             }
                         }
@@ -335,13 +332,13 @@ int main(int argc, char** argv) {
         if (!random) {
 
             // If the input is non-random, we need to add to the queue now.
-            MappedInst* mInsn;
+            MappedInsn* mInsn;
 
             for (size_t j = 0; j < decCount; j++) {
             
                 // Each decoder maps the instruction and uses its
                 // map to try to find new inputs to add to the queue.
-                mInsn = new MappedInst(curInsn, insnLen, &decoders[j]);
+                mInsn = new MappedInsn(curInsn, insnLen, &decoders[j]);
                 mInsn->queueNewInsns(&remainingInsns, &seenMap, decoders);
                 delete mInsn;
             }

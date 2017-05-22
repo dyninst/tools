@@ -38,7 +38,7 @@
 #include "Decoder.h"
 #include "Info.h"
 #include "Mask.h"
-#include "MappedInst.h"
+#include "MappedInsn.h"
 #include "Options.h"
 #include "ReportingContext.h"
 #include "StringUtils.h"

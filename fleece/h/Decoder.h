@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <ctype.h>
+#include <string.h>
 
 class Decoder {
 public:

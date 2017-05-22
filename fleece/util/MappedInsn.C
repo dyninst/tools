@@ -18,46 +18,28 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
-#include "MappedInst.h"
+#include "MappedInsn.h"
 
 #define NUM_OPTIONAL_BYTES_ALLOWED 2
 
-unsigned long long MappedInst::totalQueueingTime = 0;
-unsigned long long MappedInst::totalLabellingTime = 0;
+unsigned long long MappedInsn::totalQueueingTime = 0;
+unsigned long long MappedInsn::totalLabellingTime = 0;
 
-std::map<MappedInst*, MappedInst*, MappedInst::insn_cmp> MappedInst::uniqueMaps;
-
-void setInstructionBitVector(char* bytes, int* switchBits, int nSwitchBits, int i);
-void printBitTypes(BitType* bitTypes, unsigned int nBits);
-
-MappedInst::MappedInst(MappedInst* toCopy) {
-    
-    this->isError = toCopy->isError;
-    if (this->isError) {
-        return;
-    }
-    
-    char decodeBuf[DECODING_BUFFER_SIZE];
-    char* decodedInstruction = &decodeBuf[0];
-
-    this->decoder = toCopy->decoder;
-
-    int success = !decoder->decode(toCopy->bytes, 
-                                   toCopy->nBytes, 
-                                   decodedInstruction, 
-                                   DECODING_BUFFER_SIZE, false);
-   
-    fields = new FieldList(decodedInstruction);
-    if (success && fields->hasError()) {
-        success = false;
-    }
-  
-    this->nBytes = toCopy->nBytes;
-    this->bytes = (char*)malloc(this->nBytes);
-    bcopy(toCopy->bytes, this->bytes, this->nBytes);
-    this->map = new SimpleInsnMap(toCopy->map);
-}
-
+/*
+ * Returns true if two fields are equivalent, given one byte was removed from
+ * the original instruction. This is a bit tricky, because branch addresses
+ * will be reduced by one, since they are relative to the end of the
+ * instruction.
+ *
+ * Fields are equivalent iff:
+ *  - They are exact string matches.
+ *    OR
+ *  - They are immediates.
+ *  - The seconds field is equal to the first field minus 1.
+ *
+ * Note: Since the same decoder is being used in both cases, formatting will
+ * be identical for identical fields.
+ */
 static bool fieldsMatch(const char* field1, const char* field2) {
     if (!strcmp(field1, field2)) {
         return true;
@@ -70,7 +52,7 @@ static bool fieldsMatch(const char* field1, const char* field2) {
     return false;
 }
 
-bool MappedInst::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, size_t whichByte, FieldList* oldFields) {
+bool MappedInsn::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, size_t whichByte, FieldList* oldFields) {
 
     // Allocated a buffer that we can fill with the decoded version of this instruction.
     char newBuf[DECODING_BUFFER_SIZE];
@@ -79,7 +61,6 @@ bool MappedInst::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, si
 
     // Allocate a buffer for the bytes of this instruction with a single byte removed.
     char newBytes[nBytes - 1];
-    //bzero(newBytes, nBytes - 1);
     size_t j = 0;
 
     // Copy over all bytes excluding the byte that we want to test. If the byte can be removed and
@@ -114,6 +95,7 @@ bool MappedInst::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, si
     // old instruction.
     FieldList new_fields = FieldList(newStr);
 
+    // If the new instruction has more fields, the byte was not optional.
     if (new_fields.size() > oldFields->size()) {
         return false;
     }
@@ -146,25 +128,16 @@ bool MappedInst::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, si
     return true;
 }
 
-void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
+void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
     
     static bool printQueue = (Options::get("-pig") != NULL);
-    char oldBuf[DECODING_BUFFER_SIZE];
-    char* oldStr = &oldBuf[0];
-    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE, false);
-    if (!success) {
-        return;
-    }
-
     bool seen = true;
     char decBuf[DECODING_BUFFER_SIZE];
     char* decStr = &decBuf[0];
 
-    success = !decoder->decode(bytes,
-                                    nBytes,
-                                    decStr, 
-                                    DECODING_BUFFER_SIZE, true);
-    
+    // Test if the instruction has been seen before.
+    success = !decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE,
+        true);
     if (!success) {
         return;
     }
@@ -189,6 +162,17 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     if (seen) {
         return;
     }
+    
+    // Test if the instruction has too many optional bytes.
+    char oldBuf[DECODING_BUFFER_SIZE];
+    char* oldStr = &oldBuf[0];
+    int success = !decoder->decode(bytes, nBytes, oldStr, DECODING_BUFFER_SIZE,
+        false);
+    
+    if (!success) {
+        return;
+    }
+
 
     FieldList oldFields = FieldList(oldStr);
     int nOptional = 0;
@@ -201,6 +185,8 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
         return;
     }
     
+    // The instruction's format has not been seen before, and it has an
+    // acceptable number of optional bytes.
     if (printQueue) {  
         std::cout << decoder->getName();
         size_t decNameLen = strlen(decoder->getName());
@@ -222,16 +208,16 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
         std::cout << "\n";
     }
     
+    // Enter the format string for this instruction into the list of seen
+    // formats for each of the decoders.
     for (size_t i = 0; i < decoders.size(); ++i) {
         Decoder* otherDecoder = &(decoders[i]);
         if (otherDecoder == decoder) {
             continue;
         }
 
-        success = !otherDecoder->decode(bytes,
-                                        nBytes,
-                                        decStr, 
-                                        DECODING_BUFFER_SIZE, true);
+        success = !otherDecoder->decode(bytes, nBytes, decStr,
+            DECODING_BUFFER_SIZE, true);
         
         if (success) {
             FieldList tList(decStr);
@@ -251,6 +237,8 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
             }
         }
     }
+
+    // Enqueue this instructions bytes.
     char* queuedBytes = (char*)malloc(Architecture::maxInsnLen);
     assert(queuedBytes != NULL);
     randomizeBuffer(queuedBytes, Architecture::maxInsnLen);
@@ -258,7 +246,7 @@ void MappedInst::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     queue->push(queuedBytes);
 }
 
-void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
+void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
     
     struct timespec startTime;
     struct timespec endTime;
@@ -378,7 +366,7 @@ void MappedInst::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
                       (endTime.tv_nsec - startTime.tv_nsec);
 }
 
-MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
+MappedInsn::MappedInsn(char* bytes, unsigned int nBytes, Decoder* dec) {
 
     struct timespec startTime;
     struct timespec endTime;
@@ -388,10 +376,8 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
 
     decoder = dec;
 
-    int success = !decoder->decode(bytes, 
-                                   nBytes, 
-                                   decodedInstruction, 
-                                   DECODING_BUFFER_SIZE, false);
+    int success = !decoder->decode(bytes, nBytes, decodedInstruction,
+        DECODING_BUFFER_SIZE, false);
    
     fields = new FieldList(decodedInstruction);
     if (success && fields->hasError()) {
@@ -415,7 +401,7 @@ MappedInst::MappedInst(char* bytes, unsigned int nBytes, Decoder* dec) {
                       (endTime.tv_nsec - startTime.tv_nsec);
 }
 
-MappedInst::~MappedInst() {
+MappedInsn::~MappedInsn() {
     delete fields;
     if (isError) {
         return;
@@ -424,13 +410,18 @@ MappedInst::~MappedInst() {
     delete map;
 }
 
-void MappedInst::mapBitTypes() {
+void MappedInsn::mapBitTypes() {
     size_t i = 0;
     unsigned int nBitsUsed = 8 * nBytesUsed;
     
+    // Create a SimpleInsnMap for the input bytes (this is the preliminary
+    // labelling step).
     map = new SimpleInsnMap(bytes, nBytes, nBytesUsed, decoder);
     SimpleInsnMap prelimMap = SimpleInsnMap(map);
 
+    // For each bit with a preliminary label that wasn't structural, reserved
+    // or a confirmed immediate, flip the bit and recompute the preliminary
+    // labels. If they differ, override the bit type to be structural.
     for (i = 0; i < nBitsUsed; i++) {
         if (map->getBitType(i) == BIT_TYPE_SWITCH        ||
             map->getBitType(i) == BIT_TYPE_CAUSED_ERROR  ||
@@ -448,18 +439,11 @@ void MappedInst::mapBitTypes() {
     }
 }
 
-void setInstructionBitVector(char* inst, int* bitPositions, unsigned int nBit, int value) {
-   for (unsigned int i = nBit - 1; i >= 0; i--) {
-      setBufferBit(inst, bitPositions[i], value & 0x01);
-      value = value >> 1;
-   }
-}
-    
-BitType MappedInst::getBitType(size_t whichBit) const { 
+BitType MappedInsn::getBitType(size_t whichBit) const { 
     return map->getBitType(whichBit); 
 }
 
-size_t MappedInst::findNumBytesUsed(char* bytes, size_t nBytes, Decoder* dec) {
+size_t MappedInsn::findNumBytesUsed(char* bytes, size_t nBytes, Decoder* dec) {
     
     // This method will remove all of the bytes at the end of an instruction that can be removed
     // without affecting the outcome of decoding.

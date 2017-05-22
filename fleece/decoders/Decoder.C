@@ -21,7 +21,6 @@
 #include <iomanip>
 #include <iostream>
 #include "Decoder.h"
-#include "MappedInst.h"
 
 Decoder* dec_xed_x86_64;
 Decoder* dec_xed_x86_32;
