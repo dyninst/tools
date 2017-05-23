@@ -16,7 +16,12 @@ unsigned long long totalReasmTime = 0;
 unsigned long long numReassembled = 0;
 
 int initReasmDaemon() {
-    Reassembly::daemon = new ReassemblyDaemon(Options::get("-as="));
+    const char* as = Options::get("-as=");
+    if (as == NULL) {
+        std::cout << "Error: Must specify assembler using \"-as=/path/to/assembler\"\n";
+        exit(-1);
+    }
+    Reassembly::daemon = new ReassemblyDaemon(as);
     Reassembly::daemon->start();
     return 0;
 }
