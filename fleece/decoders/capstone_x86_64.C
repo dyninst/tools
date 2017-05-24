@@ -19,6 +19,7 @@
 */
 
 #include <iostream>
+#include "Decoder.h"
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
@@ -112,3 +113,5 @@ void capstone_x86_64_norm(char* buf, int bufLen) {
     addMissingCommaAfter1(buf, bufLen);
     removeImplicitST0(buf, bufLen);
 }
+Decoder* dec_capstone_x86_64 = new Decoder(&capstone_x86_64_decode, NULL, 
+            &capstone_x86_64_norm, "capstone", "x86_64");

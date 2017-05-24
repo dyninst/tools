@@ -42,10 +42,10 @@ public:
     const char* getName(void);
     const char* getArch(void);
     void setNorm(bool newNorm);
-    static void initAllDecoders(void);
     static void destroyAllDecoders(void);
-    static std::vector<Decoder> getAllDecoders(void);
-    static std::vector<Decoder> getDecoders(const char* arch, const char* names);
+    static Decoder* getDecoder(const char* arch, const char* decName);
+    static std::vector<Decoder*> getAllDecoders(void);
+    static std::vector<Decoder*> getDecoders(const char* arch, const char* names);
     static void printAllNames(void);
     unsigned long getTotalNormalizeTime(void);
     unsigned long getTotalDecodeTime(void);
@@ -71,115 +71,8 @@ private:
     static int curInsnLen;
     static char* curInsn;
 
+    static std::vector<Decoder*> allDecoders;
+
 };
-
-extern int xedInit(void);
-extern int LLVMInit(void);
-
-extern int  xed_x86_32_decode(char*, int, char*, int);
-extern void xed_x86_32_norm(char*, int);
-
-extern int  xed_x86_64_decode(char*, int, char*, int);
-extern void xed_x86_64_norm(char*, int);
-
-extern int  dyninst_x86_32_decode(char*, int, char*, int);
-extern void dyninst_x86_32_norm(char*, int);
-
-extern int  dyninst_x86_64_decode(char*, int, char*, int);
-extern void dyninst_x86_64_norm(char*, int);
-
-extern int  dyninst_aarch64_decode(char*, int, char*, int);
-extern void dyninst_aarch64_norm(char*, int);
-extern int  dyninst_aarch64_init(void);
-
-extern int  dyninst_ppc_32_decode(char*, int, char*, int);
-extern void dyninst_ppc_32_norm(char*, int);
-
-extern int  dyninst_ppc_decode(char*, int, char*, int);
-extern void dyninst_ppc_norm(char*, int);
-
-extern int  dyninst_armv6_decode(char*, int, char*, int);
-extern void dyninst_armv6_norm(char*, int);
-
-extern int  gnu_x86_32_decode(char*, int, char*, int);
-extern void gnu_x86_32_norm(char*, int);
-
-extern int  gnu_x86_64_decode(char*, int, char*, int);
-extern void gnu_x86_64_norm(char*, int);
-
-extern int  gnu_aarch64_decode(char*, int, char*, int);
-extern void gnu_aarch64_norm(char*, int);
-
-extern int  gnu_ppc_32_decode(char*, int, char*, int);
-extern void gnu_ppc_32_norm(char*, int);
-
-extern int  gnu_ppc_decode(char*, int, char*, int);
-extern void gnu_ppc_norm(char*, int);
-
-extern int  llvm_x86_32_decode(char*, int, char*, int);
-extern void llvm_x86_32_norm(char*, int);
-
-extern int  llvm_x86_64_decode(char*, int, char*, int);
-extern void llvm_x86_64_norm(char*, int);
-
-extern int  llvm_aarch64_decode(char*, int, char*, int);
-extern void llvm_aarch64_norm(char*, int);
-
-extern int  llvm_ppc_32_decode(char*, int, char*, int);
-extern void llvm_ppc_32_norm(char*, int);
-
-extern int  llvm_ppc_decode(char*, int, char*, int);
-extern void llvm_ppc_norm(char*, int);
-
-extern int  llvm_armv6_decode(char*, int, char*, int);
-extern void llvm_armv6_norm(char*, int);
-
-extern int  capstone_x86_64_decode(char*, int, char*, int);
-extern void capstone_x86_64_norm(char*, int);
-
-extern int  capstone_x86_32_decode(char*, int, char*, int);
-extern void capstone_x86_32_norm(char*, int);
-
-extern int  capstone_aarch64_decode(char*, int, char*, int);
-extern void capstone_aarch64_norm(char*, int);
-
-extern int  capstone_ppc_decode(char*, int, char*, int);
-extern void capstone_ppc_norm(char*, int);
-
-extern int  null_aarch64_decode(char*, int, char*, int);
-extern void null_aarch64_norm(char*, int);
-
-extern int  null_x86_32_decode(char*, int, char*, int);
-extern void null_x86_32_norm(char*, int);
-
-extern int  null_x86_64_decode(char*, int, char*, int);
-extern void null_x86_64_norm(char*, int);
-
-extern int  null_ppc_decode(char*, int, char*, int);
-extern void null_ppc_norm(char*, int);
-
-extern Decoder* dec_xed_x86_64;
-
-extern Decoder* dec_dyninst_x86_64;
-extern Decoder* dec_dyninst_aarch64;
-extern Decoder* dec_dyninst_ppc;
-extern Decoder* dec_dyninst_armv6;
-
-extern Decoder* dec_gnu_x86_64;
-extern Decoder* dec_gnu_aarch64;
-
-extern Decoder* dec_llvm_x86_64;
-extern Decoder* dec_llvm_aarch64;
-extern Decoder* dec_llvm_ppc;
-extern Decoder* dec_llvm_armv6;
-
-extern Decoder* dec_capstone_x86_64;
-extern Decoder* dec_capstone_aarch64;
-extern Decoder* dec_capstone_ppc;
-
-extern Decoder* dec_null_x86_64;
-extern Decoder* dec_null_aarch64;
-extern Decoder* dec_null_ppc;
-
 
 #endif /* _DECODER_H_ */

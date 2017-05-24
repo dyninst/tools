@@ -183,3 +183,5 @@ void dyninst_ppc_norm(char* buf, int bufLen) {
     signedPPCDisplacements(buf, bufLen);
     swapPowerPCOperands(buf, bufLen);
 }
+Decoder* dec_dyninst_ppc = new Decoder(&dyninst_ppc_decode, 
+            NULL, &dyninst_ppc_norm, "dyninst", "ppc");

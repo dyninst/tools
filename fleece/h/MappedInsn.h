@@ -90,7 +90,8 @@ public:
      * doesn't report the same instruction as new if it decodes that instruction
      * in a way that produces a different format string).
      */
-    void queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders);
+    void queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc,
+        std::vector<Decoder*> decoders);
 
     /*
      * Returns true if removing the byte at position whichByte of the instruction will result in an
@@ -161,7 +162,7 @@ private:
      */
     void enqueueInsnIfNew(std::queue<char*>* queue, 
         std::map<char*, int, StringUtils::str_cmp>* seenFormats,
-        std::vector<Decoder> decoders);
+        std::vector<Decoder*> decoders);
 };
 
 #endif /* _MAPPEDINSN_H_ */

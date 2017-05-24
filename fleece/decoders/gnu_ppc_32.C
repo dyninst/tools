@@ -61,3 +61,5 @@ void gnu_ppc_32_norm(char* buf, int bufLen) {
     cleanSpaces(buf, bufLen);
     spaceAfterCommas(buf, bufLen);
 }
+Decoder* dec_gnu_ppc_32 = new Decoder(&gnu_ppc_32_decode, NULL, 
+            &gnu_ppc_32_norm, "gnu", "ppc32");

@@ -85,23 +85,27 @@ int main(int argc, char** argv) {
 
     // Determine the instruction length. The default value is 15 bytes.
     unsigned long insnLen = Architecture::maxInsnLen;
-
-    /* Initialize our decoders */
-    Decoder::initAllDecoders();
-
-    // Get a list of all decoders that should be used, from the comma separated
-    // list of names on the command line
+    
+    // Check which decoders were specified.
     const char* decStr = Options::get("-decoders=");
+    // If there were no valid decoders with the architecture, print all decoder
+    // and architecture pairs and continue.
+    if (decStr == NULL) {
+        std::cout << "FLEECE FATAL: Must specify decoders.\n"; 
+        std::cout << "Valid options are:\n";
+        Decoder::printAllNames();
+        exit(0);
+    }
 
     // The Decoder class has a static method to match architecture and decoder
     // strings.
-    std::vector<Decoder> decoders = Decoder::getDecoders(archStr, decStr);
+    std::vector<Decoder*> decoders = Decoder::getDecoders(archStr, decStr);
     size_t decCount = decoders.size();
    
     // If there were no valid decoders with the architecture, print all decoder
     // and architecture pairs and continue.
     if (decCount == 0) {
-        std::cout << "FLEECE FATAL: No decoders for this architecture.\n"; 
+        std::cout << "FLEECE FATAL: No valid decoders for this architecture.\n"; 
         std::cout << "Valid options are:\n";
         Decoder::printAllNames();
         exit(0);
@@ -161,7 +165,7 @@ int main(int argc, char** argv) {
     assert(decBufs != NULL && "Could not allocate decoder buffers!");
 
     for (size_t i = 0; i < decCount; i++) {
-        decoders[i].setNorm(norm);
+        decoders[i]->setNorm(norm);
         decBufs[i] = (char*)malloc(DECODED_BUFFER_LEN);
         assert(decBufs[i] != NULL && "Could not allocate decoder buffer!");
     }
@@ -172,10 +176,10 @@ int main(int argc, char** argv) {
     
     // Create reporting directories.
     for (size_t i = 0; i < decCount; i++) { 
-        repContext->addDecoder(decoders[i].getName());
+        repContext->addDecoder(decoders[i]->getName());
         char dirBuf[REPORT_FILENAME_BUF_LEN];
         snprintf(dirBuf, REPORT_FILENAME_BUF_LEN, "%s/%s", outputDir, \
-                decoders[i].getName());
+                decoders[i]->getName());
         int rc = mkdir(dirBuf, DIR_ACCESS_PERMS);
         if (rc != 0) {
             if (errno != EEXIST) {
@@ -232,21 +236,15 @@ int main(int argc, char** argv) {
         if (newTime >= lastTime + 10) {
             lastTime = newTime;
          
-            // Count the total number of instructions decoded.
-            unsigned long nDecoded = 0;
-            unsigned long totalDecodeTime = 0;
             //unsigned long totalNormTime = 0;
             for (j = 0; j < decCount; j++) {
-                Decoder dec = decoders[j];
-                nDecoded += dec.getTotalDecodedInsns();
-                totalDecodeTime += dec.getTotalDecodeTime();
-                //totalNormTime += dec.getTotalNormalizeTime();
-                std::cerr << dec.getName() << " dec:  " << dec.getTotalDecodeTime() / 1000000000 << "\n";
-                std::cerr << dec.getName() << " norm: " << dec.getTotalNormalizeTime() / 1000000000 << "\n";
+                Decoder* dec = decoders[j];
+                std::cerr << dec->getName() << " dec:  " << dec->getTotalDecodeTime() / 1000000000 << "\n";
+                std::cerr << dec->getName() << " norm: " << dec->getTotalNormalizeTime() / 1000000000 << "\n";
             }
 
             // Output instructions decoded and summary of reporting done.
-            std::cerr << nDecoded << ", " << remainingInsns.size() << ", ";
+            std::cerr << "Queued: " << remainingInsns.size() << ", ";
             repContext->printSummary(stderr);
             std::cerr << "Total time: " << newTime - firstTime << "\n";
             std::cerr << "Output Verify Time: " << totalDisasmTime/1000000000 << "\n";
@@ -273,13 +271,13 @@ int main(int argc, char** argv) {
                 // Fill the buffer then apply the mask.
                 randomizeBuffer(curInsn, insnLen);
                 for (j = 0; j < decCount; j++) {
-                    Decoder dec = decoders[j];
-                    Assembly insnAsm = Assembly(curInsn, insnLen, &dec);
+                    Decoder* dec = decoders[j];
+                    Assembly insnAsm = Assembly(curInsn, insnLen, dec);
                     if (!insnAsm.isError()) {
-                        size_t nBytesUsed = MappedInsn::findNumBytesUsed(curInsn, insnLen, &dec);
+                        size_t nBytesUsed = MappedInsn::findNumBytesUsed(curInsn, insnLen, dec);
                         size_t nOptional = 0;
                         for (size_t k = 0; k < nBytesUsed; ++k) {
-                            if (MappedInsn::isByteOptional(&dec, curInsn, nBytesUsed, k, (FieldList*)insnAsm.getFields())) {
+                            if (MappedInsn::isByteOptional(dec, curInsn, nBytesUsed, k, (FieldList*)insnAsm.getFields())) {
                                 ++nOptional;
                             }
                         }
@@ -292,7 +290,7 @@ int main(int argc, char** argv) {
             
             bool formatStrSeen = true;
             for (j = 0; j < decCount; ++j) {
-                Assembly insnAsm = Assembly(curInsn, insnLen, &decoders[j]);
+                Assembly insnAsm = Assembly(curInsn, insnLen, decoders[j]);
                 if (!insnAsm.isError()) {
                     char* insnFormatStr = strdup(insnAsm.getTemplate());
                     if (seenMap.insert(std::make_pair(insnFormatStr, 1)).second) {
@@ -338,7 +336,7 @@ int main(int argc, char** argv) {
             
                 // Each decoder maps the instruction and uses its
                 // map to try to find new inputs to add to the queue.
-                mInsn = new MappedInsn(curInsn, insnLen, &decoders[j]);
+                mInsn = new MappedInsn(curInsn, insnLen, decoders[j]);
                 mInsn->queueNewInsns(&remainingInsns, &seenMap, decoders);
                 delete mInsn;
             }
@@ -356,7 +354,7 @@ int main(int argc, char** argv) {
 
         // Use each decoder to decode the instruction.
         for (j = 0; j < decCount; j++) {
-            asmList.push_back(new Assembly(curInsn, insnLen, &decoders[j]));
+            asmList.push_back(new Assembly(curInsn, insnLen, decoders[j]));
         }
 
         // Process the resulting decoding and report it if necessary
@@ -375,14 +373,6 @@ int main(int argc, char** argv) {
 
     // Print a summary at the end of execution.
     repContext->printSummary(stdout);
-
-    // Report the total number of decoded instructions.
-    unsigned long totalDecInsns = 0;
-    for (size_t i = 0; i < decCount; i++) {
-        totalDecInsns += decoders[i].getTotalDecodedInsns();
-    }
-
-    std::cout << "Total instructions decoded: " << totalDecInsns << "\n";
     std::cout << "Num. Formats seen: " << nFormatsSeen << "\n";
 
     delete repContext;

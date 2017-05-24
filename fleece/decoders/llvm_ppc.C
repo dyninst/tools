@@ -19,6 +19,7 @@
 */
 
 #include <sys/mman.h>
+#include "Decoder.h"
 #include "llvm_common.h"
 #include "Normalization.h"
 #include "StringUtils.h"
@@ -140,3 +141,5 @@ void llvm_ppc_norm(char* buf, int bufLen) {
     toLowerCase(buf, bufLen);
 }
 
+Decoder* dec_llvm_ppc = new Decoder(&llvm_ppc_decode, &LLVMInit, 
+            &llvm_ppc_norm, "llvm", "ppc");

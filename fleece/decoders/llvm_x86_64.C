@@ -18,6 +18,7 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
+#include "Decoder.h"
 #include "llvm_common.h"
 #include "Normalization.h"
 #include "StringUtils.h"
@@ -123,3 +124,5 @@ void llvm_x86_64_norm(char* buf, int bufLen) {
     cleanX86NOP(buf, bufLen);
     fixCallSuffix(buf, bufLen);
 }
+Decoder* dec_llvm_x86_64 = new Decoder(&llvm_x86_64_decode, &LLVMInit, 
+            &llvm_x86_64_norm, "llvm", "x86_64");

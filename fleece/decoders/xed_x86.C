@@ -28,6 +28,7 @@ extern "C" {
 
 #include <iomanip>
 #include <iostream>
+#include "Decoder.h"
 #include "Normalization.h"
 #include "StringUtils.h"
 
@@ -1131,4 +1132,9 @@ int xed_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
     }
     return 0;
 }
+
+Decoder* dec_xed_x86_32 = new Decoder(&xed_x86_32_decode, &xedInit, 
+            &xed_x86_32_norm, "xed", "x86_32");
+Decoder* dec_xed_x86_64 = new Decoder(&xed_x86_64_decode, &xedInit, 
+            &xed_x86_64_norm, "xed", "x86_64");
 

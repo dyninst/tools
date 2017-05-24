@@ -19,6 +19,7 @@
 */
 
 #include <iostream>
+#include "Decoder.h"
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
@@ -97,3 +98,5 @@ void capstone_ppc_norm(char* buf, int bufLen) {
     addMissing0BeforeParen(buf, bufLen);
     addMissing0AfterBranch(buf, bufLen);
 }
+Decoder* dec_capstone_ppc = new Decoder(&capstone_ppc_decode, NULL, 
+            &capstone_ppc_norm, "capstone", "ppc");

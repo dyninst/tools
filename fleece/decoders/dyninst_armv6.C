@@ -44,3 +44,6 @@ void dyninst_armv6_norm(char* buf, int bufLen) {
 
    toLowerCase(buf, bufLen);
 }
+
+Decoder* dec_dyninst_armv6 = new Decoder(&dyninst_armv6_decode, NULL,
+            &dyninst_armv6_norm, "dyninst", "armv6");

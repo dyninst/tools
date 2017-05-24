@@ -60,3 +60,5 @@ void gnu_aarch64_norm(char* buf, int bufLen) {
     spaceAfterCommas(buf, bufLen);
     removeComments(buf, bufLen);
 }
+Decoder* dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
+            &gnu_aarch64_norm, "gnu", "aarch64");

@@ -21,35 +21,8 @@
 #include <iomanip>
 #include <iostream>
 #include "Decoder.h"
-
-Decoder* dec_xed_x86_64;
-Decoder* dec_xed_x86_32;
-Decoder* dec_dyninst_x86_64;
-Decoder* dec_dyninst_x86_32;
-Decoder* dec_dyninst_aarch64;
-Decoder* dec_dyninst_ppc_32;
-Decoder* dec_dyninst_ppc;
-Decoder* dec_dyninst_armv6;
-Decoder* dec_gnu_x86_32;
-Decoder* dec_gnu_x86_64;
-Decoder* dec_gnu_aarch64;
-Decoder* dec_gnu_ppc_32;
-Decoder* dec_gnu_ppc;
-Decoder* dec_llvm_x86_32;
-Decoder* dec_llvm_x86_64;
-Decoder* dec_llvm_aarch64;
-Decoder* dec_llvm_ppc_32;
-Decoder* dec_llvm_ppc;
-Decoder* dec_llvm_armv6;
-Decoder* dec_capstone_x86_64;
-Decoder* dec_capstone_x86_32;
-Decoder* dec_capstone_aarch64;
-Decoder* dec_capstone_ppc;
-Decoder* dec_null_x86_64;
-Decoder* dec_null_x86_32;
-Decoder* dec_null_aarch64;
-Decoder* dec_null_ppc;
-
+    
+std::vector<Decoder*> Decoder::allDecoders;
 Decoder* Decoder::curDecoder;
 int Decoder::curInsnLen;
 char* Decoder::curInsn;
@@ -96,134 +69,25 @@ Decoder::Decoder(
     totalNormTime = 0;
     totalDecodeTime = 0;
     totalDecodedInsns = 0;
-}
-
-void Decoder::initAllDecoders()
-{
-    dec_xed_x86_32 = new Decoder(&xed_x86_32_decode, &xedInit, 
-            &xed_x86_32_norm, "xed", "x86_32");
-    dec_dyninst_x86_32 = new Decoder(&dyninst_x86_32_decode, NULL, 
-            &dyninst_x86_32_norm, "dyninst", "x86_32");
-    dec_xed_x86_64 = new Decoder(&xed_x86_64_decode, &xedInit, 
-            &xed_x86_64_norm, "xed", "x86_64");
-    dec_dyninst_x86_64 = new Decoder(&dyninst_x86_64_decode, NULL, 
-            &dyninst_x86_64_norm, "dyninst", "x86_64");
-    dec_dyninst_aarch64 = new Decoder(&dyninst_aarch64_decode, 
-            &dyninst_aarch64_init, &dyninst_aarch64_norm, "dyninst", "aarch64");
-    dec_dyninst_ppc_32 = new Decoder(&dyninst_ppc_32_decode, 
-            NULL, &dyninst_ppc_32_norm, "dyninst", "ppc32");
-    dec_dyninst_ppc = new Decoder(&dyninst_ppc_decode, 
-            NULL, &dyninst_ppc_norm, "dyninst", "ppc");
-    dec_dyninst_armv6 = new Decoder(&dyninst_armv6_decode, NULL,
-            &dyninst_armv6_norm, "dyninst", "armv6");
-    dec_gnu_x86_32 = new Decoder(&gnu_x86_32_decode, NULL, 
-            &gnu_x86_32_norm, "gnu", "x86_32");
-    dec_gnu_x86_64 = new Decoder(&gnu_x86_64_decode, NULL, 
-            &gnu_x86_64_norm, "gnu", "x86_64");
-    dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
-            &gnu_aarch64_norm, "gnu", "aarch64");
-    dec_gnu_ppc_32 = new Decoder(&gnu_ppc_32_decode, NULL, 
-            &gnu_ppc_32_norm, "gnu", "ppc32");
-    dec_gnu_ppc = new Decoder(&gnu_ppc_decode, NULL, 
-            &gnu_ppc_norm, "gnu", "ppc");
-    dec_llvm_x86_32 = new Decoder(&llvm_x86_32_decode, &LLVMInit, 
-            &llvm_x86_64_norm, "llvm", "x86_32");
-    dec_llvm_x86_64 = new Decoder(&llvm_x86_64_decode, &LLVMInit, 
-            &llvm_x86_64_norm, "llvm", "x86_64");
-    dec_llvm_aarch64 = new Decoder(&llvm_aarch64_decode, &LLVMInit, 
-            &llvm_aarch64_norm, "llvm", "aarch64");
-    dec_llvm_ppc_32 = new Decoder(&llvm_ppc_32_decode, &LLVMInit, 
-            &llvm_ppc_32_norm, "llvm", "ppc32");
-    dec_llvm_ppc = new Decoder(&llvm_ppc_decode, &LLVMInit, 
-            &llvm_ppc_norm, "llvm", "ppc");
-    dec_llvm_armv6 = new Decoder(&llvm_armv6_decode, &LLVMInit,
-            &llvm_armv6_norm, "llvm", "armv6");
-    dec_capstone_x86_32 = new Decoder(&capstone_x86_32_decode, NULL, 
-            &capstone_x86_32_norm, "capstone", "x86_32");
-    dec_capstone_x86_64 = new Decoder(&capstone_x86_64_decode, NULL, 
-            &capstone_x86_64_norm, "capstone", "x86_64");
-    dec_capstone_aarch64 = new Decoder(&capstone_aarch64_decode, NULL, 
-            &capstone_aarch64_norm, "capstone", "aarch64");
-    dec_capstone_ppc = new Decoder(&capstone_ppc_decode, NULL, 
-            &capstone_ppc_norm, "capstone", "ppc");
-    dec_null_x86_32 = new Decoder(&null_x86_32_decode, NULL, 
-            &null_x86_32_norm, "null", "x86_32");
-    dec_null_x86_64 = new Decoder(&null_x86_64_decode, NULL, 
-            &null_x86_64_norm, "null", "x86_64");
-    dec_null_aarch64 = new Decoder(&null_aarch64_decode, NULL, 
-            &null_aarch64_norm, "null", "aarch64");
-    dec_null_ppc = new Decoder(&null_ppc_decode, NULL, 
-            &null_ppc_norm, "null", "ppc");
+    allDecoders.push_back(this);
 }
 
 void Decoder::destroyAllDecoders()
 {
-    delete dec_xed_x86_32;
-    delete dec_xed_x86_64;
-    delete dec_dyninst_x86_32;
-    delete dec_dyninst_x86_64;
-    delete dec_dyninst_aarch64;
-    delete dec_dyninst_ppc_32;
-    delete dec_dyninst_ppc;
-    delete dec_dyninst_armv6;
-    delete dec_gnu_x86_32;
-    delete dec_gnu_x86_64;
-    delete dec_gnu_aarch64;
-    delete dec_gnu_ppc_32;
-    delete dec_gnu_ppc;
-    delete dec_llvm_x86_32;
-    delete dec_llvm_x86_64;
-    delete dec_llvm_aarch64;
-    delete dec_llvm_ppc_32;
-    delete dec_llvm_ppc;
-    delete dec_llvm_armv6;
-    delete dec_capstone_x86_32;
-    delete dec_capstone_x86_64;
-    delete dec_capstone_aarch64;
-    delete dec_capstone_ppc;
-    delete dec_null_x86_32;
-    delete dec_null_x86_64;
-    delete dec_null_aarch64;
-    delete dec_null_ppc;
+    for (auto it = allDecoders.begin(); it != allDecoders.end(); ++it) {
+        delete *it;
+    }
 }
 
-std::vector<Decoder> Decoder::getAllDecoders() {
-    std::vector<Decoder> dec;
-    dec.push_back(*dec_llvm_x86_32);
-    dec.push_back(*dec_llvm_x86_64);
-    dec.push_back(*dec_llvm_aarch64);
-    dec.push_back(*dec_llvm_ppc_32);
-    dec.push_back(*dec_llvm_ppc);
-    dec.push_back(*dec_llvm_armv6);
-    dec.push_back(*dec_gnu_x86_32);
-    dec.push_back(*dec_gnu_x86_64);
-    dec.push_back(*dec_gnu_aarch64);
-    dec.push_back(*dec_gnu_ppc_32);
-    dec.push_back(*dec_gnu_ppc);
-    dec.push_back(*dec_dyninst_x86_32);
-    dec.push_back(*dec_dyninst_x86_64);
-    dec.push_back(*dec_dyninst_aarch64);
-    dec.push_back(*dec_dyninst_ppc_32);
-    dec.push_back(*dec_dyninst_ppc);
-    dec.push_back(*dec_dyninst_armv6);
-    dec.push_back(*dec_xed_x86_32);
-    dec.push_back(*dec_xed_x86_64);
-    dec.push_back(*dec_capstone_x86_32);
-    dec.push_back(*dec_capstone_x86_64);
-    dec.push_back(*dec_capstone_aarch64);
-    dec.push_back(*dec_capstone_ppc);
-    dec.push_back(*dec_null_aarch64);
-    dec.push_back(*dec_null_x86_32);
-    dec.push_back(*dec_null_x86_64);
-    dec.push_back(*dec_null_ppc);
-    return dec;
+std::vector<Decoder*> Decoder::getAllDecoders() {
+    return allDecoders;
 }
 
 void Decoder::printAllNames(void) {
-    std::vector<Decoder> allDecoders = getAllDecoders();
+    std::vector<Decoder*> allDecoders = getAllDecoders();
     for (size_t i = 0; i < allDecoders.size(); i++) {
-        Decoder d = allDecoders[i];
-        std::cout << "\t" << d.arch << ":\t" << d.name << "\n";
+        Decoder* d = allDecoders[i];
+        std::cout << "\t" << d->arch << ":\t" << d->name << "\n";
     }
 }
 
@@ -284,12 +148,6 @@ const char* Decoder::getName(void) {
     return name;
 }
 
-int Decoder::getNumBytesUsed(char* inst, int nBytes) {
-    std::cerr << "DEPRECATED Decoder::getNumBytesUsed\n";
-    exit(-1);
-    return 0;
-}
-
 unsigned long Decoder::getTotalDecodeTime() {
     return totalDecodeTime;
 }
@@ -306,37 +164,28 @@ void Decoder::setNorm(bool newNorm) {
     norm = newNorm;
 }
 
-std::vector<Decoder> Decoder::getDecoders(const char* arch, const char* decNames) {
-
-    assert(arch);
-
-    /* Get a list of all of the availble decoders */
-    std::vector<Decoder> curDecoders = getAllDecoders();
-     
-    /* Remove all decoders that don't apply to our architecture */
-    auto decode_iter = curDecoders.begin();
-    while(decode_iter != curDecoders.end()) {
-        Decoder d = *decode_iter;
-        if (strcmp(d.getArch(), arch)) {
-            decode_iter = curDecoders.erase(decode_iter);
-        } else {
-            ++decode_iter;
+Decoder* Decoder::getDecoder(const char* arch, const char* decName) {
+    std::cout << "Getting decoder " << decName << " for " << arch << "\n";
+    for (auto it = allDecoders.begin(); it != allDecoders.end(); ++it) {
+        Decoder* cur = *it;
+        if (!strcmp(cur->getName(), decName) && !strcmp(cur->getArch(), arch)) {
+            std::cout << "Found decoder\n";
+            return cur;
         }
     }
+    std::cout << "Could not find decoder\n";
+    return NULL;
+}
 
-    /* If specific decoders weren't specified, we're done */
-    if (decNames == NULL) {
-        exit(1);
-        return curDecoders;
-    }
+std::vector<Decoder*> Decoder::getDecoders(const char* arch, const char* decNames) {
 
-    /* Turn the comma seperated list into a vector of names */
-    std::vector<char*> names;
+    assert(arch && decNames);
+
+    std::vector<Decoder*> decoders = std::vector<Decoder*>();
 
     size_t decCopyLen = strlen(decNames);
-    char* decCopyBase = new char[decCopyLen + 1];
-    char* decCopyOrig = decCopyBase;
-    assert(decCopyBase);
+    char decCopyBuf[decCopyLen + 1];
+    char* decCopyBase = &(decCopyBuf[0]);
     memset(decCopyBase, 0, decCopyLen + 1);
     strncpy(decCopyBase, decNames, decCopyLen); 
 
@@ -346,50 +195,20 @@ std::vector<Decoder> Decoder::getDecoders(const char* arch, const char* decNames
         if(*decCopyBase == ',')
         {
             *decCopyBase = 0;
-            names.push_back(decCopyStart);
+            Decoder* cur = getDecoder(arch, decCopyStart);
+            if (cur != NULL) {
+                decoders.push_back(cur);
+            }
             decCopyStart = decCopyBase + 1;
         }
     }
 
     /* The last arg will not have a comma to terminate */
-    names.push_back(decCopyStart);
-
-    /** 
-     * names now contains the names of the decoders we need. Now
-     * we will remove all of the other decoders the user doesn't
-     * want to use.
-     */
-
-    decode_iter = curDecoders.begin();
-    while(decode_iter != curDecoders.end())
-    {
-        Decoder d = *decode_iter;
-
-        bool matches = false;
-        auto name_iter = names.begin();
-        while(name_iter != names.end())
-        {
-            if(!strcmp(d.getName(), *name_iter))
-            {
-                matches = true;
-                break;
-            }
-
-            ++name_iter;
-        }
-
-        /* Should this decoder be in the list? */
-        if(!matches)
-        {
-            decode_iter = curDecoders.erase(decode_iter);
-        } else {
-            ++decode_iter;
-        }
+    Decoder* cur = getDecoder(arch, decCopyStart);
+    if (cur != NULL) {
+        decoders.push_back(cur);
     }
 
-    /* Clean up the copy that we made */
-    delete [] decCopyOrig;
-
     /* Return the filtered list of decoders */
-    return curDecoders;
+    return decoders;
 }

@@ -19,6 +19,7 @@
 */
 
 #include <sys/mman.h>
+#include "Decoder.h"
 #include "llvm_common.h"
 #include "Normalization.h"
 #include "StringUtils.h"
@@ -64,3 +65,5 @@ void llvm_armv6_norm(char* buf, int bufLen) {
     removeComments(buf, bufLen);
 }
 
+Decoder* dec_llvm_armv6 = new Decoder(&llvm_armv6_decode, &LLVMInit,
+            &llvm_armv6_norm, "llvm", "armv6");

@@ -351,3 +351,7 @@ void gnu_x86_32_norm(char* buf, int bufLen) {
     cleanSpaces(buf, bufLen);
     cleanX86NOP(buf, bufLen);
 }
+Decoder* dec_gnu_x86_64 = new Decoder(&gnu_x86_64_decode, NULL, 
+            &gnu_x86_64_norm, "gnu", "x86_64");
+Decoder* dec_gnu_x86_32 = new Decoder(&gnu_x86_32_decode, NULL, 
+            &gnu_x86_32_norm, "gnu", "x86_32");

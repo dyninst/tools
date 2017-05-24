@@ -19,6 +19,7 @@
 */
 
 #include <sys/mman.h>
+#include "Decoder.h"
 #include "llvm_common.h"
 #include "Normalization.h"
 #include "StringUtils.h"
@@ -80,3 +81,5 @@ void llvm_aarch64_norm(char* buf, int bufLen) {
     trimBraceSpaces(buf, bufLen);
 }
 
+Decoder* dec_llvm_aarch64 = new Decoder(&llvm_aarch64_decode, &LLVMInit, 
+            &llvm_aarch64_norm, "llvm", "aarch64");

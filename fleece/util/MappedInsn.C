@@ -128,7 +128,7 @@ bool MappedInsn::isByteOptional(Decoder* decoder, char* bytes, size_t nBytes, si
     return true;
 }
 
-void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
+void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder*> decoders) {
     
     static bool printQueue = (Options::get("-pig") != NULL);
     bool seen = true;
@@ -211,7 +211,7 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     // Enter the format string for this instruction into the list of seen
     // formats for each of the decoders.
     for (size_t i = 0; i < decoders.size(); ++i) {
-        Decoder* otherDecoder = &(decoders[i]);
+        Decoder* otherDecoder = decoders[i];
         if (otherDecoder == decoder) {
             continue;
         }
@@ -246,7 +246,7 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     queue->push(queuedBytes);
 }
 
-void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder> decoders) {
+void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder*> decoders) {
     
     struct timespec startTime;
     struct timespec endTime;

@@ -20,6 +20,7 @@
 
 #include <iomanip>
 #include <string>
+#include "Decoder.h"
 #include "InstructionDecoder.h"
 #include "Normalization.h"
 #include "StringUtils.h"
@@ -306,3 +307,5 @@ int dyninst_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
     strncpy(buf, insn_ptr->format().c_str(), bufLen);
     return 0;
 }
+Decoder* dec_dyninst_x86_32 = new Decoder(&dyninst_x86_32_decode, NULL, 
+            &dyninst_x86_32_norm, "dyninst", "x86_32");

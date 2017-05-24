@@ -18,6 +18,8 @@
  * along with this software; if not, see www.gnu.org/licenses
 */
 
+#include "Decoder.h"
+
 int null_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
    return -1;
 }
@@ -49,3 +51,8 @@ int null_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
 void null_ppc_norm(char* buf, int bufLen) {
    return;
 }
+
+Decoder* dec_null_x86_32 = new Decoder(&null_x86_32_decode, NULL, &null_x86_32_norm, "null", "x86_32");
+Decoder* dec_null_x86_64 = new Decoder(&null_x86_64_decode, NULL, &null_x86_64_norm, "null", "x86_64");
+Decoder* dec_null_aarch64 = new Decoder(&null_aarch64_decode, NULL, &null_aarch64_norm, "null", "aarch64");
+Decoder* dec_null_ppc = new Decoder(&null_ppc_decode, NULL, &null_ppc_norm, "null", "ppc");

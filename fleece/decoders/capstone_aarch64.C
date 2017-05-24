@@ -19,6 +19,7 @@
 */
 
 #include <iostream>
+#include "Decoder.h"
 #include "Normalization.h"
 #include "capstone/capstone.h"
 
@@ -86,3 +87,5 @@ void capstone_aarch64_norm(char* buf, int bufLen) {
     removeADRPPound(buf, bufLen);
     cleanSpaces(buf, bufLen);
 }
+Decoder* dec_capstone_aarch64 = new Decoder(&capstone_aarch64_decode, NULL, 
+            &capstone_aarch64_norm, "capstone", "aarch64");

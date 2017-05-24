@@ -281,3 +281,6 @@ void dyninst_aarch64_norm(char* buf, int bufLen) {
 int dyninst_aarch64_init(void) {
     return 0;
 }
+    
+Decoder* dec_dyninst_aarch64 = new Decoder(&dyninst_aarch64_decode, 
+            &dyninst_aarch64_init, &dyninst_aarch64_norm, "dyninst", "aarch64");
