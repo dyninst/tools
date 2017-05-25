@@ -165,15 +165,12 @@ void Decoder::setNorm(bool newNorm) {
 }
 
 Decoder* Decoder::getDecoder(const char* arch, const char* decName) {
-    std::cout << "Getting decoder " << decName << " for " << arch << "\n";
     for (std::vector<Decoder*>::iterator it = allDecoders.begin(); it != allDecoders.end(); ++it) {
         Decoder* cur = *it;
         if (!strcmp(cur->getName(), decName) && !strcmp(cur->getArch(), arch)) {
-            std::cout << "Found decoder\n";
             return cur;
         }
     }
-    std::cout << "Could not find decoder\n";
     return NULL;
 }
 
