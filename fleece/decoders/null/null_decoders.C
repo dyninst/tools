@@ -20,39 +20,17 @@
 
 #include "Decoder.h"
 
-int null_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
+int null_decode(char* inst, int nBytes, char* buf, int bufLen) {
    return -1;
 }
 
-void null_aarch64_norm(char* buf, int bufLen) {
+void null_norm(char* buf, int bufLen) {
    return;
 }
 
-int null_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
-   return -1;
-}
-
-void null_x86_32_norm(char* buf, int bufLen) {
-   return;
-}
-
-int null_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
-   return -1;
-}
-
-void null_x86_64_norm(char* buf, int bufLen) {
-   return;
-}
-
-int null_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
-   return -1;
-}
-
-void null_ppc_norm(char* buf, int bufLen) {
-   return;
-}
-
-Decoder* dec_null_x86_32 = new Decoder(&null_x86_32_decode, NULL, &null_x86_32_norm, "null", "x86_32");
-Decoder* dec_null_x86_64 = new Decoder(&null_x86_64_decode, NULL, &null_x86_64_norm, "null", "x86_64");
-Decoder* dec_null_aarch64 = new Decoder(&null_aarch64_decode, NULL, &null_aarch64_norm, "null", "aarch64");
-Decoder* dec_null_ppc = new Decoder(&null_ppc_decode, NULL, &null_ppc_norm, "null", "ppc");
+Decoder* dec_null_x86_32 = new Decoder(&null_decode, NULL, &null_norm, "null", "x86_32");
+Decoder* dec_null_x86_64 = new Decoder(&null_decode, NULL, &null_norm, "null", "x86_64");
+Decoder* dec_null_aarch64 = new Decoder(&null_decode, NULL, &null_norm, "null", "aarch64");
+Decoder* dec_null_ppc = new Decoder(&null_decode, NULL, &null_norm, "null", "ppc");
+Decoder* dec_null_ppc_32 = new Decoder(&null_decode, NULL, &null_norm, "null", "ppc_32");
+Decoder* dec_null_armv6 = new Decoder(&null_decode, NULL, &null_norm, "null", "armv6");
