@@ -5,7 +5,7 @@
 int Architecture::maxInsnLen;
 std::vector<RegisterSet*> regSets;
 std::string Architecture::name;
-std::unordered_map<const char*, const char*, StringUtils::str_hash, StringUtils::str_eq> Architecture::names;
+std::unordered_map<const char*, const char*, StringUtils::str_hash, StringUtils::str_eq> Architecture::regSymbolMap;
 
 RegisterSet* addFormattedRegSet(const char* setName, const char* baseName, 
         int lowerBound, int upperBound) {
@@ -984,23 +984,14 @@ void Architecture::addRegSet(RegisterSet* regSet) {
     std::vector<const char*> nameList = regSet->getNameList();
     const char* sym = regSet->getSymbol();
     for (size_t i = 0; i < nameList.size(); ++i) {
-        names.insert(std::make_pair(nameList[i], sym));
+        regSymbolMap.insert(std::make_pair(nameList[i], sym));
     }
-}
-
-bool Architecture::isReg(const char* str) {
-    for (size_t i = 0; i < regSets.size(); ++i) {
-        if (regSets[i]->isReg(str)) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void Architecture::replaceRegSets(FieldList& fl) {
     for (size_t i = 0; i < fl.size(); ++i) {
-        auto name = names.find(fl.getField(i));
-        if (name != names.end()) {
+        auto name = regSymbolMap.find(fl.getField(i));
+        if (name != regSymbolMap.end()) {
             fl.setField(i, name->second);
         }       
     }
