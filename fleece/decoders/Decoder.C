@@ -74,7 +74,7 @@ Decoder::Decoder(
 
 void Decoder::destroyAllDecoders()
 {
-    for (auto it = allDecoders.begin(); it != allDecoders.end(); ++it) {
+    for (std::vector<Decoder*>::iterator it = allDecoders.begin(); it != allDecoders.end(); ++it) {
         delete *it;
     }
 }
@@ -166,7 +166,7 @@ void Decoder::setNorm(bool newNorm) {
 
 Decoder* Decoder::getDecoder(const char* arch, const char* decName) {
     std::cout << "Getting decoder " << decName << " for " << arch << "\n";
-    for (auto it = allDecoders.begin(); it != allDecoders.end(); ++it) {
+    for (std::vector<Decoder*>::iterator it = allDecoders.begin(); it != allDecoders.end(); ++it) {
         Decoder* cur = *it;
         if (!strcmp(cur->getName(), decName) && !strcmp(cur->getArch(), arch)) {
             std::cout << "Found decoder\n";

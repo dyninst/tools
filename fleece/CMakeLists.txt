@@ -5,58 +5,22 @@ project (Fleece)
 IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Default installation path" FORCE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
-
-    set(DYNINST_DIR "/usr" CACHE STRING "Base directory for Dyninst" FORCE)
-    set(XED_DIR "/usr" CACHE STRING "Base directory for XED" FORCE)
-    set(GNU_DIR "/usr" CACHE STRING "Base directory for Binutils" FORCE)
-    set(LLVM_DIR "/usr" CACHE STRING "Base directory for LLVM" FORCE)
-    set(CAPSTONE_DIR "/usr" CACHE STRING "Base directory for capstone" FORCE)
-
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
-set (DYNINST_LIBDIR "${DYNINST_DIR}/lib")
-set (DYNINST_INCLUDEDIR "${DYNINST_DIR}/include")
+set(FLEECE_DECODER_LIBRARIES )
+add_subdirectory(decoders)
 
-set (XED_LIBDIR "${XED_DIR}/lib")
-set (XED_INCLUDEDIR "${XED_DIR}/include")
+SET(DEPS_LIBDIR )
 
-set (GNU_LIBDIR "${GNU_DIR}/lib")
-set (GNU_INCLUDEDIR "${GNU_DIR}/include")
-
-set (LLVM_LIBDIR "${LLVM_DIR}/lib")
-set (LLVM_INCLUDEDIR "${LLVM_DIR}/include")
-
-set (CAPSTONE_LIBDIR "${CAPSTONE_DIR}/lib")
-set (CAPSTONE_INCLUDEDIR "${CAPSTONE_DIR}/include")
-
-set (DEPS_LIBDIR ${DYNINST_LIBDIR} ${XED_LIBDIR} ${GNU_LIBDIR} ${LLVM_LIBDIR} ${CAPSTONE_LIBDIR})
-set (DEPS_INCLUDEDIR ${DYNINST_INCLUDEDIR} ${XED_INCLUDEDIR} ${GNU_INCLUDEDIR} ${LLVM_INCLUDEDIR} ${CAPSTONE_INCLUDEDIR})
+FOREACH(dec_install_dir ${DECODER_INSTALL_DIRS})
+    SET (DEPS_LIBDIR ${DEPS_LIBDIR} "${dec_install_dir}/lib")
+ENDFOREACH()
 
 # Which custom libraries should be linked against fleece?
 set (FLEECE_LIBRARIES fleeceutil fleecedecoders fleecereporting)
-set (OTHER_LIBRARIES z instructionAPI xed
-LLVMMC
-LLVMMCDisassembler
-LLVMX86Disassembler
-LLVMX86Desc
-LLVMARMDisassembler
-LLVMXCoreDisassembler
-LLVMXCoreDesc
-LLVMPowerPCDisassembler
-LLVMPowerPCDesc
-LLVMHexagonDisassembler
-LLVMSparcDisassembler
-LLVMSparcDesc
-LLVMSystemZDisassembler
-LLVMAArch64Disassembler
-LLVMAMDGPUDisassembler
-LLVMMipsDisassembler
-LLVMMipsDesc
-LLVMNVPTXDesc
-LLVMMSP430Desc
-LLVMBPFDesc
-opcodes capstone rt bfd iberty dl elf)
-set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${OTHER_LIBRARIES})
+set (OTHER_LIBRARIES z rt bfd iberty dl elf)
+
+MESSAGE(STATUS "ALL_LIBRARIES is: " ${ALL_LIBRARIES})
 
 set (CMAKE_CXX_FLAGS "-std=c++0x -g")
 set (CMAKE_C_FLAGS "-g")
@@ -64,12 +28,16 @@ set (CMAKE_C_FLAGS "-g")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb -gdwarf-2 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 
-include_directories(${PROJECT_BINARY_DIR}/h ${DEPS_INCLUDEDIR})
+add_definitions(-std=c++0x -g)
+
+include_directories(${PROJECT_BINARY_DIR}/h)
 link_directories(${DEPS_LIBDIR})
 
-add_subdirectory(decoders)
 add_subdirectory(reporting)
 add_subdirectory(util)
+
+set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${FLEECE_DECODER_LIBRARIES} ${OTHER_LIBRARIES})
+MESSAGE(STATUS "ALL_LIBRARIES ends at: " ${ALL_LIBRARIES})
 
 add_executable(fleece fleece.C)
 target_link_libraries(fleece LINK_PUBLIC ${ALL_LIBRARIES})
