@@ -244,20 +244,11 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 }
 
 void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder*> decoders) {
+    
+    /* We don't mutate error instructions */
     if (isError) {
         return;
     }
-
-    #ifdef INSN_QUEUE_COUNTING
-        static FILE* INSN_QUEUE_COUNTING_FILE = fopen(INSN_QUEUE_COUNTING_FILENAME, "w+");
-        assert(INSN_QUEUE_COUNTING_FILE != NULL);
-        int nTriedToQueue = 0;
-        int nQueuedDoubleFlip = 0;
-        int nQueuedSingleFlip = 0;
-        int nQueuedRandom = 0;
-        int nQueuedSpecial = 0;
-        int lastQueueSize = queue->size();
-    #endif
 
     size_t nBits = 8 * nBytesUsed;
     size_t i = 0;
@@ -276,9 +267,6 @@ void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
                 continue;
             }
             flipBufferBit(bytes, j);
-            #ifdef INSN_QUEUE_COUNTING
-                ++nTriedToQueue;
-            #endif
             enqueueInsnIfNew(queue, hc, decoders);
             flipBufferBit(bytes, j);
         }
@@ -286,27 +274,14 @@ void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
         flipBufferBit(bytes, i);
     }
 
-    #ifdef INSN_QUEUE_COUNTING
-        nQueuedDoubleFlip = queue->size() - lastQueueSize;
-        lastQueueSize = queue->size();
-    #endif
-
     for (i = 0; i < nBits; i++) {
         if (map->getBitType(i) != BIT_TYPE_STRUCTURAL) {
             continue;
         }
         flipBufferBit(bytes, i);
-        #ifdef INSN_QUEUE_COUNTING
-            ++nTriedToQueue;
-        #endif
         enqueueInsnIfNew(queue, hc, decoders);
         flipBufferBit(bytes, i);
     }
-
-    #ifdef INSN_QUEUE_COUNTING
-        nQueuedSingleFlip = queue->size() - lastQueueSize;
-        lastQueueSize = queue->size();
-    #endif
 
     char startBytes[nBytes];
     memcpy(&startBytes[0], bytes, nBytes);
@@ -318,11 +293,6 @@ void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
             }
         }
         enqueueInsnIfNew(queue, hc, decoders);
-        #ifdef INSN_QUEUE_COUNTING
-            ++nTriedToQueue;
-            nQueuedRandom += queue->size() - lastQueueSize;
-            lastQueueSize = queue->size();
-        #endif
         for (j = 0; j < nBits; ++j) {
             if (map->getBitType(j) == (int)i) {
                 setBufferBit(bytes, j, 0);
@@ -330,29 +300,14 @@ void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
         }
         enqueueInsnIfNew(queue, hc, decoders);
 
-        #ifdef INSN_QUEUE_COUNTING
-            ++nTriedToQueue;
-            nQueuedSpecial += queue->size() - lastQueueSize;
-            lastQueueSize = queue->size();
-        #endif
         for (j = 0; j < nBits; ++j) {
             if (map->getBitType(j) == (int)i) {
                 setBufferBit(bytes, j, 1);
             }
         }
         enqueueInsnIfNew(queue, hc, decoders);
-        #ifdef INSN_QUEUE_COUNTING
-            ++nTriedToQueue;
-            nQueuedSpecial += queue->size() - lastQueueSize;
-            lastQueueSize = queue->size();
-        #endif
         memcpy(bytes, &startBytes[0], nBytes);
     }
-    #ifdef INSN_QUEUE_COUNTING
-    fprintf(INSN_QUEUE_COUNTING_FILE, "Tried: %d\tDouble: %d\tSingle: %d\tRandom: %d\tSpecial: %d\n",
-        nTriedToQueue, nQueuedDoubleFlip, nQueuedSingleFlip, nQueuedRandom, nQueuedSpecial);
-    fflush(INSN_QUEUE_COUNTING_FILE);
-    #endif
 }
 
 MappedInsn::MappedInsn(char* bytes, unsigned int nBytes, Decoder* dec) {

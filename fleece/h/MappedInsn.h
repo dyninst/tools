@@ -48,19 +48,6 @@ class Decoder;
 class MappedInsn {
 
 public:
-
-    /*
-     * Wall clock time in nanoseconds that has been spent in the
-     * queueNewInsns method. This is how long it takes to modify the original
-     * instruction and filter out already-seen instructions.
-     */
-    static unsigned long long totalQueueingTime;
-
-    /*
-     * Wall clock time in nanoseconds that has been spent assigning labels to
-     * each bit of the input instruction.
-     */
-    static unsigned long long totalLabellingTime;
     
     /*
      * Create a MappedInsn structure from a sequence of bytes and a decoder.
