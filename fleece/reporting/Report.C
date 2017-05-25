@@ -1,8 +1,6 @@
 
 #include "Report.h"
 
-unsigned long long totalReportIssueTime = 0;
-
 Report::Report(Report* r) : Report(r->asmList) {
 }
 
@@ -24,10 +22,6 @@ Report::~Report() {
 }
 
 void Report::issue(FILE* file) {
-    struct timespec startTime;
-    struct timespec endTime;
-    
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
     
     for (auto it = asmList.begin(); it != asmList.end(); ++it) {
         Assembly* curAsm = *it;
@@ -44,10 +38,6 @@ void Report::issue(FILE* file) {
     }
     fprintf(file, "\n");
     fflush(file);
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    totalReportIssueTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                  (endTime.tv_nsec - startTime.tv_nsec);
-
 }
 
 bool Report::isEquivalent(Report* r) {

@@ -76,7 +76,26 @@ Assembly::Assembly(const char* bytes, size_t nBytes, Decoder* decoder) {
 }
 
 Assembly::~Assembly() {
-    invalidate();
+    if (decStr != NULL) {
+        delete[] decStr;
+        decStr = NULL;
+    }
+    if (templateStr != NULL) {
+        delete[] templateStr;
+        templateStr = NULL;
+    }
+    if (asmError != NULL) {
+        delete[] asmError;
+        asmError = NULL;
+    }
+    if (asmBytes != NULL) {
+        delete[] asmBytes;
+        asmBytes = NULL;
+    }
+    if (fields != NULL) {
+        delete fields;
+        fields = NULL;
+    }
     delete [] bytes;
 }
 
@@ -182,16 +201,6 @@ bool Assembly::isError() {
     return decError;
 }
 
-void Assembly::flipBit(size_t whichBit) {
-    invalidate();
-    flipBufferBit(bytes, whichBit);
-}
-
-void Assembly::setBit(size_t whichBit, int newValue) {
-    invalidate();
-    setBufferBit(bytes, whichBit, newValue);
-}
-
 void Assembly::makeString() {
     decStr = new char[DECODING_BUFFER_SIZE];
     decError = decoder->decode(bytes, nBytes, decStr, DECODING_BUFFER_SIZE);
@@ -240,29 +249,6 @@ void Assembly::makeFieldList() {
         makeString();
     }
     fields = new FieldList(decStr);
-}
-
-void Assembly::invalidate() {
-    if (decStr != NULL) {
-        delete[] decStr;
-        decStr = NULL;
-    }
-    if (templateStr != NULL) {
-        delete[] templateStr;
-        templateStr = NULL;
-    }
-    if (asmError != NULL) {
-        delete[] asmError;
-        asmError = NULL;
-    }
-    if (asmBytes != NULL) {
-        delete[] asmBytes;
-        asmBytes = NULL;
-    }
-    if (fields != NULL) {
-        delete fields;
-        fields = NULL;
-    }
 }
 
 void Assembly::printDebug() {

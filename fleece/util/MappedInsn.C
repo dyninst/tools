@@ -22,9 +22,6 @@
 
 #define NUM_OPTIONAL_BYTES_ALLOWED 2
 
-unsigned long long MappedInsn::totalQueueingTime = 0;
-unsigned long long MappedInsn::totalLabellingTime = 0;
-
 /*
  * Returns true if two fields are equivalent, given one byte was removed from
  * the original instruction. This is a bit tricky, because branch addresses
@@ -247,11 +244,6 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
 }
 
 void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, StringUtils::str_cmp>* hc, std::vector<Decoder*> decoders) {
-    
-    struct timespec startTime;
-    struct timespec endTime;
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
-  
     if (isError) {
         return;
     }
@@ -361,16 +353,9 @@ void MappedInsn::queueNewInsns(std::queue<char*>* queue, std::map<char*, int, St
         nTriedToQueue, nQueuedDoubleFlip, nQueuedSingleFlip, nQueuedRandom, nQueuedSpecial);
     fflush(INSN_QUEUE_COUNTING_FILE);
     #endif
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    totalQueueingTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                      (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 MappedInsn::MappedInsn(char* bytes, unsigned int nBytes, Decoder* dec) {
-
-    struct timespec startTime;
-    struct timespec endTime;
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
     char decodeBuf[DECODING_BUFFER_SIZE];
     char* decodedInstruction = &decodeBuf[0];
 
@@ -396,9 +381,6 @@ MappedInsn::MappedInsn(char* bytes, unsigned int nBytes, Decoder* dec) {
 
     this->nBytesUsed = findNumBytesUsed(bytes, nBytes, dec);
     this->mapBitTypes();
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    totalLabellingTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                      (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 MappedInsn::~MappedInsn() {

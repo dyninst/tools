@@ -8,12 +8,7 @@
 #include <fcntl.h>
 #include <spawn.h>
 
-#define REASM_CACHE_SIZE 5
-
 ReassemblyDaemon* Reassembly::daemon;
-
-unsigned long long totalReasmTime = 0;
-unsigned long long numReassembled = 0;
 
 int initReasmDaemon() {
     const char* as = Options::get("-as=");
@@ -32,19 +27,8 @@ char reassemble(const char* bytes, int nBytes, const char* str,
 
     static int initResult = initReasmDaemon();
 
-    ++numReassembled;
-
     // Start timing for the reassembly portion of the code.
-
-    struct timespec startTime;
-    struct timespec endTime;
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
-
     int result = Reassembly::daemon->reassemble(str, errorBuf, errorBufLen);
-
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    totalReasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                  (endTime.tv_nsec - startTime.tv_nsec);
     if (result != 0) {
         return 'E';
     }

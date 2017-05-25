@@ -48,8 +48,6 @@ public:
     static std::vector<Decoder*> getAllDecoders(void);
     static std::vector<Decoder*> getDecoders(const char* arch, const char* names);
     static void printAllNames(void);
-    unsigned long getTotalNormalizeTime(void);
-    unsigned long getTotalDecodeTime(void);
     unsigned long getTotalDecodedInsns(void);
     const char* name;
     const char* arch;
@@ -62,12 +60,6 @@ private:
     int (*func)(char*, int, char*, int);
 
     bool norm;
-
-    unsigned long totalDecodeTime;
-    unsigned long totalNormTime;
-
-    unsigned long totalDecodedInsns;
-
     static Decoder* curDecoder;
     static int curInsnLen;
     static char* curInsn;

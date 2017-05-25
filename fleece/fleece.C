@@ -220,9 +220,6 @@ int main(int argc, char** argv) {
         curInsn = (char*)malloc(insnLen);
     }
 
-    uint64_t totalDisasmTime = 0;
-    uint64_t totalMapTime = 0;
-    struct timespec startTime, endTime;
     size_t nFormatsSeen = 0;
 
     i = 0;
@@ -236,25 +233,9 @@ int main(int argc, char** argv) {
         if (newTime >= lastTime + 10) {
             lastTime = newTime;
          
-            //unsigned long totalNormTime = 0;
-            for (j = 0; j < decCount; j++) {
-                Decoder* dec = decoders[j];
-                std::cerr << dec->getName() << " dec:  " << dec->getTotalDecodeTime() / 1000000000 << "\n";
-                std::cerr << dec->getName() << " norm: " << dec->getTotalNormalizeTime() / 1000000000 << "\n";
-            }
-
             // Output instructions decoded and summary of reporting done.
             std::cerr << "Queued: " << remainingInsns.size() << ", ";
             repContext->printSummary(stderr);
-            std::cerr << "Total time: " << newTime - firstTime << "\n";
-            std::cerr << "Output Verify Time: " << totalDisasmTime/1000000000 << "\n";
-            std::cerr << "\tReasm Time: " << totalReasmTime/1000000000 << "\n";
-            std::cerr << "\tIssue Time: " << totalReportIssueTime/1000000000 << "\n";
-            std::cerr << "Input Gen Time: " << totalMapTime/1000000000 << "\n";
-            std::cerr << "\tLabelling Time: " << MappedInsn::totalLabellingTime/1000000000 << "\n";
-            std::cerr << "\tQueueing Time: " << MappedInsn::totalQueueingTime/1000000000 << "\n";
-            std::cerr << "\t\tTotal Check Err Time: " << FieldList::totalHasErrTime/1000000000 << "\n";
-            //std::cerr << "\tNorm. Time: " << totalNormTime/1000000000 << "\n";
             std::cerr << "Num. Inputs: " << i << "\n";
             std::cerr << "Num. Formats seen: " << nFormatsSeen << "\n";
 
@@ -323,10 +304,6 @@ int main(int argc, char** argv) {
             std::cout << std::endl;
         }
 
-        #ifdef DEBUG_TIME
-            clock_gettime(CLOCK_MONOTONIC, &startTime);
-        #endif
-
         if (!random) {
 
             // If the input is non-random, we need to add to the queue now.
@@ -342,14 +319,6 @@ int main(int argc, char** argv) {
             }
         }
         
-        #ifdef DEBUG_TIME
-            clock_gettime(CLOCK_MONOTONIC, &endTime);
-            totalMapTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                         (endTime.tv_nsec - startTime.tv_nsec);
-
-            clock_gettime(CLOCK_MONOTONIC, &startTime);
-        #endif
-        
         std::vector<Assembly*> asmList;
 
         // Use each decoder to decode the instruction.
@@ -359,12 +328,6 @@ int main(int argc, char** argv) {
 
         // Process the resulting decoding and report it if necessary
         repContext->processDecodings(asmList);
-
-        #ifdef DEBUG_TIME
-            clock_gettime(CLOCK_MONOTONIC, &endTime);
-            totalDisasmTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                            (endTime.tv_nsec - startTime.tv_nsec);
-        #endif
 
         // If the instruction was from the queue, it was malloced at somepoint
         // and we need to free it.

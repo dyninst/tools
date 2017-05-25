@@ -66,9 +66,6 @@ Decoder::Decoder(
     this->name = name;
  
     norm = false;
-    totalNormTime = 0;
-    totalDecodeTime = 0;
-    totalDecodedInsns = 0;
     allDecoders.push_back(this);
 }
 
@@ -92,17 +89,7 @@ void Decoder::printAllNames(void) {
 }
 
 void Decoder::normalize(char* buf, int bufLen) {
-
-    struct timespec startTime;
-    struct timespec endTime;
-
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
-
     normFunc(buf, bufLen);
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-
-    totalNormTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                  (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 
@@ -111,19 +98,8 @@ int Decoder::decode(char* inst, int nBytes, char* buf, int bufLen, bool shouldNo
     curDecoder = this;
     curInsnLen = nBytes;
     curInsn = inst;
-
-    totalDecodedInsns++;
-
-    struct timespec startTime;
-    struct timespec endTime;
-
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
     *buf = 0;
     int rc = func(inst, nBytes, buf, bufLen);
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    totalDecodeTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                   (endTime.tv_nsec - startTime.tv_nsec);
- 
     curDecoder = NULL;
 
     if (!strcmp(buf, "")) {
@@ -146,18 +122,6 @@ const char* Decoder::getArch(void) {
 
 const char* Decoder::getName(void) {
     return name;
-}
-
-unsigned long Decoder::getTotalDecodeTime() {
-    return totalDecodeTime;
-}
-
-unsigned long Decoder::getTotalNormalizeTime() {
-    return totalNormTime;
-}
-
-unsigned long Decoder::getTotalDecodedInsns() {
-    return totalDecodedInsns;
 }
 
 void Decoder::setNorm(bool newNorm) {

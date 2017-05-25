@@ -197,18 +197,8 @@ void FieldList::initFieldsAndSeparators(const char* buf) {
 }
 
 FieldList::FieldList(const char* buf) {
-    struct timespec startTime;
-    struct timespec endTime;
-
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
-    
-    //nFields = detectNumFields(buf);
     allocateFieldsAndSeparators();
     initFieldsAndSeparators(buf);
-    
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    totalHasErrTime += 1000000000 * (endTime.tv_sec  - startTime.tv_sec ) +
-                                  (endTime.tv_nsec - startTime.tv_nsec);
 }
 
 FieldList::~FieldList() {
