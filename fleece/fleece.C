@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     Architecture::init(archStr);
 
     // Determine the instruction length. The default value is 15 bytes.
-    unsigned long insnLen = Architecture::maxInsnLen;
+    unsigned long insnLen = Architecture::getMaxInsnLen();
     
     // Check which decoders were specified.
     const char* decStr = Options::get("-decoders=");
@@ -354,7 +354,6 @@ int main(int argc, char** argv) {
     }
     free(tempInsn);
    
-    Architecture::destroy();
     Options::destroy();
     Decoder::destroyAllDecoders();
     return 0;

@@ -19,45 +19,64 @@
  * The function Architecture::init() must be called with one of the
  * architecture names before any other parts of the namespace are used.
  */
-namespace Architecture {
-
+class Architecture {
+public:
+    
     /*
-     * The maximum length of instructions for this architecture, in bytes.
+     * Accessors for information regarding the chosen architecture for this run
+     * of Fleece.
      */
-    extern int maxInsnLen;
-
-    /*
-     * The name of this architecture as a string. This will be 
-     */
-    extern std::string name;
+    static int getMaxInsnLen() { return currentArch->maxInsnLen; }
+    static std::string getName() { return currentArch->name; }
     
     /*
      * Initializes the architecture based on the provided architecture name.
      */
-    void init(const char* arch);
+    static void init(const char* arch);
 
     /*
      * Adds a register set to this architecture. The registers in this set will
      * be added to the Architecture::names map, which will map register names
      * to generic symbols for quick lookup when format strings are created.
      */
-    void addRegSet(RegisterSet* regSet);
+    static void addRegSet(RegisterSet* regSet);
 
     /*
      * Replaces all register fields in the field list with the generic name
      * for each register's set.
      */
-    void replaceRegSets(FieldList& fl);
+    static void replaceRegSets(FieldList& fl);
+
+    Architecture(const char* name, int maxInsnLen, bool (*initFunc)(void));
+
+private:
+
+    static Architecture* currentArch;
 
     /*
-     * Frees the resources used by this namespace.
+     * The maximum length of instructions for this architecture, in bytes.
      */
-    void destroy();
+    int maxInsnLen;
+
+    /*
+     * The name of this architecture as a string.
+     */
+    const char* name;
+
+    /*
+     * The initialization function that will be called if this architecture is
+     * chosen.
+     */
+    bool (*initFunc)(void);
 
     /*
      * A mapping from register name to generic symbol.
      */
-    extern std::unordered_map<const char*, const char*, StringUtils::str_hash, StringUtils::str_eq> regSymbolMap;
-}
+    std::unordered_map<const char*, const char*, StringUtils::str_hash, StringUtils::str_eq> regSymbolMap;
+
+    static std::unordered_map<const char*, Architecture*, StringUtils::str_hash, StringUtils::str_eq>
+        architectures;
+
+};
 
 #endif /* _ARCHITECTURE_H_ */

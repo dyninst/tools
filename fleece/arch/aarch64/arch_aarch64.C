@@ -2,353 +2,42 @@
 #include <stdio.h>
 #include "Architecture.h"
 
-int Architecture::maxInsnLen;
-std::vector<RegisterSet*> regSets;
-std::string Architecture::name;
-std::unordered_map<const char*, const char*, StringUtils::str_hash, StringUtils::str_eq> Architecture::regSymbolMap;
-
-RegisterSet* addFormattedRegSet(const char* setName, const char* baseName, 
-        int lowerBound, int upperBound) {
-
-    // Make a buffer with enough room for any reasonable register numbers (up to
-    // 30 digits).
-    int bufLen = strlen(baseName) + 30;
-    char buf[bufLen];
-
-    RegisterSet* regs = new RegisterSet(setName);
-
-    for (int i = upperBound; i >= lowerBound; i--) {
-       snprintf(buf, bufLen, baseName, i);
-       regs->addRegName(buf);
-    }
-
-    Architecture::addRegSet(regs);
-    return regs;
-}
-
-RegisterSet* addNumberedRegSet(const char* setName, const char* baseName, 
-        int lowerBound, int upperBound) {
-
-    // Make a buffer with enough room for any reasonable register numbers (up to
-    // 30 digits).
-    int bufLen = strlen(baseName) + 30;
-    char buf[bufLen];
-
-    RegisterSet* regs = new RegisterSet(setName);
-
-    for (int i = upperBound; i >= lowerBound; i--) {
-       snprintf(buf, bufLen, "%s%d", baseName, i);
-       regs->addRegName(buf);
-    }
-
-    Architecture::addRegSet(regs);
-    return regs;
-
-}
-
-void init_armv6() {
-    Architecture::name = "armv6";
-    Architecture::maxInsnLen = 4;
-    
-    addNumberedRegSet("rreg", "r", 0, 15);
-}
-
-void init_ppc() {
-    Architecture::name = "ppc";
-    Architecture::maxInsnLen = 4;
-
-    addNumberedRegSet("rreg", "r", 0, 31);
-    addNumberedRegSet("freg", "f", 0, 31);
-    addNumberedRegSet("fsrreg", "fsr", 0, 31);
-    addNumberedRegSet("fprreg", "fpr", 0, 31);
-    addNumberedRegSet("fcrreg", "fcr", 0, 31);
-    addNumberedRegSet("crreg", "cr", 0, 31);
-    addNumberedRegSet("creg", "c", 0, 31);
-    addNumberedRegSet("vreg", "v", 0, 31);
-    addNumberedRegSet("vsreg", "vs", 0, 63);
-    addNumberedRegSet("segreg", "seg", 0, 4);
-    addNumberedRegSet("fslreg", "fsl", 0, 31);
-    
-    addNumberedRegSet("rreg", "R", 0, 31);
-    addNumberedRegSet("freg", "F", 0, 31);
-    addNumberedRegSet("fsrreg", "FSR", 0, 31);
-    addNumberedRegSet("fprreg", "FPR", 0, 31);
-    addNumberedRegSet("fcrreg", "FCR", 0, 31);
-    addNumberedRegSet("crreg", "CR", 0, 31);
-    addNumberedRegSet("creg", "C", 0, 31);
-    addNumberedRegSet("vreg", "V", 0, 31);
-    addNumberedRegSet("vsreg", "VS", 0, 63);
-    addNumberedRegSet("segreg", "SEG", 0, 4);
-    addNumberedRegSet("fslreg", "FSL", 0, 31);
-
-    /*
-    RegisterSet* conditions = new RegisterSet("COND");
-
-    conditions->addRegName("eq");
-    conditions->addRegName("gt");
-    conditions->addRegName("lt");
-    conditions->addRegName("so");
-    conditions->addRegName("eq");
-
-    regSets.push_back(conditions);
-    */
-}
-
-void init_x86_64() {
-
-    Architecture::name = "x86_64";
-    Architecture::maxInsnLen = 15;
-
-    RegisterSet* gp_64bit = new RegisterSet("%reg8");
-
-    gp_64bit->addRegName("%rax");
-    gp_64bit->addRegName("%rcx");
-    gp_64bit->addRegName("%rdx");
-    gp_64bit->addRegName("%rbx");
-    gp_64bit->addRegName("%rsp");
-    gp_64bit->addRegName("%rbp");
-    gp_64bit->addRegName("%rsi");
-    gp_64bit->addRegName("%rdi");
-    gp_64bit->addRegName("%rip");
-    gp_64bit->addRegName("%riz");
-
-    gp_64bit->addRegName("%r8");
-    gp_64bit->addRegName("%r9");
-    gp_64bit->addRegName("%r10");
-    gp_64bit->addRegName("%r11");
-    gp_64bit->addRegName("%r12");
-    gp_64bit->addRegName("%r13");
-    gp_64bit->addRegName("%r14");
-    gp_64bit->addRegName("%r15");
-
-    Architecture::addRegSet(gp_64bit);
-
-    RegisterSet* gp_32bit = new RegisterSet("%reg4");
-
-    gp_32bit->addRegName("%eax");
-    gp_32bit->addRegName("%ecx");
-    gp_32bit->addRegName("%edx");
-    gp_32bit->addRegName("%ebx");
-    gp_32bit->addRegName("%esp");
-    gp_32bit->addRegName("%ebp");
-    gp_32bit->addRegName("%esi");
-    gp_32bit->addRegName("%edi");
-    gp_32bit->addRegName("%eip");
-    gp_32bit->addRegName("%eiz");
-
-    gp_32bit->addRegName("%r8d");
-    gp_32bit->addRegName("%r9d");
-    gp_32bit->addRegName("%r10d");
-    gp_32bit->addRegName("%r11d");
-    gp_32bit->addRegName("%r12d");
-    gp_32bit->addRegName("%r13d");
-    gp_32bit->addRegName("%r14d");
-    gp_32bit->addRegName("%r15d");
-
-    Architecture::addRegSet(gp_32bit);
-
-    RegisterSet* gp_16bit = new RegisterSet("%reg2");
-
-    gp_16bit->addRegName("%ax");
-    gp_16bit->addRegName("%cx");
-    gp_16bit->addRegName("%dx");
-    gp_16bit->addRegName("%bx");
-    gp_16bit->addRegName("%sp");
-    gp_16bit->addRegName("%bp");
-    gp_16bit->addRegName("%si");
-    gp_16bit->addRegName("%di");
-
-    gp_16bit->addRegName("%r8w");
-    gp_16bit->addRegName("%r9w");
-    gp_16bit->addRegName("%r10w");
-    gp_16bit->addRegName("%r11w");
-    gp_16bit->addRegName("%r12w");
-    gp_16bit->addRegName("%r13w");
-    gp_16bit->addRegName("%r14w");
-    gp_16bit->addRegName("%r15w");
-
-    Architecture::addRegSet(gp_16bit);
-
-    RegisterSet* gp_8bit = new RegisterSet("%reg1");
-
-    gp_8bit->addRegName("%ah");
-    gp_8bit->addRegName("%al");
-    gp_8bit->addRegName("%ch");
-    gp_8bit->addRegName("%cl");
-    gp_8bit->addRegName("%dh");
-    gp_8bit->addRegName("%dl");
-    gp_8bit->addRegName("%bh");
-    gp_8bit->addRegName("%bl");
-
-    gp_8bit->addRegName("%sil");
-    gp_8bit->addRegName("%dil");
-    gp_8bit->addRegName("%bpl");
-    gp_8bit->addRegName("%spl");
-
-    gp_8bit->addRegName("%r8b");
-    gp_8bit->addRegName("%r9b");
-    gp_8bit->addRegName("%r10b");
-    gp_8bit->addRegName("%r11b");
-    gp_8bit->addRegName("%r12b");
-    gp_8bit->addRegName("%r13b");
-    gp_8bit->addRegName("%r14b");
-    gp_8bit->addRegName("%r15b");
-
-    Architecture::addRegSet(gp_8bit);
-    RegisterSet* seg_regs = new RegisterSet("%seg");
-
-    seg_regs->addRegName("%cs");
-    seg_regs->addRegName("%ds");
-    seg_regs->addRegName("%es");
-    seg_regs->addRegName("%fs");
-    seg_regs->addRegName("%gs");
-    seg_regs->addRegName("%ss");
-
-    Architecture::addRegSet(seg_regs);
-    
-    RegisterSet* ctrl_regs = new RegisterSet("%ctrl");
-    ctrl_regs->addRegName("%db0");
-    ctrl_regs->addRegName("%db1");
-    ctrl_regs->addRegName("%db2");
-    ctrl_regs->addRegName("%db3");
-    ctrl_regs->addRegName("%db4");
-    ctrl_regs->addRegName("%db5");
-    ctrl_regs->addRegName("%db6");
-    ctrl_regs->addRegName("%db7");
-    ctrl_regs->addRegName("%db8");
-    ctrl_regs->addRegName("%db9");
-    ctrl_regs->addRegName("%db10");
-    ctrl_regs->addRegName("%db11");
-    ctrl_regs->addRegName("%db12");
-    ctrl_regs->addRegName("%db13");
-    ctrl_regs->addRegName("%db14");
-    ctrl_regs->addRegName("%db15");
-    ctrl_regs->addRegName("%dr0");
-    ctrl_regs->addRegName("%dr1");
-    ctrl_regs->addRegName("%dr2");
-    ctrl_regs->addRegName("%dr3");
-    ctrl_regs->addRegName("%dr4");
-    ctrl_regs->addRegName("%dr5");
-    ctrl_regs->addRegName("%dr6");
-    ctrl_regs->addRegName("%dr7");
-    ctrl_regs->addRegName("%dr8");
-    ctrl_regs->addRegName("%dr9");
-    ctrl_regs->addRegName("%dr10");
-    ctrl_regs->addRegName("%dr11");
-    ctrl_regs->addRegName("%dr12");
-    ctrl_regs->addRegName("%dr13");
-    ctrl_regs->addRegName("%dr14");
-    ctrl_regs->addRegName("%dr15");
-    ctrl_regs->addRegName("%cr0");
-    ctrl_regs->addRegName("%cr1");
-    ctrl_regs->addRegName("%cr2");
-    ctrl_regs->addRegName("%cr3");
-    ctrl_regs->addRegName("%cr4");
-    ctrl_regs->addRegName("%cr5");
-    ctrl_regs->addRegName("%cr6");
-    ctrl_regs->addRegName("%cr7");
-    ctrl_regs->addRegName("%cr8");
-    ctrl_regs->addRegName("%cr9");
-    ctrl_regs->addRegName("%cr10");
-    ctrl_regs->addRegName("%cr11");
-    ctrl_regs->addRegName("%cr12");
-    ctrl_regs->addRegName("%cr13");
-    ctrl_regs->addRegName("%cr14");
-    ctrl_regs->addRegName("%cr15");
-    Architecture::addRegSet(ctrl_regs);
-
-    RegisterSet* mmx_regs = new RegisterSet("%mmx_r");
-
-    mmx_regs->addRegName("%mm0");
-    mmx_regs->addRegName("%mm1");
-    mmx_regs->addRegName("%mm2");
-    mmx_regs->addRegName("%mm3");
-    mmx_regs->addRegName("%mm4");
-    mmx_regs->addRegName("%mm5");
-    mmx_regs->addRegName("%mm6");
-    mmx_regs->addRegName("%mm7");
-
-    mmx_regs->addRegName("%mmx0");
-    mmx_regs->addRegName("%mmx1");
-    mmx_regs->addRegName("%mmx2");
-    mmx_regs->addRegName("%mmx3");
-    mmx_regs->addRegName("%mmx4");
-    mmx_regs->addRegName("%mmx5");
-    mmx_regs->addRegName("%mmx6");
-    mmx_regs->addRegName("%mmx7");
-
-    Architecture::addRegSet(mmx_regs);
-    RegisterSet* st_regs = new RegisterSet("%st_r");
-
-    st_regs->addRegName("%st0");
-    st_regs->addRegName("%st1");
-    st_regs->addRegName("%st2");
-    st_regs->addRegName("%st3");
-    st_regs->addRegName("%st4");
-    st_regs->addRegName("%st5");
-    st_regs->addRegName("%st6");
-    st_regs->addRegName("%st7");
-    
-    Architecture::addRegSet(st_regs);
-
-    addNumberedRegSet("%xmm_r", "%xmm", 0, 31);   
-    addNumberedRegSet("%ymm_r", "%ymm", 0, 31);   
-    addNumberedRegSet("%zmm_r", "%zmm", 0, 31);   
-    addNumberedRegSet("%k_r", "k", 0, 7);
-    addNumberedRegSet("%k_r", "%k", 0, 7);
-
-}
-
-void init_aarch64() {
-
-    Architecture::name = "aarch64";
-    Architecture::maxInsnLen = 4;
-
+bool init_aarch64() {
     RegisterSet* regs;
 
-    regs = addNumberedRegSet("wreg", "w", 0, 31);
+    regs = RegisterSet::makeFormattedRegSet("wreg", "w%d", 0, 31);
     regs->addRegName("wzr");
-    //regs->addRegName("wsp");
-    //regs->addRegName("WZR");
-    //regs->addRegName("WSP");
-    //addNumberedRegSet("wreg", "W", 0, 31);
     Architecture::addRegSet(regs);
-    regs = addNumberedRegSet("xreg", "x", 0, 31);
+    regs = RegisterSet::makeFormattedRegSet("xreg", "x%d", 0, 31);
     regs->addRegName("xzr");
     Architecture::addRegSet(regs);
-    //regs->addRegName("SP");
-    addNumberedRegSet("xreg", "X", 0, 31);
-    addNumberedRegSet("sreg", "s", 0, 31);
-    addNumberedRegSet("breg", "b", 0, 31);
-    addNumberedRegSet("dreg", "d", 0, 31);
-    addNumberedRegSet("qreg", "q", 0, 31);
-    addNumberedRegSet("hreg", "h", 0, 31);
-    addNumberedRegSet("hqreg", "hq", 0, 31);
-    addNumberedRegSet("vreg", "v", 0, 31);
-    addNumberedRegSet("creg", "c", 0, 16);
-    addNumberedRegSet("sreg", "S", 0, 31);
-    addNumberedRegSet("breg", "B", 0, 31);
-    addNumberedRegSet("dreg", "D", 0, 31);
-    addNumberedRegSet("qreg", "Q", 0, 31);
-    addNumberedRegSet("hreg", "H", 0, 31);
-    addNumberedRegSet("hqreg", "HQ", 0, 31);
-    addNumberedRegSet("vreg", "V", 0, 31);
-    addNumberedRegSet("creg", "C", 0, 16);
+    
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("sreg", "s%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("breg", "b%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("dreg", "d%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("qreg", "q%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("hreg", "h%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("hqreg", "hq%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg", "v%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("creg", "c%d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("sreg", "s%d", 0, 31));
+    
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("sreg", "s%d", 0, 31));
 
-    addFormattedRegSet("vreg.1q", "v%d.1q", 0, 31);
-    addFormattedRegSet("vreg.1d", "v%d.1d", 0, 31);
-    addFormattedRegSet("vreg.2h", "v%d.2h", 0, 31);
-    addFormattedRegSet("vreg.2d", "v%d.2d", 0, 31);
-    addFormattedRegSet("vreg.2s", "v%d.2s", 0, 31);
-    addFormattedRegSet("vreg.4h", "v%d.4h", 0, 31);
-    addFormattedRegSet("vreg.4s", "v%d.4s", 0, 31);
-    addFormattedRegSet("vreg.8h", "v%d.8h", 0, 31);
-    addFormattedRegSet("vreg.8b", "v%d.8b", 0, 31);
-    addFormattedRegSet("vreg.16b", "v%d.16b", 0, 31);
-    addFormattedRegSet("vreg.d", "v%d.d", 0, 31);
-    addFormattedRegSet("vreg.s", "v%d.s", 0, 31);
-    addFormattedRegSet("vreg.h", "v%d.h", 0, 31);
-    addFormattedRegSet("vreg.b", "v%d.b", 0, 31);
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.1q", "v%d.1q", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.1d", "v%d.1d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.2d", "v%d.2d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.2h", "v%d.2h", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.2s", "v%d.2s", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.4h", "v%d.4h", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.4s", "v%d.4s", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.8h", "v%d.8h", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.8b", "v%d.8b", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.16b", "v%d.16b", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.d", "v%d.d", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.s", "v%d.s", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.h", "v%d.h", 0, 31));
+    Architecture::addRegSet(RegisterSet::makeFormattedRegSet("vreg.b", "v%d.b", 0, 31));
 
     RegisterSet* sysRegs = new RegisterSet("sysreg");
     char regName[100];
@@ -359,14 +48,11 @@ void init_aarch64() {
                     for (int m = 0; m < 8; ++m) {
                         snprintf(regName, 100, "s%d_%d_c%d_c%d_%d", i, j, k, l, m);
                         sysRegs->addRegName(regName);
-                        //snprintf(regName, 100, "S%d_%d_C%d_C%d_%d", i, j, k, l, m);
-                        //sysRegs->addRegName(regName);
                     }
                 }
             }
         }
     }
-    
     
     sysRegs->addRegName("scr_el3");
     sysRegs->addRegName("sctlr_el1");
@@ -958,47 +644,7 @@ void init_aarch64() {
     sysRegs->addRegName("hacr_el2");
     
     Architecture::addRegSet(sysRegs);
+    return true;
 }
 
-void Architecture::init(const char* arch) {
-    if (!strcmp(arch, "x86_64")) {
-        init_x86_64();
-    } else if (!strcmp(arch, "x86_32")) {
-        init_x86_64();
-        Architecture::name = "x86_32";
-    } else if (!strcmp(arch, "aarch64")) {
-        init_aarch64();
-    } else if (!strcmp(arch, "ppc32")) {
-        init_ppc();
-    } else if (!strcmp(arch, "ppc")) {
-        init_ppc();
-    } else if (!strcmp(arch, "armv6")) {
-        init_armv6();
-    } else {
-        std::cerr << "UNKNOWN ARCHITECTURE: " << arch << "\n";
-        exit(-1);
-    }
-}
-
-void Architecture::addRegSet(RegisterSet* regSet) {
-    std::vector<const char*> nameList = regSet->getNameList();
-    const char* sym = regSet->getSymbol();
-    for (size_t i = 0; i < nameList.size(); ++i) {
-        regSymbolMap.insert(std::make_pair(nameList[i], sym));
-    }
-}
-
-void Architecture::replaceRegSets(FieldList& fl) {
-    for (size_t i = 0; i < fl.size(); ++i) {
-        auto name = regSymbolMap.find(fl.getField(i));
-        if (name != regSymbolMap.end()) {
-            fl.setField(i, name->second);
-        }       
-    }
-}
-
-void Architecture::destroy() {
-    for (size_t i = 0; i < regSets.size(); i++) {
-        delete regSets[i];
-    }
-}
+Architecture* arch_aarch64 = new Architecture("aarch64", 4, &init_aarch64);

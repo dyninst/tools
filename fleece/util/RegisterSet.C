@@ -57,3 +57,21 @@ void RegisterSet::replaceRegNamesWithSymbol(FieldList& fl) {
         }       
     }
 }
+
+RegisterSet* RegisterSet::makeFormattedRegSet(const char* setName, const char* baseName, 
+        int lowerBound, int upperBound) {
+
+    // Make a buffer with enough room for any reasonable register numbers (up to
+    // 30 digits).
+    int bufLen = strlen(baseName) + 30;
+    char buf[bufLen];
+
+    RegisterSet* regs = new RegisterSet(setName);
+
+    for (int i = upperBound; i >= lowerBound; i--) {
+       snprintf(buf, bufLen, baseName, i);
+       regs->addRegName(buf);
+    }
+
+    return regs;
+}

@@ -236,9 +236,9 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
     }
 
     // Enqueue this instructions bytes.
-    char* queuedBytes = (char*)malloc(Architecture::maxInsnLen);
+    char* queuedBytes = (char*)malloc(Architecture::getMaxInsnLen());
     assert(queuedBytes != NULL);
-    randomizeBuffer(queuedBytes, Architecture::maxInsnLen);
+    randomizeBuffer(queuedBytes, Architecture::getMaxInsnLen());
     bcopy(bytes, queuedBytes, nBytes);
     queue->push(queuedBytes);
 }

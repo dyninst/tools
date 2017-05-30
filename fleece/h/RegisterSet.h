@@ -35,6 +35,13 @@
  */
 class RegisterSet {
 public:
+
+    /*
+     * Creates a register set given a format string (which should contain a
+     * single %d field for the number) and the bounds for register number.
+     */
+    static RegisterSet* makeFormattedRegSet(const char* setName, const char* baseName, 
+        int lowerBound, int upperBound);
     
     /*
      * Creates an empty register set whose register names will be replaced with

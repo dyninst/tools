@@ -17,10 +17,8 @@ FOREACH(dec_install_dir ${DECODER_INSTALL_DIRS})
 ENDFOREACH()
 
 # Which custom libraries should be linked against fleece?
-set (FLEECE_LIBRARIES fleeceutil fleecedecoders fleecereporting)
+set (FLEECE_LIBRARIES fleeceutil fleecedecoders fleecereporting fleecearch)
 set (OTHER_LIBRARIES z rt bfd iberty dl elf)
-
-MESSAGE(STATUS "ALL_LIBRARIES is: " ${ALL_LIBRARIES})
 
 set (CMAKE_CXX_FLAGS "-std=c++0x -g")
 set (CMAKE_C_FLAGS "-g")
@@ -34,10 +32,10 @@ include_directories(${PROJECT_BINARY_DIR}/h)
 link_directories(${DEPS_LIBDIR})
 
 add_subdirectory(reporting)
+add_subdirectory(arch)
 add_subdirectory(util)
 
 set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${FLEECE_DECODER_LIBRARIES} ${OTHER_LIBRARIES})
-MESSAGE(STATUS "ALL_LIBRARIES ends at: " ${ALL_LIBRARIES})
 
 add_executable(fleece fleece.C)
 target_link_libraries(fleece LINK_PUBLIC ${ALL_LIBRARIES})

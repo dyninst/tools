@@ -10,8 +10,8 @@ MACRO(SUBDIRLIST result curdir)
     SET(${result} ${dirlist})
 ENDMACRO()
 
-SET(FLEECE_DECODER_SOURCE Decoder.C Normalization.C)
-SET(FLEECE_DECODER_LIBRARIES )
+SET(FLEECE_ARCH_SOURCE Architecture.C)
+SET(FLEECE_ARCH_DIRS )
 
 SET(IGNORED_DIRS CMakeFiles)
 
@@ -20,27 +20,21 @@ FOREACH(subdir ${SUBDIRS})
     SET(IGNORED FALSE)
     FOREACH(ignored_dir ${IGNORED_DIRS})
         IF(${subdir} STREQUAL ${ignored_dir})
-            MESSAGE(STATUS "Ignored decoder directory: " ${ignored_dir})
+            MESSAGE(STATUS "Ignored arch directory: " ${ignored_dir})
             SET(IGNORED TRUE)
         ENDIF()
     ENDFOREACH()
 
     IF(NOT IGNORED)
-        MESSAGE(STATUS "Added decoder directory: " ${subdir})
+        MESSAGE(STATUS "Added arch directory: " ${subdir})
         ADD_SUBDIRECTORY(${subdir})
+        SET(FLEECE_ARCH_DIRS ${FLEECE_ARCH_DIRS} ${subdir})
     ENDIF()
 ENDFOREACH()
 
-SET(FLEECE_DECODER_LIBRARIES ${FLEECE_DECODER_LIBRARIES} PARENT_SCOPE)
-SET(DECODER_INSTALL_DIRS ${DECODER_INSTALL_DIRS} PARENT_SCOPE)
-SET(DEPS_INCLUDEDIR )
-
-FOREACH(dec_install_dir ${DECODER_INSTALL_DIRS})
-    SET (DEPS_INCLUDEDIR ${DEPS_INCLUDEDIR} "${dec_install_dir}/include")
-ENDFOREACH()
-
 # When binaries link against this library, which headers should be included?
-include_directories ("${PROJECT_SOURCE_DIR}/h" ${DEPS_INCLUDEDIR})
+include_directories ("${PROJECT_SOURCE_DIR}/h" ${DEPS_INCLUDEDIR} ${FLEECE_ARCH_DIRS})
 
-# Build these sources as libfleecedecoders (.so on Linux or .dll on Windows)
-add_library(fleecedecoders SHARED ${FLEECE_DECODER_SOURCE})
+# Build these sources as libfleeceutil (.so on Linux or .dll on Windows)
+add_library(fleecearch SHARED ${FLEECE_ARCH_SOURCE})
+

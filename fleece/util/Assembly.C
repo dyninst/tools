@@ -238,9 +238,9 @@ void Assembly::makeAsmResult() {
     }
     assert(asmError == NULL && asmBytes == NULL);
     asmError = new char[REASM_ERROR_BUF_LEN];
-    asmBytes = new char[Architecture::maxInsnLen];
+    asmBytes = new char[Architecture::getMaxInsnLen()];
     asmResult = reassemble(bytes, nBytes, decStr,
-            asmBytes, Architecture::maxInsnLen, (int*)&nAsmBytes, asmError, 
+            asmBytes, Architecture::getMaxInsnLen(), (int*)&nAsmBytes, asmError, 
             REASM_ERROR_BUF_LEN);
 }
 
