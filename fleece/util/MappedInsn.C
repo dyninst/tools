@@ -191,16 +191,11 @@ void MappedInsn::enqueueInsnIfNew(std::queue<char*>* queue, std::map<char*, int,
             std::cout << " ";
         }
         std::cout << "queue: ";
-        for (size_t j = 0; j < nBytesUsed; ++j) {
+        for (size_t j = 0; j < nBytes; ++j) {
             std::cout << std::hex << std::setfill('0') << std::setw(2)
                 << (unsigned int)(unsigned char)bytes[j] << " ";
         }
-        std::cout << "(";
-        for (size_t j = nBytesUsed; j < nBytes; ++j) {
-            std::cout << std::hex << std::setfill('0') << std::setw(2)
-                << (unsigned int)(unsigned char)bytes[j] << " ";
-        }
-        std::cout << std::dec << "): ";
+        std::cout << std::dec << ": ";
         tList.printInsn(stdout);
         std::cout << "\n";
     }
