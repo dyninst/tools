@@ -244,7 +244,7 @@ bool Fingerprint::parse(ParseAPI::Function * f,
 {
     ParseAPI::Block * callBlock;
 
-    ParseAPI::Function::blocklist & blocks = f->blocks();
+    const ParseAPI::Function::blocklist & blocks = f->blocks();
     ParseAPI::Function::blocklist::iterator bIter;
     
     // Get the set of traps associated with this function

@@ -15,19 +15,16 @@ ifeq ($(DYNINST_ROOT),)
 $(error DYNINST_ROOT is not set)
 endif
 
-ifeq ($(PLATFORM),)
-$(error PLATFORM is not set)
-endif
 
 DYNINST_INCLUDE = $(DYNINST_ROOT)/include
-DYNINST_LIB =  $(DYNINST_ROOT)/$(PLATFORM)/lib
+DYNINST_LIB =  $(DYNINST_ROOT)/lib
 
 # These should point to where libelf and libdwarf are installed
-LOCAL_INC_DIR = /usr/local/include
-LOCAL_LIBS_DIR = /usr/local/lib
+LOCAL_INC_DIR = /p/paradyn/packages/libdwarf/include
+LOCAL_LIBS_DIR = /p/paradyn/packages/libdwarf/lib
 
 CXX = g++
-CXXFLAGS = -g -Wall
+CXXFLAGS = --std=c++11 -g -Wall -D_GLIBCXX_USE_CXX11_ABI=0
 
 all: unstrip 
 
@@ -35,7 +32,7 @@ unstrip: unstrip.o
 	$(CXX) $(CXXFLAGS) -L$(DYNINST_LIB) \
 		-L$(LOCAL_LIBS_DIR) \
 		-ldwarf -lelf \
-		-lparseAPI -lsymtabAPI -ldynElf -ldynDwarf -linstructionAPI \
+		-lparseAPI -lsymtabAPI -lsymLite -ldynElf -ldynDwarf -linstructionAPI \
 		-lcommon \
 		-o unstrip unstrip.o \
 		callback.o database.o fingerprint.o semanticDescriptor.o types.o util.o
@@ -46,12 +43,13 @@ unstrip-static: unstrip.o
 		-o unstrip-static unstrip.o \
 		callback.o database.o fingerprint.o semanticDescriptor.o types.o util.o \
 		-Wl,-Bstatic \
-		-lparseAPI -lsymtabAPI -ldynElf -ldynDwarf -linstructionAPI \
-		-ldwarf -lelf \
-		-lcommon \
+		-lparseAPI_static -lsymtabAPI_static -ldynElf_static -ldynDwarf_static -linstructionAPI_static \
+		-ldwarf \
+		-lcommon_static \
 		-liberty \
-		-Wl,-Bdynamic
-		
+		-Wl,-Bdynamic \
+		-lelf
+
 unstrip.o: unstrip.C util.o types.o semanticDescriptor.o database.o fingerprint.o callback.o
 	$(CXX) $(CXXFLAGS) -I$(LOCAL_INC_DIR) -I$(DYNINST_INCLUDE) -c unstrip.C
 
