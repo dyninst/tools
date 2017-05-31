@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     }
    
     // Should output from decoders be normalized before use?
-    bool norm     = (Options::get("-norm")  != NULL);
+    bool norm     = (Options::get("-no-norm")  == NULL);
 
     // Should the input method be random bytes with an (optional) mask?
     bool random   = (Options::get("-rand")  != NULL);
