@@ -17,73 +17,17 @@ along with this software; if not, see www.gnu.org/licenses
 
 # Fleece
 
-Fleece is a fuzzing tool used to compare assembly decoders. Currently LLVM, binutils (libopcodes),
-capstone and dyninst are supported.
+Fleece is a fuzzing tool used to compare instruction decoders. Currently, testing decoders for
+x86 (32 and 64 bit), ARMv8 and PowerPC (32 and 64 bit) are supported. Fleece includes source files
+that allow users to easily test XED, LLVM, binutils (libopcodes), capstone and dyninst, provided
+that the tools are installed.
 
-## Building Dependancies
-
-Fleece depends on the following libraries:
-
-- libopcodes, libbfd (bintuils)
-- libxed
-- libz
-- libinstructionAPI (dyninst)
-- LLVM
-- libiberty
-- libdl
-- capstone
-
-### Xed
-
-Xed can be downloaded from here: https://software.intel.com/en-us/articles/xed-x86-encoder-decoder-software-library
-
-Once this is downloaded and unzipped, it can be installed with:
-
-```
-sudo cp kits/<XED VERSION+PLATFORM>/lib/* $PREFIX/lib64
-```
-
-### Binutils
-
-Binutils can be obtained from a gnu mirror, such as ftp://ftp.gnu.org/gnu/binutils. You may also build the latest version via the git repo: 
-
-```
-git clone git://sourceware.org/git/binutils-gdb.git
-```
-
-We recommend that you build binutils from source. You MUST have a version of binutils that has been configured with `--enable-targets=all`. To build binutils from source:
-
-```
-mkdir build
-cd build
-../bintuils-gdb/configure --enable-targets=all --enable-shared --prefix=$PREFIX --prefix=$PREFIX/lib64
-make
-make install
-```
-
-### Dyninst
-
-Dyninst can be obtained from the github repository:
-
-```
-git clone http://github.com/dyninst/dyninst
-```
-
-To build dyninst:
-
-```
-# Use the gui configuration to set prefix, build-type, ect.
-cd dyninst/
-ccmake .
-make
-make install
-```
+For information on adding a new decoder or architecture, see docs/AddingDecoders.txt or
+docs/AddingArchitectures.txt.
 
 ## Building Fleece
 
-Make sure your `LD_LIBRARY_PATH` is pointing at the dependancies before you attempt to compile fleece. This doesn't need to be set if the dependancies are installed globally under `/usr/lib64`
-
-Fleece can also be built using CMake:
+Fleece should be built using CMake:
 
 ```
 ccmake .
@@ -91,6 +35,39 @@ make
 make install
 ```
 
-For help with fleece, execute:
+
+## Example Usage of Fleece
+
+Below are some example uses of Fleece:
+
+```
+./fleece -arch=x86_64 -as=/usr/bin/as -decoders=xed,dyninst -n=10
+```
+This example will test x86 (64 bit) decoding of XED and Dyninst starting with 10 random byte
+sequences and exploring new options by mapping instructions and mutating them to produce new
+inputs. Reassembly is performed by /usr/bin/as.
+
+```
+./fleece -arch=ppc -as=/usr/bin/ppc_as -asopt=-mpower9,-mregnames -decoders=llvm,dyninst,gnu -n=10
+```
+
+This example tests 32 bit PowerPC decoding of LLVM, Dyninst and GNU's libopcodes, again using 10
+random byte sequences and exploring from there. Reassembly is performed by /usr/bin/ppc\_as, which
+should be a PowerPC assembler. The assembler will recieve the optional arguments "-mpower9
+-mregnames".
+
+```
+./fleece -arch=aarch64 -as=/usr/bin/aarch64_as -decoders=llvm,dyninst -n=100 -rand
+-mask=0000000011111111xxxxxxxx00000000
+```
+
+This example tests Aarch64 (ARMv8) decoding of LLVM and Dyninst using 100 byte sequences. The byte
+sequences will each be one byte of 0s, one byte of 1s, one byte of random bits and one byte of 0s, as
+described by the mask. This basically fuzzes over the 3rd byte of the instruction while holding the
+others constant. Reassembly is performed by /usr/bin/aarch64\_as. Note that the "-rand" flag means
+that only random input sequences will be used, so no new instructions will be discovered.
+
+For additional Fleece options, execute:
 
 ./fleece --help
+
