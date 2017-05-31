@@ -69,19 +69,7 @@ Decoder::Decoder(
     allDecoders.push_back(this);
 }
 
-void Decoder::destroyAllDecoders()
-{
-    for (std::vector<Decoder*>::iterator it = allDecoders.begin(); it != allDecoders.end(); ++it) {
-        delete *it;
-    }
-}
-
-std::vector<Decoder*> Decoder::getAllDecoders() {
-    return allDecoders;
-}
-
 void Decoder::printAllNames(void) {
-    std::vector<Decoder*> allDecoders = getAllDecoders();
     for (size_t i = 0; i < allDecoders.size(); i++) {
         Decoder* d = allDecoders[i];
         std::cout << "\t" << d->arch << ":\t" << d->name << "\n";

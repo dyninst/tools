@@ -355,6 +355,5 @@ int main(int argc, char** argv) {
     free(tempInsn);
    
     Options::destroy();
-    Decoder::destroyAllDecoders();
     return 0;
 }

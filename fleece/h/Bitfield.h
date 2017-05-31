@@ -25,14 +25,55 @@
 #include <list>
 #include "StringUtils.h"
 
+/*
+ * The Bitfield class is used to represent immediate values encoded directly in
+ * an instruction. A Bitfield is constructed from the string representation of
+ * an immediate (like "35" or "0x23"). The Bitfield class can then be used to
+ * match the bits of this immediate to bits in a buffer.
+ */
 class Bitfield {
 public:
+    /*
+     * Create a Bitfield from a hex or decimal string (eg "35" or "0x23")
+     *
+     * Returns NULL if the string could not be made into a bitfield
+     * (it contained characters that were not hex or decimal).
+     *
+     * Note: this is not the constructor, but it is the only publically
+     * exposed way to create a Bitfield because constructors cannot returm
+     * null to signify an error.
+     */
     static Bitfield* create(const char* str);
+
+    /*
+     * Destroys the Bitfield, freeing memory.
+     */
     ~Bitfield();
+
+    /*
+     * Returns 0 if the bits in the buffer do not match the bit field. Returns
+     * greater than 0 if nBits of the buffer match the Bitfield.
+     */
     int matches(char* buf, int whichBit, int nBits);
-    void addPossibleEncodingValue(uint64_t val);
 private:
+
+    /*
+     * Constructs a Bitfield object. This function should NOT be called directly
+     * because it creates a blank field with not possible encodings. The
+     * constructor is not used for adding encoding values because handling
+     * errors from constructors is painful (exceptions or validation methods
+     * required).
+     */
     Bitfield();
+
+    /*
+     * Adds a possible encoding value for this Bitfield.
+     */
+    void addPossibleEncodingValue(uint64_t val);
+
+    /*
+     * All possible encoding values for this Bitfield.
+     */
     std::list<uint64_t>* vals;
 };
 
