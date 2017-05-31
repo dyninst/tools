@@ -26,6 +26,10 @@ char reassemble(const char* bytes, int nBytes, const char* str,
         char* errorBuf, int errorBufLen) {
 
     static int initResult = initReasmDaemon();
+    if (initResult != 0) {
+        std::cerr << "Error: Could not initialize reassembly daemon!\n";
+        exit(-1);
+    }
 
     // Start timing for the reassembly portion of the code.
     int result = Reassembly::daemon->reassemble(str, errorBuf, errorBufLen);

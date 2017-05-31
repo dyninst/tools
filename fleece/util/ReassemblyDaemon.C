@@ -25,9 +25,15 @@ void ReassemblyDaemon::start() {
     int fleeceToDaemon[2];
     int daemonToFleece[2];
     int rc = pipe(fleeceToDaemon);
-    assert(rc == 0 && "Pipe failed!");
+    if (rc != 0) {
+        std::cerr << "Error: failed to create pipe to reassembly daemon!\n";
+        exit(-1);
+    }
     rc = pipe(daemonToFleece);
-    assert(rc == 0 && "Pipe failed!");
+    if (rc != 0) {
+        std::cerr << "Error: failed to create pipe to reassembly daemon!\n";
+        exit(-1);
+    }
     pid_t pid = fork();
     if (pid == -1) {
         std::cerr << "ERROR: failed to fork() for reassembly\n";

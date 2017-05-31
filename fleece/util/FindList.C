@@ -89,7 +89,7 @@ void FindList::process(char* buf, int bufLen) {
                 term = terms[index];
                 if (term.str == NULL) {
                     done = true;
-                } else if (!strncmp(term.str, base, curLen) && strlen(term.str) == curLen) {
+                } else if (!strncmp(term.str, base, curLen) && (int)strlen(term.str) == curLen) {
                     done = true;
                     matched = true;
                 }
