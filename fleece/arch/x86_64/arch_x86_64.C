@@ -3,7 +3,14 @@
 #include "Architecture.h"
 
 bool x86_64_init() {
-    RegisterSet* gp_64bit = RegisterSet::makeFormattedRegSet("%reg8", "%%r%d", 8, 15);
+
+    bool ignoreGPSize = (Options::get("--ignore-x86-gp-size") != NULL);
+    RegisterSet* gp_64bit;
+    if (ignoreGPSize) {
+        gp_64bit = RegisterSet::makeFormattedRegSet("%gp_reg", "%%r%d", 8, 15);
+    } else {
+        gp_64bit = RegisterSet::makeFormattedRegSet("%reg8", "%%r%d", 8, 15);
+    }
     gp_64bit->addRegName("%rax");
     gp_64bit->addRegName("%rcx");
     gp_64bit->addRegName("%rdx");
@@ -16,7 +23,12 @@ bool x86_64_init() {
     gp_64bit->addRegName("%riz");
     Architecture::addRegSet(gp_64bit);
 
-    RegisterSet* gp_32bit = RegisterSet::makeFormattedRegSet("%reg4", "%%r%dd", 8, 15);
+    RegisterSet* gp_32bit;
+    if (ignoreGPSize) {
+        gp_32bit = RegisterSet::makeFormattedRegSet("%gp_reg", "%%r%d", 8, 15);
+    } else {
+        gp_32bit = RegisterSet::makeFormattedRegSet("%reg4", "%%r%dd", 8, 15);
+    }
     gp_32bit->addRegName("%eax");
     gp_32bit->addRegName("%ecx");
     gp_32bit->addRegName("%edx");
@@ -29,7 +41,12 @@ bool x86_64_init() {
     gp_32bit->addRegName("%eiz");
     Architecture::addRegSet(gp_32bit);
 
-    RegisterSet* gp_16bit = RegisterSet::makeFormattedRegSet("%reg2", "%%r%dw", 8, 15);
+    RegisterSet* gp_16bit;
+    if (ignoreGPSize) {
+        gp_16bit = RegisterSet::makeFormattedRegSet("%gp_reg", "%%r%d", 8, 15);
+    } else {
+        gp_16bit = RegisterSet::makeFormattedRegSet("%reg2", "%%r%dw", 8, 15);
+    }
     gp_16bit->addRegName("%ax");
     gp_16bit->addRegName("%cx");
     gp_16bit->addRegName("%dx");
@@ -40,7 +57,12 @@ bool x86_64_init() {
     gp_16bit->addRegName("%di");
     Architecture::addRegSet(gp_16bit);
 
-    RegisterSet* gp_8bit = RegisterSet::makeFormattedRegSet("%reg1", "%%r%db", 8, 15);
+    RegisterSet* gp_8bit;
+    if (ignoreGPSize) {
+        gp_8bit = RegisterSet::makeFormattedRegSet("%gp_reg", "%%r%d", 8, 15);
+    } else {
+        gp_8bit = RegisterSet::makeFormattedRegSet("%reg1", "%%r%db", 8, 15);
+    }
     gp_8bit->addRegName("%ah");
     gp_8bit->addRegName("%al");
     gp_8bit->addRegName("%ch");

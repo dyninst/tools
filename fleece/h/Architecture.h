@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include "FieldList.h"
+#include "Options.h"
 #include "RegisterSet.h"
 
 /*
