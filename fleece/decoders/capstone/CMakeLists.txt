@@ -9,7 +9,7 @@ IF(NOT CAPSTONE_DIR STREQUAL "")
 
     # Set the sources that should be compiled into the library
     SET(FLEECE_DECODER_SOURCE ${FLEECE_DECODER_SOURCE} capstone/capstone_aarch64.C
-    capstone/capstone_x86_32.C capstone/capstone_x86_64.C capstone/capstone_ppc.C PARENT_SCOPE) 
+    capstone/capstone_x86.C capstone/capstone_ppc.C PARENT_SCOPE) 
 
     SET(FLEECE_DECODER_LIBRARIES ${FLEECE_DECODER_LIBRARIES} capstone PARENT_SCOPE)
 

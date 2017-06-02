@@ -7,4 +7,4 @@ bool init_armv6() {
     return true;
 }
 
-Architecture* arch_armv6 = new Architecture("armv6", 4, &init_armv6);
+Architecture* arch_armv6 = new Architecture("armv6", 4, &init_armv6, NULL);

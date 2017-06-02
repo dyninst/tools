@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "Architecture.h"
 
+extern void x86_32_norm(char* buf, int bufLen);
+
 bool x86_32_init() {
     RegisterSet* gp_32bit = new RegisterSet("%reg4");
     gp_32bit->addRegName("%eax");
@@ -66,4 +68,4 @@ bool x86_32_init() {
     return true;
 }
 
-Architecture arch_x86_32 = Architecture("x86_32", 15, &x86_32_init);
+Architecture arch_x86_32 = Architecture("x86_32", 15, &x86_32_init, &x86_32_norm);

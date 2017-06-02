@@ -54,11 +54,4 @@ int gnu_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
     return !(rc > 0);
 }
 
-void gnu_aarch64_norm(char* buf, int bufLen) {
-    cleanSpaces(buf, bufLen);
-    toLowerCase(buf, bufLen);
-    spaceAfterCommas(buf, bufLen);
-    removeComments(buf, bufLen);
-}
-Decoder* dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, 
-            &gnu_aarch64_norm, "gnu", "aarch64");
+Decoder* dec_gnu_aarch64 = new Decoder(&gnu_aarch64_decode, NULL, NULL, "gnu", "aarch64");

@@ -56,10 +56,4 @@ int gnu_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
     return !(rc > 0);
 }
 
-void gnu_ppc_norm(char* buf, int bufLen) {
-    toLowerCase(buf, bufLen);
-    cleanSpaces(buf, bufLen);
-    spaceAfterCommas(buf, bufLen);
-}
-Decoder* dec_gnu_ppc = new Decoder(&gnu_ppc_decode, NULL, 
-            &gnu_ppc_norm, "gnu", "ppc");
+Decoder* dec_gnu_ppc = new Decoder(&gnu_ppc_decode, NULL, NULL, "gnu", "ppc");

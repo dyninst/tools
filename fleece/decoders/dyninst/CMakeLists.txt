@@ -8,7 +8,7 @@ IF(NOT DYNINST_DIR STREQUAL "")
 
     # Set the sources that should be compiled into the library
     SET(FLEECE_DECODER_SOURCE ${FLEECE_DECODER_SOURCE} dyninst/dyninst_aarch64.C
-    dyninst/dyninst_x86_32.C dyninst/dyninst_x86_64.C dyninst/dyninst_ppc.C PARENT_SCOPE) 
+    dyninst/dyninst_x86.C dyninst/dyninst_ppc.C PARENT_SCOPE) 
 
     SET(FLEECE_DECODER_LIBRARIES ${FLEECE_DECODER_LIBRARIES} instructionAPI PARENT_SCOPE)
 

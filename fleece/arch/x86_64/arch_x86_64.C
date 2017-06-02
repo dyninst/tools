@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "Architecture.h"
 
+extern void x86_64_norm(char* buf, int bufLen);
+
 bool x86_64_init() {
     RegisterSet* gp_64bit = RegisterSet::makeFormattedRegSet("%reg8", "%%r%d", 8, 15);
     gp_64bit->addRegName("%rax");
@@ -79,4 +81,4 @@ bool x86_64_init() {
     return true;
 }
 
-Architecture arch_x86_64 = Architecture("x86_64", 15, &x86_64_init);
+Architecture arch_x86_64 = Architecture("x86_64", 15, &x86_64_init, &x86_64_norm);

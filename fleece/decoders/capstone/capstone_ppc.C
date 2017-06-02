@@ -60,7 +60,7 @@ void addMissing0AfterBranch(char* buf, int bufLen) {
 
 FindList* initAddMissing0BeforeParenFindList() {
     FindList* fl = new FindList(877);
-    addReplaceTerm(*fl, " (", " 0(");
+    Normalization::addReplaceTerm(*fl, " (", " 0(");
     return fl;
 }
 

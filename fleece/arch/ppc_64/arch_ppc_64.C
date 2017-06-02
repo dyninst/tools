@@ -16,4 +16,4 @@ bool init_ppc_64() {
     return true;
 }
 
-Architecture* arch_ppc_64 = new Architecture("ppc_64", 4, &init_ppc_64);
+Architecture* arch_ppc_64 = new Architecture("ppc_64", 4, &init_ppc_64, NULL);

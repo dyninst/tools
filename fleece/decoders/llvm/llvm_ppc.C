@@ -136,10 +136,35 @@ int llvm_ppc_decode(char* inst, int nBytes, char* buf, int bufLen) {
     return !bytesUsed;
 }
 
-void llvm_ppc_norm(char* buf, int bufLen) {
-    cleanSpaces(buf, bufLen);
-    toLowerCase(buf, bufLen);
+int llvm_ppc_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
+
+    static LLVMDisasmContextRef disasm = LLVMCreateDisasm(
+            "powerpc-unknown-unknown", 
+            nullptr, 
+            0, 
+            nullptr, 
+            LLVMCallback);
+
+    if (wouldLlvmPpcInsnSig(inst, nBytes)) {
+        strncpy(buf, "would_sig", bufLen);
+        return 1;
+    }
+
+    size_t bytesUsed = LLVMDisasmInstruction(
+            disasm, 
+            (uint8_t*)inst, 
+            nBytes, 
+            0, 
+            buf, 
+            (size_t)bufLen);
+
+    if (!bytesUsed) {
+       strncpy(buf, "llvm_decoding_error", bufLen);
+    }
+
+    return !bytesUsed;
 }
 
-Decoder* dec_llvm_ppc = new Decoder(&llvm_ppc_decode, &LLVMInit, 
-            &llvm_ppc_norm, "llvm", "ppc");
+Decoder* dec_llvm_ppc_32 = new Decoder(&llvm_ppc_32_decode, &LLVMInit, NULL, "llvm", "ppc32");
+
+Decoder* dec_llvm_ppc = new Decoder(&llvm_ppc_decode, &LLVMInit, NULL, "llvm", "ppc");

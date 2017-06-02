@@ -58,12 +58,4 @@ int llvm_armv6_decode(char* inst, int nBytes, char* buf, int bufLen) {
     return !bytesUsed;
 }
 
-void llvm_armv6_norm(char* buf, int bufLen) {
-
-    // NORMALIZATION STEPS
-    cleanSpaces(buf, bufLen);
-    removeComments(buf, bufLen);
-}
-
-Decoder* dec_llvm_armv6 = new Decoder(&llvm_armv6_decode, &LLVMInit,
-            &llvm_armv6_norm, "llvm", "armv6");
+Decoder* dec_llvm_armv6 = new Decoder(&llvm_armv6_decode, &LLVMInit, NULL, "llvm", "armv6");

@@ -77,7 +77,11 @@ void Decoder::printAllNames(void) {
 }
 
 void Decoder::normalize(char* buf, int bufLen) {
-    normFunc(buf, bufLen);
+    Normalization::applyGenericNormalization(buf, bufLen);
+    Architecture::applyArchitectureSpecificNormalization(buf, bufLen);
+    if (normFunc != NULL) {
+        normFunc(buf, bufLen);
+    }
 }
 
 

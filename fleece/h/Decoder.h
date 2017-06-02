@@ -27,6 +27,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include "Architecture.h"
+#include "Normalization.h"
 
 /*
  * The Decoder class is a combination of:

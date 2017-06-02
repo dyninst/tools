@@ -16,4 +16,4 @@ bool init_ppc() {
     return true;
 }
 
-Architecture* arch_ppc = new Architecture("ppc", 4, &init_ppc);
+Architecture* arch_ppc = new Architecture("ppc", 4, &init_ppc, NULL);

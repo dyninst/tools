@@ -21,7 +21,6 @@
  */
 class Architecture {
 public:
-    
     /*
      * Accessors for information regarding the chosen architecture for this run
      * of Fleece.
@@ -47,7 +46,14 @@ public:
      */
     static void replaceRegSets(FieldList& fl);
 
-    Architecture(const char* name, int maxInsnLen, bool (*initFunc)(void));
+    /*
+     * 
+     */
+    static void applyArchitectureSpecificNormalization(char* buf, int bufLen);
+
+    Architecture(const char* name, int maxInsnLen, bool (*initFunc)(void), 
+        void (*normFunc)(char*, int));
+    
 
 private:
 
@@ -74,6 +80,11 @@ private:
      */
     std::unordered_map<const char*, const char*, StringUtils::str_hash, StringUtils::str_eq> regSymbolMap;
 
+    /*
+     * The normalization function called for architecture specific normalization.
+     */
+    void (*normFunc)(char*, int);
+    
     static std::unordered_map<const char*, Architecture*, StringUtils::str_hash, StringUtils::str_eq>
         architectures;
 

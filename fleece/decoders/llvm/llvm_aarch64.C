@@ -75,9 +75,6 @@ int llvm_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 void llvm_aarch64_norm(char* buf, int bufLen) {
-    cleanSpaces(buf, bufLen);
-    removeComments(buf, bufLen);
-    toLowerCase(buf, bufLen);
     trimBraceSpaces(buf, bufLen);
 }
 

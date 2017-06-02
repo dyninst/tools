@@ -25,7 +25,7 @@
 
 FindList* initSwapTestOperandsFindList() {
     FindList* fl = new FindList(877);
-    addOperandSwapTerm(*fl, "test", 0, 1);
+    Normalization::addOperandSwapTerm(*fl, "test", 0, 1);
     return fl;
 }
 
@@ -77,7 +77,7 @@ int capstone_x86_64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
 FindList* initAddMissingCommaAfter1FindList() {
     FindList* fl = new FindList(877);
-    addReplaceTerm(*fl, " $1 ", " $1, ");
+    Normalization::addReplaceTerm(*fl, " $1 ", " $1, ");
     return fl;
 }
 
@@ -88,8 +88,8 @@ void addMissingCommaAfter1(char* buf, int bufLen) {
 
 FindList* initSwapPtestOperandsFindList() {
     FindList* fl = new FindList(877);
-    addOperandSwapTerm(*fl, "ptest", 0, 1);
-    addReplaceTerm(*fl, "{%k0}", "");
+    Normalization::addOperandSwapTerm(*fl, "ptest", 0, 1);
+    Normalization::addReplaceTerm(*fl, "{%k0}", "");
     return fl;
 }
 
@@ -98,20 +98,43 @@ void swapPtestOperands(char* buf, int bufLen) {
     fl->process(buf, bufLen);
 }
 
-void capstone_x86_64_norm(char* buf, int bufLen) {
-    cleanX86NOP(buf, bufLen);
-    //trimHexFs(buf, bufLen);
-    //trimHexZeroes(buf, bufLen);
-    //swapTestOperands(buf, bufLen);
-    signedOperands(buf, bufLen);
-    swapPtestOperands(buf, bufLen);
-    spaceAfterCommas(buf, bufLen);
-    cleanSpaces(buf, bufLen);
-    addImpliedX86Index(buf, bufLen);
-    addMissing0x0(buf, bufLen);
-    fixCallSuffix(buf, bufLen);
-    addMissingCommaAfter1(buf, bufLen);
-    removeImplicitST0(buf, bufLen);
+csh makeX86_32CSHandle() {
+    csh handle;
+    if (cs_open(CS_ARCH_X86, CS_MODE_32, &handle) != CS_ERR_OK) {
+        std::cerr << "ERROR: Capstone could not start!\n";
+        exit(-1);
+    }
+    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+    return handle;
 }
+
+int capstone_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
+
+    static csh handle = makeX86_32CSHandle();
+    cs_insn *insn;
+
+    if (capstoneWillCrash(inst, nBytes)) {
+        strncpy(buf, "would_sig", bufLen);
+        return 0;
+    }
+
+    int nInsns = cs_disasm(handle, (uint8_t*)inst, nBytes, 0, 0, &insn);
+   
+    if (nInsns < 1) {
+        return -1;
+    }
+   
+    snprintf(buf, bufLen, "%s %s", insn[0].mnemonic, insn[0].op_str);
+    cs_free(insn, nInsns);
+    return 0;
+
+}
+
+void capstone_x86_norm(char* buf, int bufLen) {
+    swapPtestOperands(buf, bufLen);
+    addMissingCommaAfter1(buf, bufLen);
+}
+Decoder* dec_capstone_x86_32 = new Decoder(&capstone_x86_32_decode, NULL, 
+            &capstone_x86_norm, "capstone", "x86_32");
 Decoder* dec_capstone_x86_64 = new Decoder(&capstone_x86_64_decode, NULL, 
-            &capstone_x86_64_norm, "capstone", "x86_64");
+            &capstone_x86_norm, "capstone", "x86_64");

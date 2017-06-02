@@ -647,4 +647,4 @@ bool init_aarch64() {
     return true;
 }
 
-Architecture* arch_aarch64 = new Architecture("aarch64", 4, &init_aarch64);
+Architecture* arch_aarch64 = new Architecture("aarch64", 4, &init_aarch64, NULL);

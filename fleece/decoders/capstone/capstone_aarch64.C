@@ -85,7 +85,7 @@ void removeADRPPound(char* buf, int bufLen) {
 void capstone_aarch64_norm(char* buf, int bufLen) {
     makeIndexesDecimal(buf, bufLen);
     removeADRPPound(buf, bufLen);
-    cleanSpaces(buf, bufLen);
 }
+
 Decoder* dec_capstone_aarch64 = new Decoder(&capstone_aarch64_decode, NULL, 
             &capstone_aarch64_norm, "capstone", "aarch64");

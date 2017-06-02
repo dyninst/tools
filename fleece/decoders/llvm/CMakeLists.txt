@@ -9,8 +9,7 @@ IF(NOT LLVM_DIR STREQUAL "")
     
     # Set the sources that should be compiled into the library
     set (FLEECE_DECODER_SOURCE ${FLEECE_DECODER_SOURCE} llvm/llvm_common.C llvm/llvm_aarch64.C
-    llvm/llvm_x86_64.C llvm/llvm_x86_32.C llvm/llvm_armv6.C llvm/llvm_ppc.C llvm/llvm_ppc_32.C
-    PARENT_SCOPE)
+    llvm/llvm_x86.C llvm/llvm_armv6.C llvm/llvm_ppc.C PARENT_SCOPE)
 
     SET(FLEECE_DECODER_LIBRARIES ${FLEECE_DECODER_LIBRARIES} 
         LLVMMC

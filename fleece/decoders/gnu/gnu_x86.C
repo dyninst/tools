@@ -142,6 +142,16 @@ bool gnuWillCrash(char* inst, int nBytes) {
     return false;
 }
 
+void removePoundComment(char* buf, int bufLen) {
+    char* cur = buf;
+    while (*cur && *cur != '#') {
+        ++cur;
+    }
+    if (*cur == '#') {
+        *cur = '\0';
+    }
+}
+
 static void removeNonAssemblyPrinting(char* buf, int bufLen) {
     removeUnusedSegRegs(buf, bufLen);
     removeRexPrinting(buf, bufLen);
@@ -224,14 +234,14 @@ static void removeIzRegister(char* buf, int bufLen) {
 
 static FindList* initFixKRegsFindList() {
     FindList* fl = new FindList(409);
-    addReplaceTerm(*fl, " k0", " %k0");
-    addReplaceTerm(*fl, " k1", " %k1");
-    addReplaceTerm(*fl, " k2", " %k2");
-    addReplaceTerm(*fl, " k3", " %k3");
-    addReplaceTerm(*fl, " k4", " %k4");
-    addReplaceTerm(*fl, " k5", " %k5");
-    addReplaceTerm(*fl, " k6", " %k6");
-    addReplaceTerm(*fl, " k7", " %k7");
+    Normalization::addReplaceTerm(*fl, " k0", " %k0");
+    Normalization::addReplaceTerm(*fl, " k1", " %k1");
+    Normalization::addReplaceTerm(*fl, " k2", " %k2");
+    Normalization::addReplaceTerm(*fl, " k3", " %k3");
+    Normalization::addReplaceTerm(*fl, " k4", " %k4");
+    Normalization::addReplaceTerm(*fl, " k5", " %k5");
+    Normalization::addReplaceTerm(*fl, " k6", " %k6");
+    Normalization::addReplaceTerm(*fl, " k7", " %k7");
     return fl;
 }
 
@@ -242,22 +252,22 @@ static void fixKRegs(char* buf, int bufLen) {
 
 static FindList* initJumpHintsFindList() {
     FindList* fl = new FindList(409);
-    addReplaceTerm(*fl, "jae, pn", "jae");
-    addReplaceTerm(*fl, "ja, pn", "ja");
-    addReplaceTerm(*fl, "jbe, pn", "jbe");
-    addReplaceTerm(*fl, "jbe, pt", "jbe");
-    addReplaceTerm(*fl, "jl, pn", "jl");
-    addReplaceTerm(*fl, "js, pn", "js");
-    addReplaceTerm(*fl, "jo, pn", "jo");
-    addReplaceTerm(*fl, "jg, pn", "jg");
-    addReplaceTerm(*fl, "jb, pn", "jb");
-    addReplaceTerm(*fl, "jp, pn", "jp");
-    addReplaceTerm(*fl, "jp, pt", "jp");
-    addReplaceTerm(*fl, "js, pt", "js");
-    addReplaceTerm(*fl, "js, pn", "js");
-    addReplaceTerm(*fl, "jnp, pt", "jnp");
-    addReplaceTerm(*fl, "jnp, pn", "jnp");
-    addReplaceTerm(*fl, "jecxz, pn", "jecxz");
+    Normalization::addReplaceTerm(*fl, "jae, pn", "jae");
+    Normalization::addReplaceTerm(*fl, "ja, pn", "ja");
+    Normalization::addReplaceTerm(*fl, "jbe, pn", "jbe");
+    Normalization::addReplaceTerm(*fl, "jbe, pt", "jbe");
+    Normalization::addReplaceTerm(*fl, "jl, pn", "jl");
+    Normalization::addReplaceTerm(*fl, "js, pn", "js");
+    Normalization::addReplaceTerm(*fl, "jo, pn", "jo");
+    Normalization::addReplaceTerm(*fl, "jg, pn", "jg");
+    Normalization::addReplaceTerm(*fl, "jb, pn", "jb");
+    Normalization::addReplaceTerm(*fl, "jp, pn", "jp");
+    Normalization::addReplaceTerm(*fl, "jp, pt", "jp");
+    Normalization::addReplaceTerm(*fl, "js, pt", "js");
+    Normalization::addReplaceTerm(*fl, "js, pn", "js");
+    Normalization::addReplaceTerm(*fl, "jnp, pt", "jnp");
+    Normalization::addReplaceTerm(*fl, "jnp, pn", "jnp");
+    Normalization::addReplaceTerm(*fl, "jecxz, pn", "jecxz");
     return fl;
 }
 
@@ -321,37 +331,13 @@ int gnu_x86_32_decode(char* inst, int nBytes, char* buf, int bufLen) {
 }
 
 
-void gnu_x86_64_norm(char* buf, int bufLen) {
-    cleanSpaces(buf, bufLen);
-    toLowerCase(buf, bufLen);
-    spaceAfterCommas(buf, bufLen);
-    removeUnusedRepPrefixes(buf, bufLen);
-    removeUnusedOverridePrefixes(buf, bufLen);
-    removeUnused64BitSegRegs(buf, bufLen);
+void gnu_x86_norm(char* buf, int bufLen) {
     removeIzRegister(buf, bufLen);
-    removeX86Hints(buf, bufLen);
     removeJumpHints(buf, bufLen);
     fixKRegs(buf, bufLen);
-    signedOperands(buf, bufLen);
-    cleanSpaces(buf, bufLen);
-    cleanX86NOP(buf, bufLen);
 }
 
-void gnu_x86_32_norm(char* buf, int bufLen) {
-    cleanSpaces(buf, bufLen);
-    toLowerCase(buf, bufLen);
-    spaceAfterCommas(buf, bufLen);
-    removeUnusedRepPrefixes(buf, bufLen);
-    removeUnusedOverridePrefixes(buf, bufLen);
-    removeIzRegister(buf, bufLen);
-    removeX86Hints(buf, bufLen);
-    removeJumpHints(buf, bufLen);
-    fixKRegs(buf, bufLen);
-    signedOperands(buf, bufLen);
-    cleanSpaces(buf, bufLen);
-    cleanX86NOP(buf, bufLen);
-}
 Decoder* dec_gnu_x86_64 = new Decoder(&gnu_x86_64_decode, NULL, 
-            &gnu_x86_64_norm, "gnu", "x86_64");
+            &gnu_x86_norm, "gnu", "x86_64");
 Decoder* dec_gnu_x86_32 = new Decoder(&gnu_x86_32_decode, NULL, 
-            &gnu_x86_32_norm, "gnu", "x86_32");
+            &gnu_x86_norm, "gnu", "x86_32");

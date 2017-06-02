@@ -5,10 +5,11 @@
 Architecture* Architecture::currentArch = NULL;
 std::unordered_map<const char*, Architecture*, StringUtils::str_hash, StringUtils::str_eq> Architecture::architectures;
 
-Architecture::Architecture(const char* name, int maxInsnLen, bool (*initFunc)(void)) {
+Architecture::Architecture(const char* name, int maxInsnLen, bool (*initFunc)(void), void (*normFunc)(char*, int)) {
     this->name = strdup(name);
     this->maxInsnLen = maxInsnLen;
     this->initFunc = initFunc;
+    this->normFunc = normFunc;
     architectures.insert(std::make_pair(name, this));
 }
 
@@ -47,5 +48,11 @@ void Architecture::replaceRegSets(FieldList& fl) {
         if (name != currentArch->regSymbolMap.end()) {
             fl.setField(i, name->second);
         }       
+    }
+}
+
+void Architecture::applyArchitectureSpecificNormalization(char* buf, int bufLen) {
+    if (currentArch->normFunc != NULL) {
+        currentArch->normFunc(buf, bufLen);
     }
 }

@@ -27,6 +27,8 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
+bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen);
+
 int dyninst_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
 
     if (nBytes <= 0) {
@@ -42,6 +44,24 @@ int dyninst_aarch64_decode(char* inst, int nBytes, char* buf, int bufLen) {
     strncpy(buf, p->format().c_str(), bufLen);
 
     return 0;
+}
+
+void convertToDec(char* buf, int bufLen) {
+    char tmpBuf[bufLen];
+    char* end; 
+    long long int val = strtoll(buf, &end, 16);
+    snprintf(&tmpBuf[0], bufLen, "%lld%s", val, end);
+    strncpy(buf, &tmpBuf[0], bufLen);
+}
+
+void hexToDecConstants(char* buf, int bufLen) {
+   char* cur = buf;
+   while (*cur) {
+        if (!strncmp(cur, "0x", 2)) {
+            convertToDec(cur, bufLen - (cur - buf));
+        }
+        ++cur;
+    }
 }
 
 void replacePlusWithComma(char* buf, int bufLen) {
@@ -132,18 +152,18 @@ void addCommaToOperandShifts(char* buf, int bufLen) {
 */
 FindList* initRemoveUnnecessaryOpcode2FindList() {
     FindList* fl = new FindList(877);
-    addReplaceTerm(*fl, "mul2 ", "mul ");
-    addReplaceTerm(*fl, "fmla2 ", "fmla ");
-    addReplaceTerm(*fl, "fmls2 ", "fmls ");
-    addReplaceTerm(*fl, "fmulx2 ", "fmulx ");
-    addReplaceTerm(*fl, "rev162 ", "rev16 ");
-    addReplaceTerm(*fl, "rev322 ", "rev32 ");
-    addReplaceTerm(*fl, "rev642 ", "rev64 ");
-    addReplaceTerm(*fl, "sqneg2 ", "sqneg ");
-    addReplaceTerm(*fl, "usqadd2 ", "usqadd ");
-    addReplaceTerm(*fl, "suqadd2 ", "suqadd ");
-    addReplaceTerm(*fl, "sqabs2 ", "sqabs ");
-    addReplaceTerm(*fl, "sqrdmulh2 ", "sqrdmulh ");
+    Normalization::addReplaceTerm(*fl, "mul2 ", "mul ");
+    Normalization::addReplaceTerm(*fl, "fmla2 ", "fmla ");
+    Normalization::addReplaceTerm(*fl, "fmls2 ", "fmls ");
+    Normalization::addReplaceTerm(*fl, "fmulx2 ", "fmulx ");
+    Normalization::addReplaceTerm(*fl, "rev162 ", "rev16 ");
+    Normalization::addReplaceTerm(*fl, "rev322 ", "rev32 ");
+    Normalization::addReplaceTerm(*fl, "rev642 ", "rev64 ");
+    Normalization::addReplaceTerm(*fl, "sqneg2 ", "sqneg ");
+    Normalization::addReplaceTerm(*fl, "usqadd2 ", "usqadd ");
+    Normalization::addReplaceTerm(*fl, "suqadd2 ", "suqadd ");
+    Normalization::addReplaceTerm(*fl, "sqabs2 ", "sqabs ");
+    Normalization::addReplaceTerm(*fl, "sqrdmulh2 ", "sqrdmulh ");
     return fl;
 }
 
@@ -158,10 +178,10 @@ void removeUnnecessaryOpcode2(char* buf, int bufLen) {
 
 FindList* initRemoveImplicitOperandsFindList() {
     FindList* fl = new FindList(877);
-    addReplaceTerm(*fl, " pc +", "");
-    addReplaceTerm(*fl, ", pc", "");
-    addReplaceTerm(*fl, ", pstate", "");
-    addReplaceTerm(*fl, "pstate", "");
+    Normalization::addReplaceTerm(*fl, " pc +", "");
+    Normalization::addReplaceTerm(*fl, ", pc", "");
+    Normalization::addReplaceTerm(*fl, ", pstate", "");
+    Normalization::addReplaceTerm(*fl, "pstate", "");
     return fl;
 }
 
@@ -266,8 +286,31 @@ void removeTrailingBranchComma(char* buf, int bufLen) {
     }
 }
 
+bool isAarch64SysRegInsn(char* inst, int nBytes, char* buf, int bufLen) {
+   
+    if (inst[3] == (char)0xD5) {
+      
+        if ((inst[2] & 0xF0) == (char)0x30 ||
+            (inst[2] & 0xF0) == (char)0x10) {
+         
+            strncpy(buf, "MOVE SYSTEM REGISTER", bufLen);
+            buf[bufLen - 1] = 0;
+            return true;
+
+        } else if ((inst[2] & 0xF8) == (char)0x00 &&
+                   (inst[1] & 0xF0) == (char)0x40 &&
+                   (inst[0] & 0x1F) == (char)0x1F) {
+
+            strncpy(buf, "MOVE SYSTEM REGISTER", bufLen);
+            buf[bufLen - 1] = 0;
+            return true;
+      
+        }
+    }
+    return false;
+}
+
 void dyninst_aarch64_norm(char* buf, int bufLen) {
-    toLowerCase(buf, bufLen);
     fixSIMDMemOperands(buf, bufLen);
     removeImplicitOperands(buf, bufLen);
     addCommaToOperandShifts(buf, bufLen);
