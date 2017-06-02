@@ -4,9 +4,7 @@ FieldList.C FindList.C Info.C MappedInsn.C Mask.C Reassemble.C StringUtils.C Opt
 ReassemblyDaemon.C
 RegisterSet.C SimpleInsnMap.C)
 
-# When binaries link against this library, which headers should be included?
-include_directories (${PROJECT_SOURCE_DIR}/h})
-
 # Build these sources as libfleeceutil (.so on Linux or .dll on Windows)
 add_library(fleeceutil SHARED ${FLEECE_UTIL_SOURCE})
+target_include_directories(fleeceutil PUBLIC "${PROJECT_SOURCE_DIR}/h")
 

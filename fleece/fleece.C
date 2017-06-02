@@ -206,12 +206,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Record the time reported and report stats to std::cerr regularly.
+    // Record the time reported and report stats to std::cout regularly.
     unsigned long firstTime = time(NULL);
     unsigned long lastTime = firstTime;
-
-    // Output a header to std::cerr.
-    std::cerr << "decoded, queued, reports, matches, suppressed\n";
 
     // The current instruction in the loop.
     char* curInsn = NULL;
@@ -234,10 +231,9 @@ int main(int argc, char** argv) {
             lastTime = newTime;
          
             // Output instructions decoded and summary of reporting done.
-            std::cerr << "Queued: " << remainingInsns.size() << ", ";
-            repContext->printSummary(stderr);
-            std::cerr << "Num. Inputs: " << i << "\n";
-            std::cerr << "Num. Formats seen: " << nFormatsSeen << "\n";
+            std::cout << "Num Insns Tested: " << i << "\n";
+            std::cout << "Num Insns To Test: " << remainingInsns.size() << ", ";
+            repContext->printSummary(stdout);
 
             //if (i > 1) exit(-1);
 

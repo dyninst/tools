@@ -20,13 +20,9 @@ ENDFOREACH()
 set (FLEECE_LIBRARIES fleeceutil fleecedecoders fleecereporting fleecearch)
 set (OTHER_LIBRARIES z rt bfd iberty dl elf)
 
-set (CMAKE_CXX_FLAGS "-std=c++0x -g")
-set (CMAKE_C_FLAGS "-g")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb -gdwarf-2 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
-
-add_definitions(-std=c++0x -g)
 
 include_directories(${PROJECT_BINARY_DIR}/h)
 link_directories(${DEPS_LIBDIR})
@@ -39,4 +35,4 @@ set (ALL_LIBRARIES ${FLEECE_LIBRARIES} ${FLEECE_DECODER_LIBRARIES} ${OTHER_LIBRA
 
 add_executable(fleece fleece.C)
 target_link_libraries(fleece LINK_PUBLIC ${ALL_LIBRARIES})
-target_include_directories(fleece PUBLIC "h")
+target_include_directories(fleece PUBLIC "${PROJECT_SOURCE_DIR}/h")

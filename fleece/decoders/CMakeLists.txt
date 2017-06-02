@@ -42,5 +42,7 @@ ENDFOREACH()
 # When binaries link against this library, which headers should be included?
 include_directories ("${PROJECT_SOURCE_DIR}/h" ${DEPS_INCLUDEDIR})
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 # Build these sources as libfleecedecoders (.so on Linux or .dll on Windows)
 add_library(fleecedecoders SHARED ${FLEECE_DECODER_SOURCE})
