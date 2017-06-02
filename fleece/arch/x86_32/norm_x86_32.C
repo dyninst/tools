@@ -448,6 +448,7 @@ static void removeImplicitK0(char* buf, int bufLen) {
 }
 
 void x86_32_norm(char* buf, int bufLen) {
+    removeUnusedOverridePrefixes(buf, bufLen);
     removeUnused64BitSegRegs(buf, bufLen);
     addImpliedX86Index(buf, bufLen);
     removeImplicitK0(buf, bufLen);

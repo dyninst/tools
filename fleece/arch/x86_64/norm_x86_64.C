@@ -466,4 +466,5 @@ void x86_64_norm(char* buf, int bufLen) {
     addMissing0x0(buf, bufLen);
     fixMaskName(buf, bufLen);
     decToHexConstants(buf, bufLen);
+    removeUnusedOverridePrefixes(buf, bufLen);
 }
