@@ -22,8 +22,8 @@ x86 (32 and 64 bit), ARMv8 and PowerPC (32 and 64 bit) are supported. Fleece inc
 that allow users to easily test XED, LLVM, binutils (libopcodes), capstone and dyninst, provided
 that the tools are installed.
 
-For information on adding a new decoder or architecture, see docs/AddingDecoders.txt or
-docs/AddingArchitectures.txt.
+For information on adding a new decoder or architecture, see doc/AddingDecoders.txt or
+doc/AddingArchitectures.txt.
 
 ## Building Fleece
 
@@ -71,3 +71,11 @@ For additional Fleece options, execute:
 
 ./fleece --help
 
+
+## Building for only certain decoders and architectures
+
+You can prevent Fleece from building decoders by leaving their library directories blank in
+cmake.
+
+You can prevent Fleece from building for architectures by leaving the ENABLE\_ARCH flags set
+to OFF.

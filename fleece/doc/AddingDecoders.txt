@@ -22,3 +22,33 @@ To add a decoder to Fleece, you must provide two functions:
        can be assembled by the assembler used for testing.
     2. Place at most bufLen characters into the buffer.
     3. Maintain the null terminator of the c-string.
+
+If the decoder is from a project that is already supported by Fleece, you can add it to the existing
+folder (for example, a SPARC decoder from GNU's libopcodes could go in decoders\gnu). If the decoder
+is from a project not already supported by Fleece, add a directory in the decoders directory. Your
+new directory should have a CMakeLists.txt file similar to the files in existing decoder
+subdirectories. A good place to start is just copying the file decoders/gnu/CMakeLists.txt and
+replacing references to GNU with an identifier for your own decoder.
+
+There are only really two tricky lines from decoders/gnu/CMakeLists.txt, so I'll cover those in
+detail.
+
+First, this line:
+    SET(FLEECE_DECODER_SOURCE ${FLEECE_DECODER_SOURCE} gnu/gnu_aarch64.C gnu/gnu_x86.C gnu/gnu_ppc.C PARENT_SCOPE) 
+
+This line should be changed to contain only the source files for decoders you provide, and they must
+include the decoder's directory. Specifically, they must have the relative path to the source file
+starting from the decoders/ directory.
+
+The source line must end with the token PARENT_SCOPE. This tells cmake that you are changing the
+variable from the context of your parent directory (decoders/). When CMakeLists.txt in the
+decoders/ directory is used to compile all of the included decoders into a library, it will include
+your files because you changed the variable FLEECE_DECODER_SOURCE to include them.
+
+Next, this line:
+    SET(FLEECE_DECODER_LIBRARIES ${FLEECE_DECODER_LIBRARIES} opcodes PARENT_SCOPE)
+
+This line is similar to the above, but instead of including source files, you are listing
+dependenices. Again, you should include the PARENT_SCOPE signifier so that the cmake knows the
+dependencies from the decoders/ directory, where it will be building a decoder library containing all
+decoders.

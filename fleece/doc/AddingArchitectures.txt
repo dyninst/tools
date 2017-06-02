@@ -1,0 +1,23 @@
+Adding support for a new archtecture to Fleece requires 3 steps:
+    1. Adding a directory and CMakeLists.txt file for the architecture.
+    2. Instantiating an Architecture object which contains:
+         - the architecture name
+         - the architecture's maximum instruction length
+         - an initialization function that declares architecture register sets
+         - an architecture-specific normalization function (can be NULL)
+    3. Decoders that support this architecture (see doc/AddingDecoders.txt for more info)
+
+For a minimal look at adding an architecture, check out arch/armv6/arch_armv6.C.
+For a slightly more complex
+architecture that contains many more register sets, see arch/aarch64/arch_aarch64.C. 
+For a complex architecture
+with many register sets and extensive normalization functions, see arch/x86_64/arch_x86_64.C.
+
+Note: Adding an architecture will NOT require any changes to arch/Architecture.C or
+arch/CMakeLists.txt. A good starting point for adding support for a new architecture would simply be
+copying arch/armv6 and its contents to a new directory in arch/ and editting the copy.
+
+Once you have instantiated an Architecture object (perhaps with the name "sparc"),
+your architecture will be fully integrated into Fleece, including the runtime arguments.
+You can run Fleece using this architecture as you would with any other by running
+./fleece -arch=sparc <rest of fleece args>
