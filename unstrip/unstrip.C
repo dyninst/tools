@@ -225,7 +225,7 @@ int main(int argc, char **argv)
         vector<ParseAPI::FuncExtent *> const& exts = f->extents();
         size_t size = exts.back()->end() - f->addr();
 
-        if(f->src() != ParseAPI::HINT) {
+        if(f->src() != ParseAPI::HINT && sts->linkage().find(f->addr()) == sts->linkage().end()) {
             symtab->createFunction(f->name(),f->addr(),size,defmod);
         }
     
