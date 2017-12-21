@@ -14,11 +14,24 @@ using namespace std;
 
 class bbRecord {
 public:
-  string funcName;
-  string modName;
-  unsigned long address;
-  unsigned long count;
-  bbRecord() : funcName(""), modName(""), address(0), count(0) {}
+    string funcName;
+    string modName;
+    unsigned long address;
+    unsigned long count;
+    bbRecord() : funcName(""), modName(""), address(0), count(0) {}
+    static bool compareBBRecordByName(const bbRecord& left, const bbRecord &right) {
+        if (left.funcName == right.funcName) {
+            return left.count > right.count;
+        }
+        return left.funcName < right.funcName;
+    }
+    static bool compareBBRecordByCount(const bbRecord& left, const bbRecord &right) {
+        if (left.count == right.count) {
+            return left.funcName < right.funcName;
+        }
+        return left.count > right.count;
+    }
+
 };
 
 class funcRecord {
@@ -27,49 +40,25 @@ public:
     string modName;
     unsigned long count;
     funcRecord() : funcName(""), modName(""), count(0) {}
+    static bool compareFuncRecordByName(const funcRecord& left, const funcRecord &right) {
+        if (left.funcName == right.funcName) {
+            return left.count > right.count;
+        }
+        return left.funcName < right.funcName;
+    }
+    static bool compareFuncRecordByCount(const funcRecord& left, const funcRecord &right) {
+        if (left.count == right.count) {
+            return left.funcName < right.funcName;
+        }
+        return left.count > right.count;
+    }
+
 };
 
 
-// Used to records via qsort
-static int compareFuncRecordByName(const void *left, const void *right) {
-    funcRecord *leftRecord = (funcRecord *)left;
-    funcRecord *rightRecord = (funcRecord *)right;
-
-    return leftRecord->funcName.compare(rightRecord->funcName);
-}
-
-static int compareFuncRecordByCount(const void *left, const void *right) {
-    funcRecord *leftRecord = (funcRecord *)left;
-    funcRecord *rightRecord = (funcRecord *)right;
-
-    if( leftRecord->count < rightRecord->count ) return 1;
-
-    if( leftRecord->count > rightRecord->count ) return -1;
-
-    return 0;
-}
-
-static int compareBBRecordByName(const void *left, const void *right) {
-    bbRecord *leftRecord = (bbRecord *)left;
-    bbRecord *rightRecord = (bbRecord *)right;
-
-    return leftRecord->funcName.compare(rightRecord->funcName);
-}
-
-static int compareBBRecordByCount(const void *left, const void *right) {
-    bbRecord *leftRecord = (bbRecord *)left;
-    bbRecord *rightRecord = (bbRecord *)right;
-
-    if( leftRecord->count < rightRecord->count ) return 1;
-
-    if( leftRecord->count > rightRecord->count ) return -1;
-
-    return 0;
-}
-
 // For efficency in instrumentation, indexed by id
-static bbRecord *bbs;
-static funcRecord *funcs;
+static vector<bbRecord> bbs;
+static vector<funcRecord> funcs;
 
 int numFuncs = 0;
 int numBBs = 0;
@@ -79,17 +68,14 @@ int enabled = 0;
 void initCoverage(int totalFuncs, int totalBBs) {
     numFuncs = totalFuncs;
     numBBs = totalBBs;
-
-    funcs = new funcRecord[numFuncs];
-    bbs = new bbRecord[numBBs];
-
+    funcs.resize(numFuncs);
+    bbs.resize(numBBs);
     enabled = 1;
 }
 
 // Populates a record for a function
 void registerFunc(int id, char *name, char *modName) {
     if( !enabled ) return;
-
     funcs[id].funcName = name;
     funcs[id].modName = modName;
     funcs[id].count = 0;
@@ -98,7 +84,6 @@ void registerFunc(int id, char *name, char *modName) {
 // Populates a record for a basic block
 void registerBB(int id, char *name, char *modName, unsigned long addr) {
     if( !enabled ) return;
-
     bbs[id].funcName = name;
     bbs[id].modName = modName;
     bbs[id].address = addr;
@@ -108,7 +93,6 @@ void registerBB(int id, char *name, char *modName, unsigned long addr) {
 // Should be called on function entry 
 void incFuncCoverage(int id) {
   if( !enabled ) return;
-
   funcs[id].count++;
 }
 
@@ -125,8 +109,8 @@ void exitCoverage(int printAll, int printBasicBlocks, int sortAlphabetical) {
 
   printf("\n\n ************************** Code Coverage ************************* \n\n");
   int count = 0;
-  if( sortAlphabetical ) qsort(funcs, numFuncs, sizeof(funcRecord), &compareFuncRecordByName);
-  else qsort(funcs, numFuncs, sizeof(funcRecord), &compareFuncRecordByCount);
+  if( sortAlphabetical ) sort(funcs.begin(), funcs.end(), funcRecord::compareFuncRecordByName);
+  else sort(funcs.begin(), funcs.end(), funcRecord::compareFuncRecordByCount);
 
   for(int i = 0; i < numFuncs; ++i) {
       if( funcs[i].count > 0 ) count++;
@@ -138,8 +122,8 @@ void exitCoverage(int printAll, int printBasicBlocks, int sortAlphabetical) {
   if (printBasicBlocks) {
     int bbCount = 0;
     printf("\n\n ************************** Basic Block Coverage ************************* \n\n");
-    if( sortAlphabetical ) qsort(bbs, numBBs, sizeof(bbRecord), &compareBBRecordByName);
-    else qsort(bbs, numBBs, sizeof(bbRecord), &compareBBRecordByCount);
+    if( sortAlphabetical ) sort(bbs.begin(), bbs.end(), bbRecord::compareBBRecordByName);
+    else sort(bbs.begin(), bbs.end(), bbRecord::compareBBRecordByCount);
 
     string curFunc;
     string curMod;

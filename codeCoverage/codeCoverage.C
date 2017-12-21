@@ -28,6 +28,10 @@ using namespace std;
 #include "BPatch_function.h"
 #include "BPatch_point.h"
 
+#include "BPatch_object.h"
+#include "BPatch_module.h"
+
+
 using namespace Dyninst;
 
 static const char *USAGE = " [-bpsa] <binary> <output binary>\n \
@@ -47,6 +51,9 @@ bool bbCoverage = false;
 int alphabetical = 0;
 
 set < string > skipLibraries;
+
+/* Every Dyninst mutator needs to declare one instance of BPatch */
+BPatch bpatch;
 
 void initSkipLibraries ()
 {
@@ -234,8 +241,6 @@ int main (int argc, char *argv[])
     /* Initialize list of libraries that should not be instrumented - relevant only if includeSharedLib is true */
     initSkipLibraries ();
 
-    /* Every Dyninst mutator needs to declare one instance of BPatch */
-    BPatch bpatch;
 
     /* Open the specified binary for binary rewriting. 
      * When the second parameter is set to true, all the library dependencies 
@@ -297,7 +302,7 @@ int main (int argc, char *argv[])
         if ((*moduleIter)->isSharedLib ()) {
             if (!includeSharedLib
                     || skipLibraries.find (moduleName) != skipLibraries.end ()) {
-                cout << "Skipping library: " << moduleName << endl;
+//                cout << "Skipping library: " << moduleName << endl;
                 continue;
             }
         }
@@ -339,11 +344,16 @@ int main (int argc, char *argv[])
             BPatch_Vector < BPatch_snippet * >regArgs;
             BPatch_constExpr funcIdReg (funcIndex);
             regArgs.push_back (&funcIdReg);
+
+            /* BPatch_constExpr will internally make a deep copy of the string */
             BPatch_constExpr coverageFunc (funcName);
             regArgs.push_back (&coverageFunc);
             BPatch_constExpr coverageModule (passedModName.c_str ());
             regArgs.push_back (&coverageModule);
 
+            /* BPatch_funcCallExpr will make a copy of regArgs.
+             * So, it is fine to define regArgs and BPatch_constExpr as local variables.
+             */
             BPatch_funcCallExpr *regCall =
                 new BPatch_funcCallExpr (*registerFunc, regArgs);
             registerCalls.push_back (regCall);
@@ -391,7 +401,7 @@ int main (int argc, char *argv[])
             char modName[1024];
             mod->getName(modName, 1024);
              if (!mod->isSharedLib ()) {
-                mod->insertInitCallback(initSequence);
+                mod->getObject()->insertInitCallback(initSequence);
                 cerr << "insertInitCallback on " << modName << endl;
             }
         }
@@ -425,7 +435,7 @@ int main (int argc, char *argv[])
             char modName[1024];
             mod->getName(modName, 1024);
              if (!mod->isSharedLib ()) {
-                mod->insertFiniCallback(instExitExpr);
+                mod->getObject()->insertFiniCallback(instExitExpr);
                 cerr << "insertFiniCallback on " << modName << endl;
             }
         }
