@@ -5,7 +5,7 @@ set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
       STRING "Choose the type of build." FORCE)
 SET(CMAKE_CXX_STANDARD 11)
 
-project(cuda_sync_identifier)
+project(cuda_sync_analyzer)
 
 # See https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
 # for below rpath configuration
