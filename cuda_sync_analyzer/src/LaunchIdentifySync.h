@@ -37,8 +37,8 @@
 #include "set"
 #include "LogInfo.h"
 #include "Constants.h"
-#include "StackPoint.h"
-#include "StackStorage.h"
+//#include "StackPoint.h"
+//#include "StackStorage.h"
 
 using namespace Dyninst;
 using namespace ParseAPI;

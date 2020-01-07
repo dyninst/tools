@@ -33,7 +33,7 @@ uint64_t DynOpsClass::GetSyncFunctionLocation() {
 	return _syncLocation;
 }
 
-
+/*
 bool DynOpsClass::FillStackpoint(BPatch_addressSpace * aspace, StackPoint & p) {
 	BPatch_function * func;
 	SymbolLookup tmp(p.libname);
@@ -85,7 +85,7 @@ int DynOpsClass::FindFuncByStackPoint(BPatch_addressSpace * aspace, BPatch_funct
 
 	return tmp; 
 }
-
+*/
 bool DynOpsClass::IsNeverInstriment(BPatch_function * func) {
 	static std::vector<std::string> librariesToSkip = {"libstdc++","libgcc","xerces-c","libelf", "libscalapack", "dyninst_10", "dyninst/build", "libessl", "dyninst/install","cudadedup-develop", "/opt/mellanox", "/usr/lib64/librt-", "spectrum-mpi", "ld-2.17", "libpthread-2.17.so"};
     std::string tmpLibname = func->getModule()->getObject()->pathName();
@@ -119,7 +119,7 @@ void DynOpsClass::GenerateAddrList(BPatch_addressSpace * aspace) {
 	}
 }
 
-
+/*
 BPatch_function * DynOpsClass::FindFunctionInAddrList(BPatch_addressSpace * aspace, StackPoint & p) {
 	boost::filesystem::path pDir(p.libname);
 	std::string filename = pDir.stem().string();
@@ -143,6 +143,7 @@ BPatch_function * DynOpsClass::FindFunctionInAddrList(BPatch_addressSpace * aspa
 	}
 	return NULL;
 }
+*/
 BPatchPointVecPtr DynOpsClass::GetPoints(BPatch_function * func, const BPatch_procedureLocation pos) {
 	BPatchPointVecPtr ret;
 	ret.reset(func->findPoint(pos));

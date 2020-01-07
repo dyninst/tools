@@ -1,4 +1,5 @@
 #include "LaunchIdentifySync.h"
+
 LaunchIdentifySync::LaunchIdentifySync(std::shared_ptr<DyninstProcess> proc) : _proc(proc) { 
 
 }
@@ -41,7 +42,7 @@ void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace, 
 		if (funcMap.find(i) == funcMap.end() || i < 0x200000){
 			std::cerr << "Could not find function at offset = " << std::hex << i << std::endl;
 		} else {
-			std::cerr << "Inserting Instrimentation info function offset = " << std::hex << i << " with id = " << std::dec << curId<< std::endl;
+			std::cerr << "Inserting Instrumentation into function at offset = " << std::hex << i << " with id = " << std::dec << curId<< std::endl;
 			std::vector<BPatch_snippet*> recordArgs;
 			recordArgs.push_back(new BPatch_constExpr(curId));
 			BPatch_funcCallExpr entryExpr(*cEntry[0], recordArgs);

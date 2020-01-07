@@ -45,10 +45,10 @@
 #include "set"
 #include "LogInfo.h"
 #include "Constants.h"
-#include "StackPoint.h"
-#include "StackStorage.h"
+//#include "StackPoint.h"
+//#include "StackStorage.h"
 #include "LocateCudaSynchronization.h"
-#include "SymbolLookup.h"
+//#include "SymbolLookup.h"
 using namespace Dyninst;
 using namespace ParseAPI;
 using namespace PatchAPI;
@@ -59,7 +59,7 @@ typedef std::shared_ptr<std::vector<BPatch_point *>> BPatchPointVecPtr;
 class DynOpsClass {
 public:
 	DynOpsClass();
-	int FindFuncByStackPoint(BPatch_addressSpace * aspace, BPatch_function * & ret, StackPoint & point);
+	//int FindFuncByStackPoint(BPatch_addressSpace * aspace, BPatch_function * & ret, StackPoint & point);
 	int FindFuncByName(BPatch_addressSpace * aspace, BPatch_function * & ret, std::string name);
 	int FindFuncByLibnameOffset(BPatch_addressSpace * aspace, BPatch_function * & ret, std::string libname, uint64_t offset, bool exact = true);
 	BPatch_object * FindObjectByName(BPatch_addressSpace * aspace, std::string & name, bool exact = true);
@@ -76,12 +76,12 @@ public:
 	std::vector<BPatch_function *> FindFuncsByName(BPatch_addressSpace * aspace, std::string name, BPatch_object * obj = NULL);
 	std::vector<BPatch_function *> GetFunctionsByOffeset(BPatch_addressSpace * aspace, BPatch_object * obj, uint64_t offset);
 	uint64_t GetSyncFunctionLocation();
-	bool FillStackpoint(BPatch_addressSpace * aspace, StackPoint & p);
+	//bool FillStackpoint(BPatch_addressSpace * aspace, StackPoint & p);
 	BPatchPointVecPtr GetPoints(BPatch_function * func, const BPatch_procedureLocation pos);
 	bool IsNeverInstriment(BPatch_function * func);
-	StackPoint GenerateStackPoint(BPatch_addressSpace * aspace, BPatch_function * func);
+	//StackPoint GenerateStackPoint(BPatch_addressSpace * aspace, BPatch_function * func);
 
-	BPatch_function * FindFunctionInAddrList(BPatch_addressSpace * aspace, StackPoint & p);
+	//BPatch_function * FindFunctionInAddrList(BPatch_addressSpace * aspace, StackPoint & p);
 	void GenerateAddrList(BPatch_addressSpace * aspace);
 
 	std::map<uint64_t, std::string> GetRealAddressAndLibName(BPatch_addressSpace * aspace);
