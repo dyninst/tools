@@ -33,59 +33,6 @@ uint64_t DynOpsClass::GetSyncFunctionLocation() {
 	return _syncLocation;
 }
 
-/*
-bool DynOpsClass::FillStackpoint(BPatch_addressSpace * aspace, StackPoint & p) {
-	BPatch_function * func;
-	SymbolLookup tmp(p.libname);
-	p.funcOffset = tmp.GetFunctionOffset(p.libOffset);
-	p.funcName = tmp.GetFuncName(p.funcOffset);
-	assert(p.funcName != std::string(""));
-	assert(p.funcOffset != 0 && p.funcOffset != -1);
-
-
-// 	BPatch_image * img = aspace->getImage();
-// 	BPatch_object * obj = FindObjectByName(aspace, p.libname, true);
-// 	assert(obj != NULL);
-
-// 	uint64_t offset = (uint64_t)obj->fileOffsetToAddr(p.libOffset);
-
-// 	std::cerr << "[DynOpsClass::FillStackpoint] Address for " << p.libOffset << " is " << offset << std::endl;
-// 	func = aspace->findFunctionByAddr((void *)offset);
-// 	assert(func != NULL);
-	
-// //	assert(FindFuncByLibnameOffset(aspace,func,p.libname, p.libOffset) >= 1);
-// 	p.funcName = func->getName();
-// 	if (func->getModule()->isSharedLib())
-// 		p.funcOffset = (uint64_t) func->getBaseAddr() - (uint64_t) func->getModule()->getBaseAddr();
-// 	else
-// 		p.funcOffset  = (uint64_t)func->getBaseAddr();
-	return 1;
-
-}
-
-StackPoint DynOpsClass::GenerateStackPoint(BPatch_addressSpace * aspace, BPatch_function * func) {
-	StackPoint ret;
-	ret.libname = func->getModule()->getObject()->pathName();
-	uint64_t libOffsetAddr = 0;
-	BPatchPointVecPtr entryPoints = GetPoints(func, BPatch_locEntry);
-	assert(entryPoints->size() > 0);
-	if (!GetFileOffset(aspace, (*entryPoints)[0], libOffsetAddr, true))
-		libOffsetAddr = (uint64_t) (*entryPoints)[0]->getAddress();
-	ret.libOffset = libOffsetAddr;
-	return ret;
-}
-int DynOpsClass::FindFuncByStackPoint(BPatch_addressSpace * aspace, BPatch_function * & ret, StackPoint & point) {
-	if (aspace == NULL) 
-		return -1;
-	int tmp = 0;
-	if (point.funcOffset > 0)
-		tmp = FindFuncByLibnameOffset(aspace, ret, point.libname, point.funcOffset);
-	if (tmp <= 0)
-		tmp = FindFuncByName(aspace, ret, point.funcName);
-
-	return tmp; 
-}
-*/
 bool DynOpsClass::IsNeverInstriment(BPatch_function * func) {
 	static std::vector<std::string> librariesToSkip = {"libstdc++","libgcc","xerces-c","libelf", "libscalapack", "dyninst_10", "dyninst/build", "libessl", "dyninst/install","cudadedup-develop", "/opt/mellanox", "/usr/lib64/librt-", "spectrum-mpi", "ld-2.17", "libpthread-2.17.so"};
     std::string tmpLibname = func->getModule()->getObject()->pathName();
@@ -119,31 +66,6 @@ void DynOpsClass::GenerateAddrList(BPatch_addressSpace * aspace) {
 	}
 }
 
-/*
-BPatch_function * DynOpsClass::FindFunctionInAddrList(BPatch_addressSpace * aspace, StackPoint & p) {
-	boost::filesystem::path pDir(p.libname);
-	std::string filename = pDir.stem().string();
-	std::vector<BPatch_object *> objects = GetObjects(aspace);
-	for (auto i : objects) {
-		//std::cerr << i->pathName() << std::endl;
-		//std::cerr << filename << std::endl;
-		if (i->pathName().find(filename) != std::string::npos) {
-			if (i->pathName().find(".so") != std::string::npos) {
-				std::vector<BPatch_module *> mods;
-				i->modules(mods);
-				if (mods.size() == 0){
-					std::cerr << "CANNOT FIND MODULE FOR PATHNAME - " << i->pathName() << std::endl;
-					continue;
-				}
-				if(_addressList.find(((uint64_t)mods[0]->getBaseAddr()) + p.libOffset) != _addressList.end())
-					return _addressList[((uint64_t)mods[0]->getBaseAddr()) + p.libOffset];
-				std::cerr << "Did not find funcname in this library - " << i->pathName() << std::endl;
-			}
-		}
-	}
-	return NULL;
-}
-*/
 BPatchPointVecPtr DynOpsClass::GetPoints(BPatch_function * func, const BPatch_procedureLocation pos) {
 	BPatchPointVecPtr ret;
 	ret.reset(func->findPoint(pos));
