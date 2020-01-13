@@ -1,5 +1,5 @@
 #include <chrono>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <stack>
 #include <cassert>
@@ -31,7 +31,7 @@ struct ExecTime {
 };
 
 std::vector<ExecTime> times;
-std::stack<ExecTime> unresolved;
+std::unordered_map<uint64_t, std::stack<ExecTime> > unresolved;
 
 extern "C" {
     void SAVE_INSTR_TIMES() {
@@ -51,15 +51,15 @@ extern "C" {
     void CALL_ENTRY(uint64_t id) {
         struct ExecTime time;
         time.id = id;
-        unresolved.push(time);
+        unresolved[id].push(time);
         auto start = hrc::now();
-        unresolved.top().start_time = start;
+        unresolved[id].top().start_time = start;
     }
     void CALL_EXIT(uint64_t id) {
         auto stop = hrc::now();
-        struct ExecTime time = unresolved.top();
+        struct ExecTime time = unresolved[id].top();
         time.end_time = stop;
-        unresolved.pop();
+        unresolved[id].pop();
         times.push_back(time);
     }
 }
