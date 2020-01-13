@@ -6,7 +6,6 @@ DyninstProcess::DyninstProcess(boost::program_options::variables_map vm, bool de
 	_ops.reset(new DynOpsClass());
 	_debug = debug;
 	_aspace = NULL;
-	_MPIProc = false;
 	_openInsertions = false;
 	_insertedInit = false;
 }
@@ -15,7 +14,6 @@ DyninstProcess::DyninstProcess(std::string fileName, bool debug) {
 	_ops.reset(new DynOpsClass());
 	_debug = debug;
 	_aspace = NULL;
-	_MPIProc = false;
 	_openInsertions = false;
 	_insertedInit = false;	
 }
@@ -114,11 +112,6 @@ bool DyninstProcess::RunUntilCompleation(std::string filename) {
 	// }
 
 	//std::vector<std::string> progName = _vm["prog"].as<std::vector<std::string> >();
-	if (_MPIProc) {
-		appProc->continueExecution();
-		//sleep(5);
-		//appProc->continueExecution();
-	}
 	assert(appProc->continueExecution() == true);
 	// while(appProc->isStopped() == true && appProc->terminationStatus() == NoExit){
 	// 	appProc->continueExecution();
@@ -147,24 +140,11 @@ bool DyninstProcess::RunUntilCompleation(std::string filename) {
 	return true;
 }
 
-bool DyninstProcess::IsMPIProgram() {
-	/**
-	 * Checks to see if the program we are launching is an MPI program. If so, return true. Otherwise return false.
-	 */
-	std::vector<std::string> progName = _launchString; //_vm["prog"].as<std::vector<std::string> >();
-	if (progName[0].find("mpirun") != std::string::npos || progName[0].find("/ij") != std::string::npos) 
-		return true;
-	return false;	
-}
-
 BPatch_addressSpace * DyninstProcess::LaunchProcess() {
 	/**
 	 * LaunchProcess:
 	 * 		Launches the process with the information in variables_map vm (in key "prog", where "prog" is a std::vector of strings).
 	 *
-	 * Special case:
-	 * 		If MPI launched application, use LaunchMPIProcess. 
-	 *		
 	 */
 	if (_aspace != NULL) {
 		std::cerr << "[DyninstProcess::LaunchProcess]  Process has already been launched, returning address space" << std::endl;
@@ -172,10 +152,6 @@ BPatch_addressSpace * DyninstProcess::LaunchProcess() {
 	}
 
 	BPatch_addressSpace * handle = NULL;
-
-	/* Check for special MPI case */
-	if (IsMPIProgram())
-		return LaunchMPIProcess();
 
 	std::vector<std::string> progName = _launchString; //_vm["prog"].as<std::vector<std::string> >();
 	
@@ -203,82 +179,6 @@ BPatch_addressSpace * DyninstProcess::LaunchProcess() {
 
 void DyninstProcess::SetTrampGuard() {
 	bpatch.setTrampRecursive(true);
-}
-
-
-BPatch_addressSpace * DyninstProcess::LaunchMPIProcess() {
-	/** 
-	 * Launches an MPI Process. This is fundamentally different from launching 
-	 * a normal process with dyninst since we need to attach to the process that is launched
-	 * by mpi itself (not the parent). Because SpectrumMPI does some weird things, we wait 
-	 * until it has set everything up before attaching to the child (the actual target process).
-	 */
-	_MPIProc = true;
-	BPatch_addressSpace * handle = NULL;
-
-	// What this process entails is attaching to the process instead of launching it.
-	// This REQUIRES that you use some other method to stop the process at the start of main
-	// Such as kill(getpid(), SIGSTOP);
-	std::vector<std::string> progName = _launchString;//_vm["prog"].as<std::vector<std::string> >();
-	char ** argv = (char**)malloc(progName.size() * sizeof(char *)+1);
-	int appPosition = -1;
-	for (int i = 0; i < progName.size(); i++) {
-		argv[i] = strdup(progName[i].c_str());
-		if (i > 1 && appPosition == -1) {
-			if (CheckIfFileExists(progName[i])) {
-				appPosition = i;
-			}
-		}
-
-	}
-	argv[progName.size()] = NULL;
-//	assert(appPosition != -1);
-	int pid = -1;
-	// Launch the other procees
-	pid_t child_pid = fork();
-	if (child_pid == 0){
-		// Child process
-		for (int i = 0; i < 10; i++){
-			int retM = execvp(*argv, argv);
-			std::cerr << "Launch Failed, trying agian.... Error Status: " <<  strerror(errno) << std::endl;
-			sleep(2);
-		}
-		std::cerr << "FAILED TO LAUNCH PROCESS!\n";
-		assert(1==0);
-	} else {
-		sleep(5);
-		pid = child_pid;
-		// Find the PID of the launched process
-/*		std::stringstream ss;
-		boost::filesystem::path tmp(progName[appPosition]);
-		std::string filename = tmp.filename().string();
-		ss << "pidof " << filename << std::endl;
-		std::cerr << "[ProcessController::LaunchMPIProcess] Waiting on process " << filename << " to start" << std::endl;
-		for (int i = 0; i < 10; i++){
-			char line[250];
-			FILE * command = popen(ss.str().c_str(),"r");
-			if(fgets(line,250,command) > 0) {
-				pid = atoi(line);
-			}
-			pclose(command);
-			if (pid != -1)
-				break;
-			sleep(2);
-		}
-		*/
-		assert(pid != -1);
-	}
-	bpatch.setInstrStackFrames(true);
-	bpatch.setTrampRecursive(false);
-	bpatch.setLivenessAnalysis(false);	
-	std::cerr << "[DyninstProcess::LaunchMPIProcess] Attaching to process " << argv[0] << " at pid " << pid << std::endl;
-	handle = bpatch.processAttach((const char *)argv[0], pid);
-	bpatch.setLivenessAnalysis(false);
-	bpatch.setInstrStackFrames(true);
-	bpatch.setTrampRecursive(false);
-	assert(handle != NULL);	
-	_aspace = handle;
-	return handle;
 }
 
 

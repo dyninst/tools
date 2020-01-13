@@ -20,3 +20,4 @@ install(TARGETS cuda_sync_analyzer
         ARCHIVE DESTINATION lib/static
         RUNTIME DESTINATION bin)
 add_subdirectory(FindSyncHelper)
+add_subdirectory(InsertTimingInstr)
