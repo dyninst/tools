@@ -38,24 +38,24 @@ extern "C" {
         //std::ofstream out("InstrTimings.out");
         //assert(out.good());
         for (std::vector<ExecTime>::iterator it = times.begin(); it != times.end(); ++it)
-            std::cout << it->id << ":"
-                << std::chrono::duration<double, std::milli>(it->end_time - it->start_time).count()
+            std::cout << it->id << " "
+                << std::chrono::duration<double, std::nano>(it->end_time - it->start_time).count()
                 << std::endl;
         //out.close();
     }
     
-    void SignalStartInstra() {
+    void SignalStartInstra2() {
         if (atexit(SAVE_INSTR_TIMES) != 0)
             std::cerr << "Failed to register atexit function" << std::endl;
     }
-    void CALL_ENTRY(uint64_t id) {
+    void CALL_ENTRY2(uint64_t id) {
         struct ExecTime time;
         time.id = id;
         unresolved[id].push(time);
         auto start = hrc::now();
         unresolved[id].top().start_time = start;
     }
-    void CALL_EXIT(uint64_t id) {
+    void CALL_EXIT2(uint64_t id) {
         auto stop = hrc::now();
         struct ExecTime time = unresolved[id].top();
         time.end_time = stop;
@@ -63,3 +63,16 @@ extern "C" {
         times.push_back(time);
     }
 }
+/*
+int main() {
+
+    SignalStartInstra2();
+    for (int i = 0; i < 100; i++) {
+        CALL_ENTRY(i);
+        CALL_EXIT(i);
+    }
+
+    return 0;
+
+}
+*/

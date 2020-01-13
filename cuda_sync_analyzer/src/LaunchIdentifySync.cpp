@@ -25,6 +25,12 @@ void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace, 
 	std::vector<BPatch_function *> cExit = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("CALL_EXIT"), driverAPIWrapper);
 	std::vector<BPatch_function *> signalStart = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("SignalStartInstra"), driverAPIWrapper);
 
+    if (helperLib.find(std::string("InsertTimingInstr")) != std::string::npos) {
+        cEntry = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("CALL_ENTRY2"), driverAPIWrapper);
+        cExit = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("CALL_EXIT2"), driverAPIWrapper);
+        signalStart = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("SignalStartInstra2"), driverAPIWrapper);
+    }
+
 	assert(cEntry.size() == 1 && cExit.size() == 1 && signalStart.size() == 1 && main.size() > 0);
 
 	std::unordered_map<uint64_t, BPatch_function *> funcMap;
