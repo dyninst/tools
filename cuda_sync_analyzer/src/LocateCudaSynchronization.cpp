@@ -122,7 +122,7 @@ boost::filesystem::path LocateCudaSynchronization::FindLibCuda() {
 		std::cerr << "Searching directory: " << i << std::endl;
 		GetFilesInDirectory(i, files);
 		for (auto file : files){
-			std::cerr << "File: " << file << std::endl;
+			//std::cerr << "File: " << file << std::endl;
 			if (file.find("libcuda.so") != std::string::npos){
 				ret /= file;
 				return ret;

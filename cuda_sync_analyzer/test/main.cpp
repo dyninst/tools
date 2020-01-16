@@ -1,7 +1,7 @@
 #include "DyninstProcess.h"
+#include "InstrSyncOffset.h"
 #include "LocateCudaSynchronization.h"
 #include "LaunchIdentifySync.h"
-//#include "InstrCudaFuncs.h"
 
 std::shared_ptr<DyninstProcess> LaunchApplicationByName(std::string name, bool debug) {
     std::shared_ptr<DyninstProcess> ret(new DyninstProcess(name, debug));
@@ -17,8 +17,8 @@ std::shared_ptr<DyninstProcess> LaunchApplicationByName(std::string name, bool d
 int main(void) {
     LocateCudaSynchronization scuda;
     std::vector<uint64_t> potentials;
-    if (scuda.FindLibcudaOffset(false) == 0) {
-        //return 1;
+    uint64_t syncAddr = scuda.FindLibcudaOffset(false);
+    if (syncAddr == 0) {
         potentials = scuda.IdentifySyncFunction();
         {
             std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/hang_devsync"), false);
@@ -27,22 +27,21 @@ int main(void) {
             sync.InsertAnalysis(potentials, std::string("cudaDeviceSynchronize"), true, std::string("/lib/libFindSyncHelper.so"));
             proc->RunUntilCompleation();
             potentials.clear();
-            uint64_t addr = sync.PostProcessing(potentials);
+            syncAddr = sync.PostProcessing(potentials);
             if (potentials.size() > 1) {
                 std::cout << "[SyncTesting::IndentifySyncFunction] We have more than one possibility for sync function, picking lowest level one" << std::endl;
             }
-            scuda.WriteSyncLocation(addr);
+            scuda.WriteSyncLocation(syncAddr);
         }
     }
-
+ 
     {
         potentials = scuda.IdentifySyncFunction();
-        std::cout << "Executing actual program" << std::endl;
         std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/nohang_devsync"), false);
         proc->RunCudaInit();
-        LaunchIdentifySync sync(proc);
-        //InstrCudaFuncs instrFuncs(proc);
-        sync.InsertAnalysis(potentials, std::string("cudaDeviceSynchronize"), true, std::string("/lib/libInsertTimingInstr.so"));
+        InstrSyncOffset instrSyncOffset(proc);
+        instrSyncOffset.InsertInstr(syncAddr);
+        std::cout << "Run program until completion" << std::endl;
         proc->RunUntilCompleation();
         /*
         potentials.clear();

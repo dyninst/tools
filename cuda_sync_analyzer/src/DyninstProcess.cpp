@@ -201,3 +201,27 @@ BPatch_addressSpace * DyninstProcess::GetAddressSpace() {
 	return _aspace;
 }
 
+std::unordered_map<uint64_t, BPatch_function *> DyninstProcess::GetFuncMap() {
+
+    std::unordered_map<uint64_t, BPatch_function *> funcMap;
+    BPatch_object * libCuda = LoadLibrary(std::string("libcuda.so.1"));
+    std::vector<BPatch_function *> funcs;
+    _aspace->getImage()->getProcedures(funcs);
+
+    for (auto i : funcs) {
+        if (i->getModule()->getObject() == libCuda)
+            funcMap[((uint64_t)i->getBaseAddr()) - ((uint64_t)i->getModule()->getBaseAddr())] = i;
+    }
+    return funcMap;
+}
+
+BPatch_point * DyninstProcess::FindPreviousPoint(BPatch_point* point) {
+    auto image = _aspace->getImage();
+    std::vector<BPatch_point *> points;
+    image->findPoints((((uint64_t)point->getAddress()) - 0x4), points);
+    if (points.size() > 0)
+        return points[0];
+    return point;
+    //assert("SHOULD FIND A POINT BUT ARE NOT!!!" == 0);
+
+}

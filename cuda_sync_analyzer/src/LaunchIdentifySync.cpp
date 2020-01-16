@@ -4,45 +4,18 @@ LaunchIdentifySync::LaunchIdentifySync(std::shared_ptr<DyninstProcess> proc) : _
 
 }
 
-BPatch_point * LaunchIdentifySync::FindPreviousPoint(BPatch_point* point) {
-	auto image = _proc->GetAddressSpace()->getImage();
-	std::vector<BPatch_point *> points;
-	image->findPoints((((uint64_t)point->getAddress()) - 0x4), points);
-	if (points.size() > 0)
-		return points[0];
-	return point;
-	//assert("SHOULD FIND A POINT BUT ARE NOT!!!" == 0);
-
-}
-
 void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace, std::string funcName, bool withExit, std::string helperLib) {
 	std::shared_ptr<DynOpsClass> ops = _proc->ReturnDynOps();
 	std::vector<BPatch_function *> main = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("main"), NULL);
-	BPatch_object * libCuda = _proc->LoadLibrary(std::string("libcuda.so.1"));
 	BPatch_object * driverAPIWrapper = _proc->LoadLibrary(std::string(LOCAL_INSTALL_PATH) + helperLib);
 	
 	std::vector<BPatch_function *> cEntry = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("CALL_ENTRY"), driverAPIWrapper);
 	std::vector<BPatch_function *> cExit = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("CALL_EXIT"), driverAPIWrapper);
 	std::vector<BPatch_function *> signalStart = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("SignalStartInstra"), driverAPIWrapper);
-
-    if (helperLib.find(std::string("InsertTimingInstr")) != std::string::npos) {
-        cEntry = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("CALL_ENTRY2"), driverAPIWrapper);
-        cExit = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("CALL_EXIT2"), driverAPIWrapper);
-        signalStart = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("SignalStartInstra2"), driverAPIWrapper);
-    }
-
 	assert(cEntry.size() == 1 && cExit.size() == 1 && signalStart.size() == 1 && main.size() > 0);
 
-	std::unordered_map<uint64_t, BPatch_function *> funcMap;
-	std::vector<BPatch_function *> funcs;
-	_proc->GetAddressSpace()->getImage()->getProcedures(funcs);
+	std::unordered_map<uint64_t, BPatch_function *> funcMap = _proc->GetFuncMap();
 	uint64_t curId = 5;
-
-	//std::unordered_map<uint64_t, uint64_t> idToOffset;
-	for (auto i : funcs) {
-		if (i->getModule()->getObject() == libCuda)
-			funcMap[((uint64_t)i->getBaseAddr()) - ((uint64_t)i->getModule()->getBaseAddr())] = i;
-	}
 	_proc->BeginInsertionSet();
 	for (auto i : functionsToTrace) {
 		if (funcMap.find(i) == funcMap.end() || i < 0x200000){
@@ -59,7 +32,7 @@ void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace, 
 			_proc->GetAddressSpace()->insertSnippet(entryExpr,*entry);
 			if (withExit){
 				std::vector<BPatch_point*> prev;
-				prev.push_back(FindPreviousPoint((*exit)[0]));
+				prev.push_back(_proc->FindPreviousPoint((*exit)[0]));
 				_proc->GetAddressSpace()->insertSnippet(exitExpr,prev);
 			}
 			idToOffset[curId] = i;

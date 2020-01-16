@@ -57,6 +57,8 @@ public:
 	void DetachForDebug();
 	void RunCudaInit();
 	void SetTrampGuard();
+    std::unordered_map<uint64_t, BPatch_function *> GetFuncMap();
+    BPatch_point * FindPreviousPoint(BPatch_point* point);
 
 	void CloseInsertionSet();
 private:
