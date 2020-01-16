@@ -1,3 +1,6 @@
+##### About
+Dynamically instrument CUDA programs to profile synchronization primitives
+
 ##### Build and Install
 
 ```
