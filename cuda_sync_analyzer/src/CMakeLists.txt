@@ -1,4 +1,4 @@
-add_compile_options(-O3 -g)
+add_compile_options(-O3)
 
 file(GLOB src "*.cpp")
 add_library(cuda_sync_analyzer SHARED ${src})
