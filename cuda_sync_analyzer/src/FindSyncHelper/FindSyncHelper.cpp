@@ -1,15 +1,20 @@
-#include <map> 
-#include <unordered_set>
-#include <memory>
 #include <iostream>
+#include <map> 
+#include <memory>
+#include <mutex>
+#include <unordered_set>
+
 volatile int FINDSYNCFUNC_exited = 0;
 volatile int START_INSTRA = 0;
 volatile uint64_t FINDSYNCFUNC_globalCount = 0;
 
 struct MapStore{
 	std::map<uint64_t, uint64_t> ids;
-	std::unordered_set<uint64_t> exclude; 
+	std::unordered_set<uint64_t> exclude;
+    std::mutex m;
+
 	void Entry(uint64_t id) {
+        std::scoped_lock(m);
 		FINDSYNCFUNC_globalCount++;
 		if (exclude.find(id) != exclude.end())
 			return;
@@ -20,6 +25,7 @@ struct MapStore{
 	};
 
 	void Exit(uint64_t id) {
+        std::scoped_lock(m);
 		if (ids.find(id) != ids.end())
 			ids.erase(id);
 		exclude.insert(id);
