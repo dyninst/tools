@@ -62,12 +62,9 @@ public:
 
 	void CloseInsertionSet();
 private:
-	bool IsMPIProgram();
-	BPatch_addressSpace * LaunchMPIProcess();
 	std::vector<std::string> _launchString;
 	std::shared_ptr<DynOpsClass> _ops;
 	bool _debug;
-	bool _MPIProc;
 	bool _insertedInit;
 	BPatch_addressSpace * _aspace;
 	boost::program_options::variables_map _vm;
