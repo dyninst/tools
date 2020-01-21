@@ -6,13 +6,18 @@ InstrSyncOffset::InstrSyncOffset(std::shared_ptr<DyninstProcess> proc) : _proc(p
 
 void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
     std::shared_ptr<DynOpsClass> ops = _proc->ReturnDynOps();
-    BPatch_object * instrLib = _proc->LoadLibrary(std::string(LOCAL_INSTALL_PATH) + std::string("/lib/libInsertTimingInstr.so"));
+    BPatch_object * instrLib = _proc->LoadLibrary(
+            std::string(LOCAL_INSTALL_PATH) + std::string("/lib/libInsertTimingInstr.so"));
 
-    std::vector<BPatch_function *> cEntry = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("START_TIMER_INSTR"), instrLib);
-    std::vector<BPatch_function *> cExit = ops->FindFuncsByName(_proc->GetAddressSpace(), std::string("STOP_TIMER_INSTR"), instrLib);
+    std::vector<BPatch_function *> cEntry = ops->FindFuncsByName(
+            _proc->GetAddressSpace(), std::string("START_TIMER_INSTR"), instrLib);
+    std::vector<BPatch_function *> cExit = ops->FindFuncsByName(
+            _proc->GetAddressSpace(), std::string("STOP_TIMER_INSTR"), instrLib);
     assert(cEntry.size() == 1 && cExit.size() == 1);
 
-    std::unordered_map<uint64_t, BPatch_function *> funcMap = _proc->GetFuncMap();
+    BPatch_object * libCuda = _proc->LoadLibrary(std::string("libcuda.so.1"));
+    std::unordered_map<uint64_t, BPatch_function *> funcMap = ops->GetFuncMap(
+            _proc->GetAddressSpace(), libCuda);
     if (funcMap.find(syncOffset) != funcMap.end() || syncOffset < 0x200000){
         std::cout << "Inserting Instrumentation into function at offset = "
             << std::hex << syncOffset << std::endl;
@@ -30,7 +35,7 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
         _proc->GetAddressSpace()->insertSnippet(entryExpr,*entry);
         
         std::vector<BPatch_point*> prev;
-        prev.push_back(_proc->FindPreviousPoint((*exit)[0]));
+        prev.push_back(ops->FindPreviousPoint((*exit)[0], _proc->GetAddressSpace()));
         _proc->GetAddressSpace()->insertSnippet(exitExpr,prev);
     }
     else {

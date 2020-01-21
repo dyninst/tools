@@ -1,5 +1,4 @@
 #pragma once
-#include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <string>
 #include <vector>
@@ -45,8 +44,7 @@ using namespace SymtabAPI;
 
 class DyninstProcess {
 public:
-	DyninstProcess(boost::program_options::variables_map vm, bool debug);
-	DyninstProcess(std::string fileName, bool debug);
+    DyninstProcess(std::string fileName);
 	BPatch_addressSpace * LaunchProcess();
 	BPatch_addressSpace * GetAddressSpace();
 	bool RunUntilCompleation(std::string filename = std::string(""));
@@ -57,17 +55,13 @@ public:
 	void DetachForDebug();
 	void RunCudaInit();
 	void SetTrampGuard();
-    std::unordered_map<uint64_t, BPatch_function *> GetFuncMap();
-    BPatch_point * FindPreviousPoint(BPatch_point* point);
 
 	void CloseInsertionSet();
 private:
 	std::vector<std::string> _launchString;
 	std::shared_ptr<DynOpsClass> _ops;
-	bool _debug;
 	bool _insertedInit;
 	BPatch_addressSpace * _aspace;
-	boost::program_options::variables_map _vm;
 	bool _openInsertions;
 	BPatch bpatch;
 };

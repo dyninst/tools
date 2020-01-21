@@ -11,7 +11,7 @@ configure_file (
     "${PROJECT_SOURCE_DIR}/src/Constants.h"
 )
 target_link_libraries(cuda_sync_analyzer PUBLIC "-lcrypto\
-    -L${BOOST_LIBRARYDIR} -lboost_program_options -lboost_filesystem -lboost_system\
+    -L${BOOST_LIBRARYDIR} -lboost_filesystem -lboost_system\
     ${DYNINST_LIBRARIES}")
     #    -L${CUDA_TOOLKIT_ROOT_DIR}/lib64\
 target_include_directories(cuda_sync_analyzer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

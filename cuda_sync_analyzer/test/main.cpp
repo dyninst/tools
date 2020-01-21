@@ -3,8 +3,8 @@
 #include "LocateCudaSynchronization.h"
 #include "LaunchIdentifySync.h"
 
-std::shared_ptr<DyninstProcess> LaunchApplicationByName(std::string name, bool debug) {
-    std::shared_ptr<DyninstProcess> ret(new DyninstProcess(name, debug));
+std::shared_ptr<DyninstProcess> LaunchApplicationByName(std::string name) {
+    std::shared_ptr<DyninstProcess> ret(new DyninstProcess(name));
     assert(ret->LaunchProcess() != NULL);
 
     // Load libcuda.so into the address space of the process
@@ -20,8 +20,8 @@ int main(void) {
     uint64_t syncAddr = scuda.FindLibcudaOffset(false);
     if (syncAddr == 0) {
         potentials = scuda.IdentifySyncFunction();
-        {
-            std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/hang_devsync"), false);
+/*        {
+            std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/hang_devsync"));
             proc->RunCudaInit();
             LaunchIdentifySync sync(proc);
             sync.InsertAnalysis(potentials, std::string("cudaDeviceSynchronize"), true, std::string("/lib/libFindSyncHelper.so"));
@@ -29,7 +29,21 @@ int main(void) {
             potentials.clear();
             syncAddr = sync.PostProcessing(potentials);
             if (potentials.size() > 1) {
-                std::cout << "[SyncTesting::IndentifySyncFunction] We have more than one possibility for sync function, picking lowest level one" << std::endl;
+                std::cout << "We have more than one possibility for sync function, picking lowest level one" << std::endl;
+            }
+            scuda.WriteSyncLocation(syncAddr);
+        }
+*/
+        {
+            std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/hang_devsync"));
+            proc->RunCudaInit();
+            LaunchIdentifySync sync(proc);
+            sync.InsertAnalysis(potentials, std::string("cudaDeviceSynchronize"), true, std::string("/lib/libFindSyncHelper.so"));
+            proc->RunUntilCompleation();
+            potentials.clear();
+            syncAddr = sync.PostProcessing(potentials);
+            if (potentials.size() > 1) {
+                std::cout << "We have more than one possibility for sync function, picking lowest level one" << std::endl;
             }
             scuda.WriteSyncLocation(syncAddr);
         }
@@ -37,7 +51,7 @@ int main(void) {
  
     {
         potentials = scuda.IdentifySyncFunction();
-        std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/nohang_devsync"), false);
+        std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/nohang_devsync"));
         proc->RunCudaInit();
         InstrSyncOffset instrSyncOffset(proc);
         instrSyncOffset.InsertInstr(syncAddr);

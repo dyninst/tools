@@ -22,7 +22,6 @@
 #include <mutex>
 #include <fstream>
 #include <queue>
-#include <boost/program_options.hpp>
 
 // Dyninst includes
 #include "CodeObject.h"

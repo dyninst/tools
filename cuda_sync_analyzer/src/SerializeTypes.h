@@ -21,8 +21,7 @@
 #include <unistd.h>
 #include <mutex>
 #include <queue>
-#include <boost/program_options.hpp>
-
+#include <memory>
 
 uint64_t SerializeUint64(FILE * fp, uint64_t val);
 void ReadUint64(FILE * fp, uint64_t & val);

@@ -291,3 +291,29 @@ bool DynOpsClass::GetFileOffset(BPatch_addressSpace * aspace, BPatch_point * poi
 		addr = (uint64_t)point->getAddress() + size;
 	return true;
 }
+
+std::unordered_map<uint64_t, BPatch_function *> DynOpsClass::GetFuncMap(
+        BPatch_addressSpace * aspace, BPatch_object * object) {
+
+    std::unordered_map<uint64_t, BPatch_function *> funcMap;
+    //BPatch_object * libCuda = LoadLibrary(std::string("libcuda.so.1"));
+    std::vector<BPatch_function *> funcs;
+    aspace->getImage()->getProcedures(funcs);
+
+    for (auto i : funcs) {
+        if (i->getModule()->getObject() == object)
+            funcMap[((uint64_t)i->getBaseAddr()) - ((uint64_t)i->getModule()->getBaseAddr())] = i;
+    }
+    return funcMap;
+}
+
+BPatch_point * DynOpsClass::FindPreviousPoint(
+        BPatch_point* point, BPatch_addressSpace * aspace) {
+    auto image = aspace->getImage();
+    std::vector<BPatch_point *> points;
+    image->findPoints((((uint64_t)point->getAddress()) - 0x4), points);
+    if (points.size() > 0)
+        return points[0];
+    return point;
+    //assert("SHOULD FIND A POINT BUT ARE NOT!!!" == 0);
+}

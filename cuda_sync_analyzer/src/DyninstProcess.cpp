@@ -1,18 +1,8 @@
 #include "DyninstProcess.h"
-//extern BPatch bpatch;
-DyninstProcess::DyninstProcess(boost::program_options::variables_map vm, bool debug) {
-	_vm = vm;
-	_launchString = _vm["prog"].as<std::vector<std::string> >();
-	_ops.reset(new DynOpsClass());
-	_debug = debug;
-	_aspace = NULL;
-	_openInsertions = false;
-	_insertedInit = false;
-}
-DyninstProcess::DyninstProcess(std::string fileName, bool debug) {
+
+DyninstProcess::DyninstProcess(std::string fileName) {
 	_launchString.push_back(fileName);
 	_ops.reset(new DynOpsClass());
-	_debug = debug;
 	_aspace = NULL;
 	_openInsertions = false;
 	_insertedInit = false;	
@@ -143,17 +133,18 @@ bool DyninstProcess::RunUntilCompleation(std::string filename) {
 BPatch_addressSpace * DyninstProcess::LaunchProcess() {
 	/**
 	 * LaunchProcess:
-	 * 		Launches the process with the information in variables_map vm (in key "prog", where "prog" is a std::vector of strings).
+	 * 		Launches the process from _launchString (std::vector of prog name and arguments).
 	 *
 	 */
 	if (_aspace != NULL) {
-		std::cerr << "[DyninstProcess::LaunchProcess]  Process has already been launched, returning address space" << std::endl;
+		std::cerr << "[DyninstProcess::LaunchProcess] "
+            << "Process has already been launched, returning address space" << std::endl;
 		return _aspace;
 	}
 
 	BPatch_addressSpace * handle = NULL;
 
-	std::vector<std::string> progName = _launchString; //_vm["prog"].as<std::vector<std::string> >();
+	std::vector<std::string> progName = _launchString;
 	
 	// Setup program arguements
 	char ** argv = (char**)malloc(progName.size() * sizeof(char *)+1);
@@ -161,7 +152,8 @@ BPatch_addressSpace * DyninstProcess::LaunchProcess() {
 		argv[i] = strdup(progName[i].c_str());
 	argv[progName.size()] = NULL;
 	for (int i = 0; i < progName.size(); i++){
-		std::cerr << "[DyninstProcess::LaunchProcess] Launch Arguments - " <<  std::string(argv[i]) << std::endl;
+		std::cerr << "[DyninstProcess::LaunchProcess] Launch Arguments - "
+            << std::string(argv[i]) << std::endl;
 	}
 
 	bpatch.setInstrStackFrames(true);
@@ -199,29 +191,4 @@ void DyninstProcess::DetachForDebug() {
 
 BPatch_addressSpace * DyninstProcess::GetAddressSpace() {
 	return _aspace;
-}
-
-std::unordered_map<uint64_t, BPatch_function *> DyninstProcess::GetFuncMap() {
-
-    std::unordered_map<uint64_t, BPatch_function *> funcMap;
-    BPatch_object * libCuda = LoadLibrary(std::string("libcuda.so.1"));
-    std::vector<BPatch_function *> funcs;
-    _aspace->getImage()->getProcedures(funcs);
-
-    for (auto i : funcs) {
-        if (i->getModule()->getObject() == libCuda)
-            funcMap[((uint64_t)i->getBaseAddr()) - ((uint64_t)i->getModule()->getBaseAddr())] = i;
-    }
-    return funcMap;
-}
-
-BPatch_point * DyninstProcess::FindPreviousPoint(BPatch_point* point) {
-    auto image = _aspace->getImage();
-    std::vector<BPatch_point *> points;
-    image->findPoints((((uint64_t)point->getAddress()) - 0x4), points);
-    if (points.size() > 0)
-        return points[0];
-    return point;
-    //assert("SHOULD FIND A POINT BUT ARE NOT!!!" == 0);
-
 }
