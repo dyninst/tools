@@ -300,9 +300,15 @@ std::unordered_map<uint64_t, BPatch_function *> DynOpsClass::GetFuncMap(
     std::vector<BPatch_function *> funcs;
     aspace->getImage()->getProcedures(funcs);
 
-    for (auto i : funcs) {
-        if (i->getModule()->getObject() == object)
-            funcMap[((uint64_t)i->getBaseAddr()) - ((uint64_t)i->getModule()->getBaseAddr())] = i;
+    if (object == NULL) {
+        for (auto i : funcs)
+            funcMap[(uint64_t)i->getBaseAddr()] = i;
+    }
+    else {
+        for (auto i : funcs) {
+            if (i->getModule()->getObject() == object)
+                funcMap[((uint64_t)i->getBaseAddr()) - ((uint64_t)i->getModule()->getBaseAddr())] = i;
+        }
     }
     return funcMap;
 }
@@ -317,3 +323,4 @@ BPatch_point * DynOpsClass::FindPreviousPoint(
     return point;
     //assert("SHOULD FIND A POINT BUT ARE NOT!!!" == 0);
 }
+

@@ -20,5 +20,5 @@ class InstrSyncOffset {
         std::shared_ptr<DyninstProcess> _proc;
     public:
         InstrSyncOffset(std::shared_ptr<DyninstProcess> proc);
-        void InsertInstr(uint64_t syncOffset);
+        void InsertInstr(uint64_t syncOffset, std::string libcudaName = "libcuda.so.1");
 };

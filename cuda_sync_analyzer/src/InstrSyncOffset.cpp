@@ -4,7 +4,7 @@ InstrSyncOffset::InstrSyncOffset(std::shared_ptr<DyninstProcess> proc) : _proc(p
 
 }
 
-void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
+void InstrSyncOffset::InsertInstr(uint64_t syncOffset, std::string libcudaName) {
     std::shared_ptr<DynOpsClass> ops = _proc->ReturnDynOps();
     BPatch_object * instrLib = _proc->LoadLibrary(
             std::string(LOCAL_INSTALL_PATH) + std::string("/lib/libInsertTimingInstr.so"));
@@ -15,7 +15,7 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
             _proc->GetAddressSpace(), std::string("STOP_TIMER_INSTR"), instrLib);
     assert(cEntry.size() == 1 && cExit.size() == 1);
 
-    BPatch_object * libCuda = _proc->LoadLibrary(std::string("libcuda.so.1"));
+    BPatch_object * libCuda = _proc->LoadLibrary(libcudaName);
     std::unordered_map<uint64_t, BPatch_function *> funcMap = ops->GetFuncMap(
             _proc->GetAddressSpace(), libCuda);
     if (funcMap.find(syncOffset) != funcMap.end() || syncOffset < 0x200000){

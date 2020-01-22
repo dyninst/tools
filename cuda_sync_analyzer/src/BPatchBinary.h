@@ -40,6 +40,7 @@
 #include "BPatch_addressSpace.h"
 #include "BPatch_statement.h"
 #include "dynC.h"
+
 using namespace Dyninst;
 using namespace ParseAPI;
 using namespace PatchAPI;

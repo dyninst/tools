@@ -47,8 +47,11 @@ using namespace SymtabAPI;
 class LaunchIdentifySync {
 public:
 	LaunchIdentifySync(std::shared_ptr<DyninstProcess> proc);
-	void InsertAnalysis(std::vector<uint64_t> functionsToTrace, std::string funcName, bool withExit, std::string helperLib);
+	void InsertAnalysis(std::vector<uint64_t> functionsToTrace, std::string funcName,
+            bool withExit, std::string helperLib, std::string libcudaName = "libcuda.so.1");
+    void InsertInstrInMain(std::string funcName, BPatch_object * instrLib);
 	uint64_t PostProcessing(std::vector<uint64_t> & allFound);
+    std::unordered_map<uint64_t, uint64_t> SetIdToOffset(std::unordered_map<uint64_t, uint64_t> idToOffset);
 private:
 	std::unordered_map<uint64_t, uint64_t> idToOffset;
 	std::shared_ptr<DyninstProcess> _proc;

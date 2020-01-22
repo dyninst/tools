@@ -15,11 +15,11 @@ std::shared_ptr<DynOpsClass> DyninstProcess::ReturnDynOps() {
 	return _ops;
 }
 
-void DyninstProcess::RunCudaInit() {
+void DyninstProcess::RunCudaInit(std::string libcudaName = "libcuda.so.1") {
 	if (_insertedInit)
 		return;
 
-	BPatch_object * libcuda = LoadLibrary(std::string("libcuda.so.1"));
+	BPatch_object * libcuda = LoadLibrary(libcudaName);
 	std::vector<BPatch_function *> cuInit = _ops->FindFuncsByName(_aspace, std::string("cuInit"), libcuda);
 	assert(cuInit.size() == 1);
 	std::vector<BPatch_snippet*> recordArgs;
@@ -43,11 +43,11 @@ BPatch_object * DyninstProcess::LoadLibrary(std::string library) {
 	 * If the library is already loaded, returns the loaded library. Otherwise, calls the appropriate
 	 * dyninst load function. 
 	 */
-	if (library.find("libcuda.so") != std::string::npos)
-		library = std::string("libcuda.so.1");
+	//if (library.find("libcuda.so") != std::string::npos)
+	//  library = std::string("libcuda.so.1");
 	std::string original = library;
 	std::map<BPatch_object *, boost::filesystem::path> loadedLibraries;
-	BPatch_process * appProc = dynamic_cast<BPatch_process*>(_aspace);	
+	//BPatch_process * appProc = dynamic_cast<BPatch_process*>(_aspace);
 	std::vector<BPatch_object *> objects = _ops->GetObjects(_aspace);
 	for (auto i : objects) {
 		boost::filesystem::path tmp(i->pathName());
@@ -66,13 +66,15 @@ BPatch_object * DyninstProcess::LoadLibrary(std::string library) {
 			filename = filename.substr(0, filename.find(".so") + 3);
 		std::transform(filename.begin(), filename.end(), filename.begin(), ::tolower);
 		if (filename == library) {
+            std::cout << "[DyninstProcess::LoadLibrary] Library already loaded."
+                << " Not loading again: " << filename << std::endl;
 			return i.first;
 		}
 	}
 
-	std::cerr << "[DyninstProcess::LoadLibrary] Loading libray - " << original << std::endl;
+	std::cerr << "[DyninstProcess::LoadLibrary] Loading library - " << original << std::endl;
 	// Not already loaded, return a new loaded library.
-	return appProc->loadLibrary(original.c_str());
+	return _aspace->loadLibrary(original.c_str());
 }
 
 void DyninstProcess::CloseInsertionSet() {
@@ -81,7 +83,21 @@ void DyninstProcess::CloseInsertionSet() {
 		_openInsertions = false;
 	}
 }
-
+/*
+bool DyninstProcess::WriteFile(std::string newName) {
+    assert(!newName.empty());
+    BPatch_binaryEdit* appBin = dynamic_cast<BPatch_binaryEdit*>(_aspace);
+    if (appBin) {
+        if (!appBin->writeFile(newName.c_str())) {
+            std::cerr << "writeFile failed for binary " << newName << std::endl;
+            return false;
+        }   
+        return true;
+    }
+    std::cerr << "Not a BPatch_binaryEdit object" << std::endl;
+    return false;
+}
+*/
 bool DyninstProcess::RunUntilCompleation(std::string filename) {
 	int terminal_stdout, terminal_stderr;
 	/**
@@ -129,7 +145,15 @@ bool DyninstProcess::RunUntilCompleation(std::string filename) {
 	// }
 	return true;
 }
-
+/*
+BPatch_addressSpace * DyninstProcess::OpenBinary() {
+    BPatch_addressSpace * handle = bpatch.openBinary(_launchString[0].c_str(), true);
+    if (!handle)
+        std::cerr << "openBinary failed" << std::endl;
+    _aspace = handle;
+    return handle;
+}
+*/
 BPatch_addressSpace * DyninstProcess::LaunchProcess() {
 	/**
 	 * LaunchProcess:

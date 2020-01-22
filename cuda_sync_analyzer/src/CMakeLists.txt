@@ -1,6 +1,8 @@
 add_compile_options(-O3)
 
 file(GLOB src "*.cpp")
+list(REMOVE_ITEM src "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+message("${src}")
 add_library(cuda_sync_analyzer SHARED ${src})
 configure_file (
     "SyncDriverVerisons.txt"
@@ -21,3 +23,10 @@ install(TARGETS cuda_sync_analyzer
         RUNTIME DESTINATION bin)
 add_subdirectory(FindSyncHelper)
 add_subdirectory(InsertTimingInstr)
+
+add_executable(main main.cpp)
+
+link_directories(${CMAKE_BINARY_DIR}/src)
+target_link_libraries(main LINK_PUBLIC "cuda_sync_analyzer")
+install(TARGETS main
+        RUNTIME DESTINATION bin)

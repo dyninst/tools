@@ -4,24 +4,50 @@ LaunchIdentifySync::LaunchIdentifySync(std::shared_ptr<DyninstProcess> proc) : _
 
 }
 
+void LaunchIdentifySync::InsertInstrInMain(std::string funcName, BPatch_object * instrLib) {
+    std::cout << "Inserting signal start instra in main" << std::endl;
+    std::shared_ptr<DynOpsClass> ops = _proc->ReturnDynOps();
+    std::vector<BPatch_function *> signalStart = ops->FindFuncsByName(
+            _proc->GetAddressSpace(), std::string("SignalStartInstra"), instrLib);
+    std::vector<BPatch_function *> main = ops->FindFuncsByName(
+            _proc->GetAddressSpace(), std::string("main"), NULL);
+    assert(main.size() > 0 && signalStart.size() == 1);
+
+    BPatch_function * mainFunc = main[0];
+    if (main.size() > 1) {
+        for (auto i : main)
+            if (i->getModule()->getObject()->pathName().find(".so") == std::string::npos)
+                mainFunc = i;
+    }
+
+    std::vector<BPatch_point*> * funcCalls = mainFunc->findPoint(BPatch_locSubroutine);
+    for (auto i : *funcCalls) {
+        if (i->getCalledFunction()->getName().find(funcName) != std::string::npos) {
+            std::vector<BPatch_point*> singlePoint;
+            singlePoint.push_back(i);
+            std::vector<BPatch_snippet*> recordArgs;
+            BPatch_funcCallExpr entryExpr(*signalStart[0], recordArgs);
+            _proc->GetAddressSpace()->insertSnippet(entryExpr,singlePoint, BPatch_callBefore);
+        }
+    }
+}
+
 void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace,
-        std::string funcName, bool withExit, std::string helperLib) {
+        std::string funcName, bool withExit, std::string helperLib, std::string libcudaName) {
 
 	std::shared_ptr<DynOpsClass> ops = _proc->ReturnDynOps();
-	std::vector<BPatch_function *> main = ops->FindFuncsByName(
-            _proc->GetAddressSpace(), std::string("main"), NULL);
-	BPatch_object * driverAPIWrapper = _proc->LoadLibrary(
+	//std::vector<BPatch_function *> main = ops->FindFuncsByName(
+    //        _proc->GetAddressSpace(), std::string("main"), NULL);
+	BPatch_object * instrLib = _proc->LoadLibrary(
             std::string(LOCAL_INSTALL_PATH) + helperLib);
 	
 	std::vector<BPatch_function *> cEntry = ops->FindFuncsByName(
-            _proc->GetAddressSpace(), std::string("CALL_ENTRY"), driverAPIWrapper);
+            _proc->GetAddressSpace(), std::string("CALL_ENTRY"), instrLib);
 	std::vector<BPatch_function *> cExit = ops->FindFuncsByName(
-            _proc->GetAddressSpace(), std::string("CALL_EXIT"), driverAPIWrapper);
-	std::vector<BPatch_function *> signalStart = ops->FindFuncsByName(
-            _proc->GetAddressSpace(), std::string("SignalStartInstra"), driverAPIWrapper);
-	assert(cEntry.size() == 1 && cExit.size() == 1 && signalStart.size() == 1 && main.size() > 0);
+            _proc->GetAddressSpace(), std::string("CALL_EXIT"), instrLib);
+	assert(cEntry.size() == 1 && cExit.size() == 1);
 
-    BPatch_object * libCuda = _proc->LoadLibrary(std::string("libcuda.so.1"));
+    BPatch_object * libCuda = _proc->LoadLibrary(libcudaName);
 	std::unordered_map<uint64_t, BPatch_function *> funcMap = ops->GetFuncMap(
             _proc->GetAddressSpace(), libCuda);
 	uint64_t curId = 5;
@@ -32,11 +58,13 @@ void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace,
 		} else {
 			std::cerr << "Inserting Instrumentation into function at offset = "
                 << std::hex << i << " with id = " << std::dec << curId<< std::endl;
+ 
 			std::vector<BPatch_snippet*> recordArgs;
 			recordArgs.push_back(new BPatch_constExpr(curId));
-			BPatch_funcCallExpr entryExpr(*cEntry[0], recordArgs);
+            BPatch_funcCallExpr entryExpr(*cEntry[0], recordArgs);
 			BPatch_funcCallExpr exitExpr(*cExit[0], recordArgs);
-			auto f = funcMap[i];
+
+            auto f = funcMap[i];
 			std::vector<BPatch_point*> * entry = f->findPoint(BPatch_locEntry);
 			std::vector<BPatch_point*> * exit = f->findPoint(BPatch_locExit);
 			_proc->GetAddressSpace()->insertSnippet(entryExpr,*entry);
@@ -45,28 +73,16 @@ void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace,
 	    		prev.push_back(ops->FindPreviousPoint((*exit)[0], _proc->GetAddressSpace()));
 				_proc->GetAddressSpace()->insertSnippet(exitExpr,prev);
 			}
-			idToOffset[curId] = i;
+
+            idToOffset[curId] = i;
 			curId++;
 			funcMap.erase(i);
 		}
 	}
-	BPatch_function * mainFunc = main[0];
-	if (main.size() > 1) {
-		for (auto i : main)
-			if (i->getModule()->getObject()->pathName().find(".so") == std::string::npos)
-				mainFunc = i;
-	}
 
-	std::vector<BPatch_point*> * funcCalls = mainFunc->findPoint(BPatch_locSubroutine);
-	for (auto i : *funcCalls) {
-		if (i->getCalledFunction()->getName().find(funcName) != std::string::npos) {
-			std::vector<BPatch_point*> singlePoint;
-			singlePoint.push_back(i);
-			std::vector<BPatch_snippet*> recordArgs;
-			BPatch_funcCallExpr entryExpr(*signalStart[0], recordArgs);
-			_proc->GetAddressSpace()->insertSnippet(entryExpr,singlePoint, BPatch_callBefore);
-		}
-	}
+    BPatch_process * appProc = dynamic_cast<BPatch_process*>(_proc->GetAddressSpace());
+    if (appProc)
+        InsertInstrInMain(funcName, instrLib);
 }
 
 uint64_t LaunchIdentifySync::PostProcessing(std::vector<uint64_t> & allFound) {
@@ -92,4 +108,8 @@ uint64_t LaunchIdentifySync::PostProcessing(std::vector<uint64_t> & allFound) {
 	}
 	fclose(fp);
 	return highestAddress;
+}
+
+std::unordered_map<uint64_t, uint64_t> LaunchIdentifySync::SetIdToOffset(std::unordered_map<uint64_t, uint64_t> offsetMap) {
+    idToOffset = offsetMap;
 }

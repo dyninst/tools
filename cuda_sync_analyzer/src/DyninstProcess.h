@@ -45,15 +45,17 @@ using namespace SymtabAPI;
 class DyninstProcess {
 public:
     DyninstProcess(std::string fileName);
+    //BPatch_addressSpace * OpenBinary();
 	BPatch_addressSpace * LaunchProcess();
 	BPatch_addressSpace * GetAddressSpace();
 	bool RunUntilCompleation(std::string filename = std::string(""));
+    //bool WriteFile(std::string newName);
 	BPatch_object * LoadLibrary(std::string library);
 	void SetDynOps(std::shared_ptr<DynOpsClass> ops);
 	std::shared_ptr<DynOpsClass> ReturnDynOps();
 	void BeginInsertionSet();
 	void DetachForDebug();
-	void RunCudaInit();
+	void RunCudaInit(std::string libcudaName);
 	void SetTrampGuard();
 
 	void CloseInsertionSet();
