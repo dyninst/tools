@@ -18,8 +18,8 @@
 
 class InstrSyncOffset {
 private:
-    std::shared_ptr<DyninstMutatee> _proc;
+    std::shared_ptr<DyninstMutatee> _mutatee;
 public:
-    InstrSyncOffset(std::shared_ptr<DyninstMutatee> proc);
-    void InsertInstr(uint64_t syncOffset, std::string libcudaName = "libcuda.so.1");
+    InstrSyncOffset(std::shared_ptr<DyninstMutatee> mutatee);
+    void InsertInstr(uint64_t syncOffset);
 };

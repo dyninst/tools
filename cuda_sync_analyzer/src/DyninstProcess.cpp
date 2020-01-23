@@ -15,11 +15,11 @@ std::shared_ptr<DynOpsClass> DyninstProcess::ReturnDynOps() {
 	return _ops;
 }
 */
-void DyninstProcess::RunCudaInit(std::string libcudaName) {
+void DyninstProcess::RunCudaInit() {
 	if (_insertedInit)
 		return;
 
-	BPatch_object * libcuda = LoadLibrary(libcudaName);
+	BPatch_object * libcuda = LoadLibrary(std::string("libcuda.so.1"));
 	std::vector<BPatch_function *> cuInit = _ops->FindFuncsByName(_aspace, std::string("cuInit"), libcuda);
 	assert(cuInit.size() == 1);
 	std::vector<BPatch_snippet*> recordArgs;

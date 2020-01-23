@@ -33,7 +33,7 @@ void LaunchIdentifySync::InsertInstrInMain(std::string funcName, BPatch_object *
 }
 
 void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace,
-        std::string funcName, bool withExit, std::string helperLib, std::string libcudaName) {
+        std::string funcName, bool withExit, std::string helperLib) {
 
 	std::shared_ptr<DynOpsClass> ops = _proc->ReturnDynOps();
 	//std::vector<BPatch_function *> main = ops->FindFuncsByName(
@@ -47,7 +47,7 @@ void LaunchIdentifySync::InsertAnalysis(std::vector<uint64_t> functionsToTrace,
             _proc->GetAddressSpace(), std::string("CALL_EXIT"), instrLib);
 	assert(cEntry.size() == 1 && cExit.size() == 1);
 
-    BPatch_object * libCuda = _proc->LoadLibrary(libcudaName);
+    BPatch_object * libCuda = _proc->LoadLibrary(std::string("libcuda.so.1"));
 	std::unordered_map<uint64_t, BPatch_function *> funcMap = ops->GetFuncMap(
             _proc->GetAddressSpace(), libCuda);
 	uint64_t curId = 5;
@@ -108,8 +108,4 @@ uint64_t LaunchIdentifySync::PostProcessing(std::vector<uint64_t> & allFound) {
 	}
 	fclose(fp);
 	return highestAddress;
-}
-
-std::unordered_map<uint64_t, uint64_t> LaunchIdentifySync::SetIdToOffset(std::unordered_map<uint64_t, uint64_t> offsetMap) {
-    idToOffset = offsetMap;
 }

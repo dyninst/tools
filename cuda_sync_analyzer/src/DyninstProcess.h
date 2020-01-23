@@ -35,8 +35,6 @@
 #include "set"
 #include "LogInfo.h"
 #include "Constants.h"
-//#include "StackPoint.h"
-//#include "StackStorage.h"
 
 using namespace Dyninst;
 using namespace ParseAPI;
@@ -46,25 +44,17 @@ using namespace SymtabAPI;
 class DyninstProcess: public DyninstMutatee {
 public:
     DyninstProcess(std::string fileName);
-    //BPatch_addressSpace * OpenBinary();
 	BPatch_addressSpace * LaunchProcess();
-	//BPatch_addressSpace * GetAddressSpace() override;
 	bool RunUntilCompleation(std::string filename = std::string(""));
-    //bool WriteFile(std::string newName);
-	//BPatch_object * LoadLibrary(std::string library);
 	void SetDynOps(std::shared_ptr<DynOpsClass> ops);
-	//std::shared_ptr<DynOpsClass> ReturnDynOps() override;
 	void BeginInsertionSet() override;
 	void DetachForDebug();
-	void RunCudaInit(std::string libcudaName = "libcuda.so.1");
+	void RunCudaInit();
 	void SetTrampGuard();
 
 	void CloseInsertionSet();
 private:
 	std::vector<std::string> _launchString;
-	//std::shared_ptr<DynOpsClass> _ops;
 	bool _insertedInit;
-	//BPatch_addressSpace * _aspace;
 	bool _openInsertions;
-	//BPatch bpatch;
 };

@@ -2,7 +2,6 @@
 #include "InstrSyncOffset.h"
 #include "LocateCudaSynchronization.h"
 #include "LaunchIdentifySync.h"
-//#include "InstrLibCuda.h"
 
 std::shared_ptr<DyninstProcess> LaunchApplicationByName(std::string name) {
     std::shared_ptr<DyninstProcess> ret(new DyninstProcess(name));
@@ -31,24 +30,20 @@ int main(void) {
             potentials.clear();
             syncAddr = sync.PostProcessing(potentials);
             if (potentials.size() > 1) {
-                std::cout << "[SyncTesting::IndentifySyncFunction] We have more than one possibility for sync function, picking lowest level one" << std::endl;
+                std::cout << "We have more than one possibility for sync function, picking lowest level one" << std::endl;
             }
             scuda.WriteSyncLocation(syncAddr);
         }
     }
-        //std::unordered_map<uint64_t, uint64_t> idToOffset;
         {
-            //std::shared_ptr<DyninstProcess> libCudaBin = std::shared_ptr<DyninstProcess>(new DyninstProcess(libCudaPath));
             std::string libCudaPath = scuda.FindLibCuda().string();
-            std::shared_ptr<BPatchBinary> bin = std::shared_ptr<BPatchBinary>(new BPatchBinary(libCudaPath, true, newLibcuda));
-            std::cout << "Init bpatch binary" << std::endl;
+            std::shared_ptr<BPatchBinary> bin = std::shared_ptr<BPatchBinary>(
+                    new BPatchBinary(libCudaPath, true, newLibcuda));
             InstrSyncOffset instrSyncOffset(bin);
-            std::cout << "Mutator object created" << std::endl;
-            instrSyncOffset.InsertInstr(syncAddr, libCudaPath);
-            //idToOffset = instrLibCuda.GetIdToOffset();
-            std::cout << "Instrumentation inserted into libcuda" << std::endl;
+            instrSyncOffset.InsertInstr(syncAddr);
         }
-        //assert(idToOffset.size() > 0);
+        std::cout << "Saved instrumented binary to " << newLibcuda << std::endl;
+        /*
         {
             std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string("/nobackup/nisargs/diogenes-project/nohang_devsync"));
             std::cout << "Init nohang process" << std::endl;
@@ -59,5 +54,6 @@ int main(void) {
             std::cout << "Run program until completion" << std::endl;
             proc->RunUntilCompleation();
         }
+        */
     //}
 }
