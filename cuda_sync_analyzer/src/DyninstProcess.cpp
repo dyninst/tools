@@ -10,12 +10,12 @@ DyninstProcess::DyninstProcess(std::string fileName) {
 void DyninstProcess::SetDynOps(std::shared_ptr<DynOpsClass> ops) {
 	_ops = ops;
 }
-
+/*
 std::shared_ptr<DynOpsClass> DyninstProcess::ReturnDynOps() {
 	return _ops;
 }
-
-void DyninstProcess::RunCudaInit(std::string libcudaName = "libcuda.so.1") {
+*/
+void DyninstProcess::RunCudaInit(std::string libcudaName) {
 	if (_insertedInit)
 		return;
 
@@ -36,13 +36,14 @@ void DyninstProcess::BeginInsertionSet() {
 	_aspace->beginInsertionSet();
 	_openInsertions = true;
 }
-
+/*
 BPatch_object * DyninstProcess::LoadLibrary(std::string library) {
 	/**
 	 * Loads a library into the process. First performs a check of alreadly loaded libraries
 	 * If the library is already loaded, returns the loaded library. Otherwise, calls the appropriate
 	 * dyninst load function. 
 	 */
+/*
 	//if (library.find("libcuda.so") != std::string::npos)
 	//  library = std::string("libcuda.so.1");
 	std::string original = library;
@@ -76,7 +77,7 @@ BPatch_object * DyninstProcess::LoadLibrary(std::string library) {
 	// Not already loaded, return a new loaded library.
 	return _aspace->loadLibrary(original.c_str());
 }
-
+*/
 void DyninstProcess::CloseInsertionSet() {
 	if (_openInsertions) {
 		_aspace->finalizeInsertionSet(false);
@@ -211,8 +212,4 @@ void DyninstProcess::DetachForDebug() {
 	}
 
 
-}
-
-BPatch_addressSpace * DyninstProcess::GetAddressSpace() {
-	return _aspace;
 }

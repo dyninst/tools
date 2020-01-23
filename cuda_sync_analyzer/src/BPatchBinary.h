@@ -41,6 +41,8 @@
 #include "BPatch_statement.h"
 #include "dynC.h"
 
+#include "DyninstMutatee.h"
+
 using namespace Dyninst;
 using namespace ParseAPI;
 using namespace PatchAPI;
@@ -50,20 +52,21 @@ using namespace SymtabAPI;
 #include <memory>
 #include <unordered_set>
 #include <math.h>
-class BPatchBinary {
+class BPatchBinary: public DyninstMutatee {
 public:
 	BPatchBinary(std::string binName, bool output = false, std::string outName = std::string(""));
 	BPatch_image * GetImage();
-	BPatch_addressSpace * GetAddressSpace();
+	//BPatch_addressSpace * GetAddressSpace() override;
 	~BPatchBinary();
 	std::vector<uint64_t> FindSyncCandidates();
+    //BPatch_object * LoadLibrary(std::string library);
 private:
-	BPatch_addressSpace * _as;
+	//BPatch_addressSpace * _as;
 	BPatch_binaryEdit * _be;
 	std::string _binName;
 	bool _output;
 	std::string _outName;
-	BPatch bpatch;
+	//BPatch bpatch;
 };
 
 struct FuncCFG{ 

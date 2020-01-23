@@ -1,6 +1,6 @@
 #include "InstrSyncOffset.h"
 
-InstrSyncOffset::InstrSyncOffset(std::shared_ptr<DyninstProcess> proc) : _proc(proc) { 
+InstrSyncOffset::InstrSyncOffset(std::shared_ptr<DyninstMutatee> proc) : _proc(proc) { 
 
 }
 
@@ -15,7 +15,13 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset, std::string libcudaName) 
             _proc->GetAddressSpace(), std::string("STOP_TIMER_INSTR"), instrLib);
     assert(cEntry.size() == 1 && cExit.size() == 1);
 
-    BPatch_object * libCuda = _proc->LoadLibrary(libcudaName);
+    BPatch_object * libCuda = NULL;
+    // Required only for a process since offset needs to be calculated relative to libcuda
+    BPatch_process * appProc = dynamic_cast<BPatch_process *>(_proc->GetAddressSpace());
+    if (appProc) {
+        std::cout << "Loading libcuda to compute offset->BPatch_function map" << std::endl;
+        libCuda = _proc->LoadLibrary(libcudaName);
+    }
     std::unordered_map<uint64_t, BPatch_function *> funcMap = ops->GetFuncMap(
             _proc->GetAddressSpace(), libCuda);
     if (funcMap.find(syncOffset) != funcMap.end() || syncOffset < 0x200000){

@@ -14,11 +14,12 @@
 
 #include "DyninstProcess.h"
 #include "DynOpsClass.h"
+#include "DyninstMutatee.h"
 
 class InstrSyncOffset {
-    private:
-        std::shared_ptr<DyninstProcess> _proc;
-    public:
-        InstrSyncOffset(std::shared_ptr<DyninstProcess> proc);
-        void InsertInstr(uint64_t syncOffset, std::string libcudaName = "libcuda.so.1");
+private:
+    std::shared_ptr<DyninstMutatee> _proc;
+public:
+    InstrSyncOffset(std::shared_ptr<DyninstMutatee> proc);
+    void InsertInstr(uint64_t syncOffset, std::string libcudaName = "libcuda.so.1");
 };

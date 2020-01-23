@@ -44,7 +44,6 @@
 #include "set"
 #include "LogInfo.h"
 #include "Constants.h"
-#include "LocateCudaSynchronization.h"
 //#include "SymbolLookup.h"
 using namespace Dyninst;
 using namespace ParseAPI;
@@ -77,7 +76,6 @@ public:
             BPatch_addressSpace * aspace, std::string name, BPatch_object * obj = NULL);
 	std::vector<BPatch_function *> GetFunctionsByOffeset(
             BPatch_addressSpace * aspace, BPatch_object * obj, uint64_t offset);
-	uint64_t GetSyncFunctionLocation();
 	BPatchPointVecPtr GetPoints(BPatch_function * func, const BPatch_procedureLocation pos);
 	bool IsNeverInstriment(BPatch_function * func);
 
@@ -92,6 +90,4 @@ private:
 	std::map<uint64_t, BPatch_function *> _powerFuncmap;
 	std::unordered_map<uint64_t, BPatch_function *> _addressList;
 	bool init;
-	uint64_t _syncLocation;
-	LocateCudaSynchronization _syncClass;
 };

@@ -1,7 +1,6 @@
 #include "DynOpsClass.h"
 DynOpsClass::DynOpsClass() {
 	init = false;
-	_syncLocation = 0;
 }
 std::vector<BPatch_function*> DynOpsClass::GetFunctionsByOffeset(BPatch_addressSpace * aspace, BPatch_object * obj, uint64_t offset) {
 	std::vector<BPatch_function*> ret;
@@ -24,13 +23,6 @@ std::vector<BPatch_function*> DynOpsClass::GetFunctionsByOffeset(BPatch_addressS
 	}
 	ret.push_back(func);
 	return ret;
-}
-
-uint64_t DynOpsClass::GetSyncFunctionLocation() {
-	if (_syncLocation == 0)
-		_syncLocation = _syncClass.FindLibcudaOffset();
-
-	return _syncLocation;
 }
 
 bool DynOpsClass::IsNeverInstriment(BPatch_function * func) {

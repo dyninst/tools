@@ -12,6 +12,7 @@
 
 #include "DynOpsClass.h"
 #include "Common.h"
+#include "DyninstMutatee.h"
 
 // Dyninst includes
 #include "CodeObject.h"
@@ -42,28 +43,28 @@ using namespace ParseAPI;
 using namespace PatchAPI;
 using namespace SymtabAPI;
 
-class DyninstProcess {
+class DyninstProcess: public DyninstMutatee {
 public:
     DyninstProcess(std::string fileName);
     //BPatch_addressSpace * OpenBinary();
 	BPatch_addressSpace * LaunchProcess();
-	BPatch_addressSpace * GetAddressSpace();
+	//BPatch_addressSpace * GetAddressSpace() override;
 	bool RunUntilCompleation(std::string filename = std::string(""));
     //bool WriteFile(std::string newName);
-	BPatch_object * LoadLibrary(std::string library);
+	//BPatch_object * LoadLibrary(std::string library);
 	void SetDynOps(std::shared_ptr<DynOpsClass> ops);
-	std::shared_ptr<DynOpsClass> ReturnDynOps();
-	void BeginInsertionSet();
+	//std::shared_ptr<DynOpsClass> ReturnDynOps() override;
+	void BeginInsertionSet() override;
 	void DetachForDebug();
-	void RunCudaInit(std::string libcudaName);
+	void RunCudaInit(std::string libcudaName = "libcuda.so.1");
 	void SetTrampGuard();
 
 	void CloseInsertionSet();
 private:
 	std::vector<std::string> _launchString;
-	std::shared_ptr<DynOpsClass> _ops;
+	//std::shared_ptr<DynOpsClass> _ops;
 	bool _insertedInit;
-	BPatch_addressSpace * _aspace;
+	//BPatch_addressSpace * _aspace;
 	bool _openInsertions;
-	BPatch bpatch;
+	//BPatch bpatch;
 };
