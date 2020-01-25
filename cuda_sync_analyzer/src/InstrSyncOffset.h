@@ -16,10 +16,15 @@
 #include "DynOpsClass.h"
 #include "DyninstMutatee.h"
 
+/* 
+ * Class to insert timing instrumentation into given offset
+*/
 class InstrSyncOffset {
 private:
     std::shared_ptr<DyninstMutatee> _mutatee;
 public:
     InstrSyncOffset(std::shared_ptr<DyninstMutatee> mutatee);
     void InsertInstr(uint64_t syncOffset);
+    std::vector<uint64_t> getOffsets(
+        const std::unordered_map<uint64_t, BPatch_function *>& funcMap);
 };

@@ -56,17 +56,13 @@ class BPatchBinary: public DyninstMutatee {
 public:
 	BPatchBinary(std::string binName, bool output = false, std::string outName = std::string(""));
 	BPatch_image * GetImage();
-	//BPatch_addressSpace * GetAddressSpace() override;
 	~BPatchBinary();
 	std::vector<uint64_t> FindSyncCandidates();
-    //BPatch_object * LoadLibrary(std::string library);
 private:
-	//BPatch_addressSpace * _as;
 	BPatch_binaryEdit * _be;
 	std::string _binName;
 	bool _output;
 	std::string _outName;
-	//BPatch bpatch;
 };
 
 struct FuncCFG{ 

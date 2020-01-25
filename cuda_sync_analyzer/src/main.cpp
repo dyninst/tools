@@ -18,7 +18,7 @@ int main(void) {
     LocateCudaSynchronization scuda;
     std::vector<uint64_t> potentials;
     uint64_t syncAddr = scuda.FindLibcudaOffset(false);
-    std::string newLibcuda("/nobackup/nisargs/newlibcuda.so");
+    std::string newLibcuda("/nobackup/nisargs/libcuda.so.1");
     if (syncAddr == 0) {
         potentials = scuda.IdentifySyncFunction();
         {
