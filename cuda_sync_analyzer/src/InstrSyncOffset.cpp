@@ -42,18 +42,24 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
     vector<uint64_t> offsets = getOffsets(funcMap);
 
     offsets.push_back(syncOffset);
-    for (auto i : offsets) {
-        if (funcMap.find(i) != funcMap.end() || i < 0x200000){
+    for (auto offset : offsets) {
+        auto offsetFuncPair = funcMap.find(offset);
+        if (offsetFuncPair != funcMap.end() || offset < 0x200000){
             std::cout << "Inserting Instrumentation into function at offset = "
-                << std::hex << i << std::endl;
+                << std::hex << offset << std::endl;
             _mutatee->BeginInsertionSet();
 
-            std::vector<BPatch_snippet*> recordArgs;
-            recordArgs.push_back(new BPatch_constExpr(i));
-            BPatch_funcCallExpr entryExpr(*cEntry[0], recordArgs);
-            BPatch_funcCallExpr exitExpr(*cExit[0], recordArgs);
+            std::vector<BPatch_snippet*> exitArgs;
+            exitArgs.push_back(new BPatch_constExpr(offset));
 
-            auto f = funcMap[i];
+            std::vector<BPatch_snippet*> entryArgs(exitArgs);
+            entryArgs.push_back(new BPatch_constExpr(
+                    offsetFuncPair->second->getName().c_str()));
+
+            BPatch_funcCallExpr entryExpr(*cEntry[0], entryArgs);
+            BPatch_funcCallExpr exitExpr(*cExit[0], exitArgs);
+
+            auto f = funcMap[offset];
             std::vector<BPatch_point*> * entry = f->findPoint(BPatch_locEntry);
             std::vector<BPatch_point*> * exit = f->findPoint(BPatch_locExit);
 
@@ -64,7 +70,7 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
             _mutatee->GetAddressSpace()->insertSnippet(exitExpr,prev);
         }
         else {
-            std::cerr << "Offset " << std::hex << i << " not found!" << std::endl;
+            std::cerr << "Offset " << std::hex << offset << " not found!" << std::endl;
         }
     }
 }

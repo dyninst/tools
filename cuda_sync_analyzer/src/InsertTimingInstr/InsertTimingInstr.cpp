@@ -12,6 +12,7 @@ typedef std::chrono::high_resolution_clock hrc;
 
 struct ExecTime {
     uint64_t id;
+    const char *func_name;
     hrc::time_point start_time;
     hrc::time_point end_time;
 };
@@ -25,10 +26,12 @@ extern "C" {
     void SAVE_INSTR_TIMES() {
         std::ofstream outfile("InstrTimings.out");
         assert(outfile.good());
-        for (std::vector<ExecTimeSPtr >::iterator it = exec_times->begin(); it != exec_times->end(); ++it)
-            outfile << std::hex << it->get()->id << " " << std::dec
-                << std::chrono::duration<double, std::nano>(it->get()->end_time - it->get()->start_time).count()
+        for (std::vector<ExecTimeSPtr >::iterator it = exec_times->begin(); it != exec_times->end(); ++it) {
+            auto record = it->get();
+            outfile << record->func_name << " " << std::hex << record->id << " " << std::dec
+                << std::chrono::duration<double, std::nano>(record->end_time - record->start_time).count()
                 << " ns" << std::endl;
+        }
         outfile.close();
     }
     
@@ -42,11 +45,12 @@ extern "C" {
         if (atexit(SAVE_INSTR_TIMES) != 0)
             std::cerr << "Failed to register atexit function" << std::endl;
     }
-    void START_TIMER_INSTR(uint64_t offset) {
+    void START_TIMER_INSTR(uint64_t offset, const char *name) {
         if (exec_times.get() == NULL)
             SignalStartInstra();
         ExecTimeSPtr time = ExecTimeSPtr(new ExecTime);
         time->id = offset;
+        time->func_name = name;
         if (unresolved->find(offset) == unresolved->end()) {
             std::stack<ExecTimeSPtr > times_for_id;
             unresolved->insert({offset, times_for_id});
