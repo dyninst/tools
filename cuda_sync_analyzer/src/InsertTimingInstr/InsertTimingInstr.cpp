@@ -15,6 +15,7 @@ struct ExecTime {
     const char *func_name;
     hrc::time_point start_time;
     hrc::time_point end_time;
+    uint64_t duration;
 };
 
 typedef std::shared_ptr<ExecTime> ExecTimeSPtr;
@@ -26,12 +27,23 @@ extern "C" {
     void SAVE_INSTR_TIMES() {
         std::ofstream outfile("InstrTimings.out");
         assert(outfile.good());
+        std::unordered_map<std::string, uint64_t> aggregate_times;
+
+        //outfile << "Function\t\tTime (ns)" << std::endl;
         for (std::vector<ExecTimeSPtr >::iterator it = exec_times->begin(); it != exec_times->end(); ++it) {
             auto record = it->get();
-            outfile << record->func_name << " " << std::hex << record->id << " " << std::dec
-                << std::chrono::duration<double, std::nano>(record->end_time - record->start_time).count()
-                << " ns" << std::endl;
+            // outfile << record->func_name << " " << std::hex << record->id << " "
+            //     << std::dec << record->duration << " ns" << std::endl;
+            if (aggregate_times.find(record->func_name) == aggregate_times.end()) {
+                aggregate_times[record->func_name] = 0;
+            }
+            aggregate_times[record->func_name] += record->duration;
         }
+
+        for (std::pair<std::string, uint64_t> record : aggregate_times) {
+            outfile << record.first << " " << record.second << " ns" << std::endl;
+        }
+
         outfile.close();
     }
     
@@ -63,7 +75,9 @@ extern "C" {
         auto stop = hrc::now();
         ExecTimeSPtr time = ExecTimeSPtr(unresolved->at(offset).top());
         time->end_time = stop;
-        unresolved->at(offset).pop();
+        time->duration = std::chrono::duration<double, std::nano>(
+            stop - time->start_time).count();
         exec_times->push_back(time);
+        unresolved->at(offset).pop();
     }
 }
