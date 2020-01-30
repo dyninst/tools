@@ -14,11 +14,12 @@ cmake .. \
   -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
   -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
   -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=FALSE \
-  -DCMAKE_INSTALL_PREFIX=<INSTALL PREFIX> && make install
+  -DCMAKE_INSTALL_PREFIX=<INSTALL PREFIX> && make && make install
 ```
 
 ##### Run
 
 ```
 <INSTALL_PREFIX>/bin/main
+LD_PRELOAD=<path to modified libcuda.so.1> <path to CUDA application>
 ```
