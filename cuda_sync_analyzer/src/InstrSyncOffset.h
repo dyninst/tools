@@ -27,4 +27,6 @@ public:
     void InsertInstr(uint64_t syncOffset);
     std::vector<uint64_t> getOffsets(
         const std::unordered_map<uint64_t, BPatch_function *>& funcMap);
+    void InsertSnippet(uint64_t offset, BPatch_function *f,
+        std::vector<BPatch_function *> cEntry, std::vector<BPatch_function *> cExit);
 };
