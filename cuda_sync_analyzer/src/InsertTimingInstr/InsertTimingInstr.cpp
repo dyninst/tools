@@ -41,21 +41,30 @@ extern "C" {
     void SAVE_INSTR_TIMES() {
         std::ofstream outfile("InstrTimings.out");
         assert(outfile.good());
-        std::unordered_map<std::string, uint64_t> aggregate_times;
+        std::unordered_map<std::string, ExecTime> aggregate_times;
 
         //outfile << "Function\t\tTime (ns)" << std::endl;
         for (std::vector<ExecTimeSPtr >::iterator it = exec_times->begin(); it != exec_times->end(); ++it) {
             auto record = it->get();
+            std::string func_name = record->func_name;
             // outfile << record->func_name << " " << std::hex << record->id << " "
             //     << std::dec << record->duration << " ns" << std::endl;
-            if (aggregate_times.find(record->func_name) == aggregate_times.end()) {
-                aggregate_times[record->func_name] = 0;
+            if (aggregate_times.find(func_name) == aggregate_times.end()) {
+                ExecTime e;
+                e.func_name = record->func_name;
+                e.id = record->id;
+                e.duration = 0;
+                e.sync_duration = 0;
+                aggregate_times[func_name] = e;
             }
-            aggregate_times[record->func_name] += record->duration;
+            aggregate_times[func_name].duration += record->duration;
+            aggregate_times[func_name].sync_duration += record->sync_duration;
         }
 
         for (auto record : aggregate_times) {
-            outfile << record.first << " " << record.second << " ns" << std::endl;
+            outfile << record.first << " "
+                    << (record.second).duration/*/1000000.0*/ << "ns, "
+                    << (record.second).sync_duration/*/1000000.0*/ << "ns" << std::endl;
         }
 
         outfile.close();
@@ -73,7 +82,7 @@ extern "C" {
     }
 
     void START_TIMER_INSTR(uint64_t offset, const char *name) {
-        std::cout << "-------Start timer for " << name << std::endl;
+        // std::cout << "-------Start timer for " << name << std::endl;
         // if (offset == 0x2ec840) {
         //     std::cout << "tid: " << pthread_self() << std::endl;
         //     if (once) {
@@ -100,7 +109,7 @@ extern "C" {
     }
 
     void STOP_TIMER_INSTR(uint64_t offset) {
-        std::cout << "-------Stop timer" << std::endl;
+        // std::cout << "-------Stop timer" << std::endl;
         // if (offset == 0x2ec840) {
         //     std::cout << "tid: " << pthread_self() << std::endl;
         //     if (!once) {
@@ -118,7 +127,7 @@ extern "C" {
             stop - time->start_time).count();
 
         for (auto sync_time : sync_times) {
-            std::cout << "\tduration: " << sync_time.duration << std::endl;
+            // std::cout << "\tduration: " << sync_time.duration << std::endl;
             time->sync_duration += sync_time.duration;
         }
         // clear vector so next API call can record sync times
@@ -129,7 +138,7 @@ extern "C" {
     }
 
     void START_SYNC_TIMER_INSTR(uint64_t offset, const char *name) {
-        std::cout << "Start sync timer on th " << pthread_self() << std::endl;
+        // std::cout << "Start sync timer on th " << pthread_self() << std::endl;
 
         SyncTime sync_time;
         sync_time.id = offset;
@@ -137,11 +146,11 @@ extern "C" {
         auto start = hrc::now();
         sync_time.start_time = start;
         sync_times.push_back(sync_time);        
-        std::cout << "start recorded" << std::endl;
+        // std::cout << "start recorded" << std::endl;
     }
 
     void STOP_SYNC_TIMER_INSTR(uint64_t offset, const char *name) {
-        std::cout << "Stop sync timer" << std::endl;
+        // std::cout << "Stop sync timer" << std::endl;
         auto stop = hrc::now();
 
         SyncTime& sync_time = sync_times[sync_times.size()-1];
@@ -149,6 +158,6 @@ extern "C" {
         sync_time.duration = std::chrono::duration<double, std::nano>(
             stop - sync_time.start_time).count();
 
-        std::cout << "stop recorded" << std::endl;
+        // std::cout << "stop recorded" << std::endl;
     }
 }
