@@ -1,3 +1,4 @@
+#include <atomic>
 #include <chrono>
 #include <unordered_map>
 #include <vector>
@@ -7,7 +8,6 @@
 #include <fstream>
 #include <memory>
 #include <cstdlib>
-#include <pthread.h>
 
 typedef std::chrono::high_resolution_clock hrc;
 
@@ -33,13 +33,14 @@ typedef std::shared_ptr<ExecTime> ExecTimeSPtr;
 std::unique_ptr<std::vector<ExecTimeSPtr > > exec_times;
 
 // Maintain stack of unresolved calls
-std::unique_ptr<std::unordered_map<uint64_t, std::stack<ExecTimeSPtr > > > unresolved;
-
+thread_local std::unique_ptr<std::unordered_map<uint64_t, std::stack<ExecTimeSPtr > > > unresolved;
 thread_local std::vector<SyncTime> sync_times;
-// thread_local bool once = false;
+std::atomic<bool> stop_timing(false);
 
 extern "C" {
     void SAVE_INSTR_TIMES() {
+        // std::cout << "atexit" << std::endl;
+        stop_timing = true;
         std::ofstream outfile("InstrTimings.out");
         assert(outfile.good());
         std::unordered_map<std::string, ExecTime> aggregate_times;
@@ -75,26 +76,19 @@ extern "C" {
     void SignalStartInstra() {
         // std::cout << "Signal start of intrumentation" << std::endl;
         if (!exec_times)
-            exec_times = std::unique_ptr<std::vector<ExecTimeSPtr > >(new std::vector<ExecTimeSPtr >);
+            exec_times = std::unique_ptr<std::vector<ExecTimeSPtr > >(
+                new std::vector<ExecTimeSPtr >);
         if (!unresolved)
-            unresolved = std::unique_ptr<std::unordered_map<uint64_t, std::stack<ExecTimeSPtr > > >(
+            unresolved = std::unique_ptr<std::unordered_map<uint64_t,
+                std::stack<ExecTimeSPtr > > >(
                     new std::unordered_map<uint64_t, std::stack<ExecTimeSPtr > >);
         if (atexit(SAVE_INSTR_TIMES) != 0)
             std::cerr << "Failed to register atexit function" << std::endl;
     }
 
     void START_TIMER_INSTR(uint64_t offset, const char *name) {
+        if (stop_timing) return;
         // std::cout << "-------Start timer for " << name << std::endl;
-        // if (offset == 0x2ec840) {
-        //     std::cout << "tid: " << pthread_self() << std::endl;
-        //     if (once) {
-        //         std::cerr << "Entered sync function for second time" << std::endl;
-        //     } else {
-        //         std::cout << "start sync" << std::endl;
-        //         once = true;
-        //     }
-        // }
-
         if (exec_times.get() == NULL)
             SignalStartInstra();
 
@@ -111,17 +105,7 @@ extern "C" {
     }
 
     void STOP_TIMER_INSTR(uint64_t offset) {
-        // std::cout << "-------Stop timer" << std::endl;
-        // if (offset == 0x2ec840) {
-        //     std::cout << "tid: " << pthread_self() << std::endl;
-        //     if (!once) {
-        //         std::cerr << "once is already false!" << std::endl;
-        //     } else {
-        //         std::cout << "stop sync" << std::endl;
-        //         once = false;
-        //     }
-        // }
-
+        if (stop_timing) return;
         auto stop = hrc::now();
         ExecTimeSPtr time = ExecTimeSPtr(unresolved->at(offset).top());
         time->end_time = stop;
@@ -129,7 +113,6 @@ extern "C" {
             stop - time->start_time).count();
 
         for (auto sync_time : sync_times) {
-            // std::cout << "\tduration: " << sync_time.duration << std::endl;
             time->sync_duration += sync_time.duration;
         }
         // clear vector so next API call can record sync times
