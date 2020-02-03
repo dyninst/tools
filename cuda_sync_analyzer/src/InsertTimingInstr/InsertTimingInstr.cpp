@@ -18,6 +18,7 @@ struct ExecTime {
     hrc::time_point end_time;
     uint64_t duration;
     uint64_t sync_duration = 0;
+    uint64_t c_cnt = 0;
 };
 
 struct SyncTime {
@@ -59,10 +60,11 @@ extern "C" {
             }
             aggregate_times[func_name].duration += record->duration;
             aggregate_times[func_name].sync_duration += record->sync_duration;
+            aggregate_times[func_name].c_cnt++;
         }
 
         for (auto record : aggregate_times) {
-            outfile << record.first << " "
+            outfile << record.first << " " << (record.second).c_cnt << " "
                     << (record.second).duration/*/1000000.0*/ << "ns, "
                     << (record.second).sync_duration/*/1000000.0*/ << "ns" << std::endl;
         }
