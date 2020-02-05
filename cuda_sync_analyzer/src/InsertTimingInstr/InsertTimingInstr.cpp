@@ -104,7 +104,8 @@ extern "C" {
         unresolved->at(offset).top()->start_time = start;
     }
 
-    void STOP_TIMER_INSTR(uint64_t offset) {
+    void STOP_TIMER_INSTR(uint64_t offset, uint64_t id) {
+        // std::cout << "id: " << id << std::endl;
         if (stop_timing) return;
         auto stop = hrc::now();
         ExecTimeSPtr time = ExecTimeSPtr(unresolved->at(offset).top());
@@ -122,7 +123,7 @@ extern "C" {
         unresolved->at(offset).pop();
     }
 
-    void START_SYNC_TIMER_INSTR(uint64_t offset, const char *name) {
+    void START_SYNC_TIMER_INSTR(uint64_t offset) {
         // std::cout << "Start sync timer on th " << pthread_self() << std::endl;
 
         SyncTime sync_time;
@@ -134,7 +135,7 @@ extern "C" {
         // std::cout << "start recorded" << std::endl;
     }
 
-    void STOP_SYNC_TIMER_INSTR(uint64_t offset, const char *name) {
+    void STOP_SYNC_TIMER_INSTR(uint64_t offset) {
         // std::cout << "Stop sync timer" << std::endl;
         auto stop = hrc::now();
 

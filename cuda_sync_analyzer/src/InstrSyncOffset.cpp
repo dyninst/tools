@@ -41,14 +41,23 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
             _mutatee->GetAddressSpace(), libCuda);
     vector<uint64_t> offsets = getOffsets(funcMap);
 
-    // offsets.push_back(syncOffset);
+    uint64_t id = 0;
     for (auto offset : offsets) {
         if (funcMap.find(offset) != funcMap.end() || offset < 0x200000){
             std::cout << "Inserting Instrumentation into function at offset = "
                 << std::hex << offset << std::endl;
 
             auto f = funcMap[offset];
-            InsertSnippet(offset, f, cEntry, cExit);
+
+            std::vector<BPatch_snippet*> entryArgs;
+            entryArgs.push_back(new BPatch_constExpr(offset));
+            entryArgs.push_back(new BPatch_constExpr(f->getName().c_str()));
+
+            std::vector<BPatch_snippet*> exitArgs;
+            exitArgs.push_back(new BPatch_constExpr(offset));
+            exitArgs.push_back(new BPatch_constExpr(id));
+
+            InsertSnippet(f, cEntry, cExit, entryArgs, exitArgs);
             // _mutatee->BeginInsertionSet();
 
             // std::vector<BPatch_snippet*> exitArgs;
@@ -72,6 +81,7 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
         else {
             std::cerr << "Offset " << std::hex << offset << " not found!" << std::endl;
         }
+        id++;
     }
 
     std::vector<BPatch_function *> cSyncEntry = ops->FindFuncsByName(
@@ -82,8 +92,15 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
 
     if (funcMap.find(syncOffset) != funcMap.end() || syncOffset < 0x200000) {
         std::cout << "Inserting Instrumentation into function at offset = "
-                << std::hex << syncOffset << std::endl;
-        InsertSnippet(syncOffset, funcMap[syncOffset], cSyncEntry, cSyncExit);
+                  << std::hex << syncOffset << std::endl;
+        // InsertSnippet(syncOffset, 0, funcMap[syncOffset], cSyncEntry, cSyncExit);
+        std::vector<BPatch_snippet*> entryArgs;
+        entryArgs.push_back(new BPatch_constExpr(syncOffset));
+
+        std::vector<BPatch_snippet*> exitArgs;
+        exitArgs.push_back(new BPatch_constExpr(syncOffset));
+        // exitArgs.push_back(new BPatch_constExpr(id));
+        InsertSnippet(funcMap[syncOffset], cSyncEntry, cSyncExit, entryArgs, exitArgs);
     }
     else
         std::cerr << "Offset " << std::hex << syncOffset << " not found!" << std::endl;    
@@ -92,15 +109,10 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
 /**
  * Insert given BPatch_functions on function entry/exit locations
  */
-void InstrSyncOffset::InsertSnippet(uint64_t offset, BPatch_function *f,
-        std::vector<BPatch_function *> cEntry, std::vector<BPatch_function *> cExit) {
+void InstrSyncOffset::InsertSnippet(BPatch_function *f,
+        std::vector<BPatch_function *> cEntry, std::vector<BPatch_function *> cExit,
+        std::vector<BPatch_snippet*> entryArgs, std::vector<BPatch_snippet*> exitArgs) {
     _mutatee->BeginInsertionSet();
-
-    std::vector<BPatch_snippet*> exitArgs;
-    exitArgs.push_back(new BPatch_constExpr(offset));
-
-    std::vector<BPatch_snippet*> entryArgs(exitArgs);
-    entryArgs.push_back(new BPatch_constExpr(f->getName().c_str()));
 
     BPatch_funcCallExpr entryExpr(*cEntry[0], entryArgs);
     BPatch_funcCallExpr exitExpr(*cExit[0], exitArgs);
