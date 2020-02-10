@@ -25,9 +25,9 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
             std::string(LOCAL_INSTALL_PATH) + std::string("/lib/libInsertTimingInstr.so"));
 
     std::vector<BPatch_function *> cEntry = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("START_TIMER_INSTR"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("DIOG_API_ENTRY"), instrLib);
     std::vector<BPatch_function *> cExit = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("STOP_TIMER_INSTR"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("DIOG_API_EXIT"), instrLib);
     assert(cEntry.size() == 1 && cExit.size() == 1);
 
     BPatch_object *libCuda = NULL;
@@ -41,7 +41,7 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
             _mutatee->GetAddressSpace(), libCuda);
     vector<uint64_t> offsets = getOffsets(funcMap);
 
-    uint64_t id = 0;
+    uint64_t id = 1;
     for (auto offset : offsets) {
         if (funcMap.find(offset) != funcMap.end() || offset < 0x200000){
             std::cout << "Inserting Instrumentation into function at offset = "
@@ -51,11 +51,11 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
 
             std::vector<BPatch_snippet*> entryArgs;
             entryArgs.push_back(new BPatch_constExpr(offset));
-            entryArgs.push_back(new BPatch_constExpr(f->getName().c_str()));
 
             std::vector<BPatch_snippet*> exitArgs;
             exitArgs.push_back(new BPatch_constExpr(offset));
             exitArgs.push_back(new BPatch_constExpr(id));
+            exitArgs.push_back(new BPatch_constExpr(f->getName().c_str()));
 
             InsertSnippet(f, cEntry, cExit, entryArgs, exitArgs);
             // _mutatee->BeginInsertionSet();
@@ -85,9 +85,9 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
     }
 
     std::vector<BPatch_function *> cSyncEntry = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("START_SYNC_TIMER_INSTR"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("DIOG_SYNC_ENTRY"), instrLib);
     std::vector<BPatch_function *> cSyncExit = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("STOP_SYNC_TIMER_INSTR"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("DIOG_SYNC_EXIT"), instrLib);
     assert(cSyncEntry.size() == 1 && cSyncExit.size() == 1);
 
     if (funcMap.find(syncOffset) != funcMap.end() || syncOffset < 0x200000) {

@@ -1,149 +1,165 @@
 #include <atomic>
-#include <chrono>
-#include <unordered_map>
-#include <vector>
-#include <stack>
 #include <cassert>
-#include <iostream>
-#include <fstream>
-#include <memory>
+#include <chrono>
 #include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 typedef std::chrono::high_resolution_clock hrc;
 
 struct ExecTime {
-    uint64_t id;
-    const char *func_name;
-    hrc::time_point start_time;
-    hrc::time_point end_time;
-    uint64_t duration;
+    uint64_t id = 0;
+    uint64_t duration = 0;
     uint64_t sync_duration = 0;
-    uint64_t c_cnt = 0;
+    uint64_t call_cnt = 0;
+    const char *func_name;
 };
 
-struct SyncTime {
-    uint64_t id;
-    hrc::time_point start_time;
-    hrc::time_point end_time;
-    uint64_t duration;
+// Shared ptr to vector of ExecTimes
+typedef std::shared_ptr<std::vector<ExecTime> > ExecTimesPtr;
+
+class Aggregator {
+private:
+    std::mutex m;
+    uint64_t index = 0;
+public:
+    std::shared_ptr<std::vector<ExecTimesPtr> > aggregates;
+    Aggregator() {
+        aggregates = std::shared_ptr<std::vector<ExecTimesPtr> >(
+            new std::vector<ExecTimesPtr>(100));
+    }
+    void addVec(ExecTimesPtr& v) {
+        std::scoped_lock(m);
+        aggregates->at(index) = v;
+        index++;
+    }
+    size_t size() {
+        return index;
+    }
 };
 
-typedef std::shared_ptr<ExecTime> ExecTimeSPtr;
+std::shared_ptr<Aggregator> agg;
 
-std::unique_ptr<std::vector<ExecTimeSPtr > > exec_times;
+// TODO: how to get size -
+// 1. pass it as argument to entry instrumentation
+// 2. insert it in libcuda and fetch it here
+// 3. use constant value
+thread_local std::shared_ptr<std::vector<ExecTime> > exec_times;
 
-// Maintain stack of unresolved calls
-thread_local std::unique_ptr<std::unordered_map<uint64_t, std::stack<ExecTimeSPtr > > > unresolved;
-thread_local std::vector<SyncTime> sync_times;
+// Maintain count of unresolved API entries
+thread_local uint64_t stack_cnt = 0;
+thread_local hrc::time_point api_entry, api_exit,
+                             sync_entry, sync_exit;
+thread_local uint64_t sync_total = 0;
+
 std::atomic<bool> stop_timing(false);
 
 extern "C" {
-    void SAVE_INSTR_TIMES() {
+    /**
+     * Post-execution actions
+     */
+    void DIOG_SAVE_INFO() {
         // std::cout << "atexit" << std::endl;
+        // for (int i = 0; i < 1000; i++) {
+        //     if (agg->aggregates->at(0)->at(i).id != 0) {
+        //         std::cout << "agg: " << agg->aggregates->at(0)->at(i).func_name << std::endl;
+        //     }
+        // }
+
+        // This is set to avoid instrumenting cuModuleUnload, etc.,
+        // which are called after thread is destroyed
         stop_timing = true;
+
         std::ofstream outfile("InstrTimings.out");
         assert(outfile.good());
-        std::unordered_map<std::string, ExecTime> aggregate_times;
 
-        //outfile << "Function\t\tTime (ns)" << std::endl;
-        for (std::vector<ExecTimeSPtr >::iterator it = exec_times->begin(); it != exec_times->end(); ++it) {
-            auto record = it->get();
-            std::string func_name = record->func_name;
-            // outfile << record->func_name << " " << std::hex << record->id << " "
-            //     << std::dec << record->duration << " ns" << std::endl;
-            if (aggregate_times.find(func_name) == aggregate_times.end()) {
-                ExecTime e;
-                e.func_name = record->func_name;
-                e.id = record->id;
-                e.duration = 0;
-                e.sync_duration = 0;
-                aggregate_times[func_name] = e;
-            }
-            aggregate_times[func_name].duration += record->duration;
-            aggregate_times[func_name].sync_duration += record->sync_duration;
-            aggregate_times[func_name].c_cnt++;
+        for (std::vector<ExecTime>::iterator it = exec_times->begin(); it != exec_times->end(); ++it) {
+            if (it->id == 0) continue;
+            outfile << it->func_name << " " << it->duration << " " << it->sync_duration << " " << it->call_cnt << std::endl;
         }
-
-        for (auto record : aggregate_times) {
-            outfile << record.first << " " << (record.second).c_cnt << " "
-                    << (record.second).duration/*/1000000.0*/ << "ns, "
-                    << (record.second).sync_duration/*/1000000.0*/ << "ns" << std::endl;
-        }
-
-        outfile.close();
     }
-    
-    void SignalStartInstra() {
+
+    /**
+     * Perform initialization on the very first API entry
+     * Add ptr to thread-local vector to a global array of ptrs
+     */
+    void DIOG_SignalStartInstra() {
         // std::cout << "Signal start of intrumentation" << std::endl;
-        if (!exec_times)
-            exec_times = std::unique_ptr<std::vector<ExecTimeSPtr > >(
-                new std::vector<ExecTimeSPtr >);
-        if (!unresolved)
-            unresolved = std::unique_ptr<std::unordered_map<uint64_t,
-                std::stack<ExecTimeSPtr > > >(
-                    new std::unordered_map<uint64_t, std::stack<ExecTimeSPtr > >);
-        if (atexit(SAVE_INSTR_TIMES) != 0)
+        if (!agg)
+            agg = std::shared_ptr<Aggregator>(new Aggregator);
+        if (!exec_times) {
+            exec_times = ExecTimesPtr(new std::vector<ExecTime>(1000));
+            agg->addVec(exec_times);
+        }
+
+        if (atexit(DIOG_SAVE_INFO) != 0)
             std::cerr << "Failed to register atexit function" << std::endl;
     }
 
-    void START_TIMER_INSTR(uint64_t offset, const char *name) {
+    /**
+     * API entry instrumentation
+     * Increments stack_cnt, denoting number of public functions in the current call stack
+     */
+    void DIOG_API_ENTRY(uint64_t offset) {
         if (stop_timing) return;
-        // std::cout << "-------Start timer for " << name << std::endl;
-        if (exec_times.get() == NULL)
-            SignalStartInstra();
+        stack_cnt++;
+        if (stack_cnt > 1) return; // 
 
-        ExecTimeSPtr time = ExecTimeSPtr(new ExecTime);
-        time->id = offset;
-        time->func_name = name;
-        if (unresolved->find(offset) == unresolved->end()) {
-            std::stack<ExecTimeSPtr > times_for_id;
-            unresolved->insert({offset, times_for_id});
-        }
-        unresolved->at(offset).push(time);
-        auto start = hrc::now();
-        unresolved->at(offset).top()->start_time = start;
+        // std::cout << "-------Start timer" << std::endl;
+        if (exec_times.get() == NULL)
+            DIOG_SignalStartInstra();
+
+        api_entry = hrc::now();
     }
 
-    void STOP_TIMER_INSTR(uint64_t offset, uint64_t id) {
+    /**
+     * API exit instrumentation
+     * Store instrumentation for the API in a thread-local vector
+     */
+    void DIOG_API_EXIT(uint64_t offset, uint64_t id, const char *name) {
         // std::cout << "id: " << id << std::endl;
         if (stop_timing) return;
-        auto stop = hrc::now();
-        ExecTimeSPtr time = ExecTimeSPtr(unresolved->at(offset).top());
-        time->end_time = stop;
-        time->duration = std::chrono::duration<double, std::nano>(
-            stop - time->start_time).count();
+        stack_cnt--;
+        // stack_cnt > 0 means this API is called from within another API
+        if (stack_cnt > 0) return;
 
-        for (auto sync_time : sync_times) {
-            time->sync_duration += sync_time.duration;
-        }
-        // clear vector so next API call can record sync times
-        sync_times.clear();
+        api_exit = hrc::now();
+        // std::cout << "-------Stopped timer for " << name << ", id: " << id << std::endl;
 
-        exec_times->push_back(time);
-        unresolved->at(offset).pop();
+        exec_times->at(id).id = id;
+        exec_times->at(id).duration += std::chrono::duration<double, std::nano>(
+            api_exit - api_entry).count();
+        exec_times->at(id).sync_duration += sync_total;
+        exec_times->at(id).call_cnt++;
+        exec_times->at(id).func_name = name;
+
+        sync_total = 0; 
     }
 
-    void START_SYNC_TIMER_INSTR(uint64_t offset) {
-        // std::cout << "Start sync timer on th " << pthread_self() << std::endl;
-
-        SyncTime sync_time;
-        sync_time.id = offset;
-
-        auto start = hrc::now();
-        sync_time.start_time = start;
-        sync_times.push_back(sync_time);        
-        // std::cout << "start recorded" << std::endl;
+    /**
+     * Synchronization entry instrumentation
+     */
+    void DIOG_SYNC_ENTRY(uint64_t offset) {
+        if (stop_timing) return;
+        // std::cout << "start sync ..." << std::endl;
+        sync_entry = hrc::now();
     }
 
-    void STOP_SYNC_TIMER_INSTR(uint64_t offset) {
+    /**
+     * Synchronization exit instrumentation
+     */
+    void DIOG_SYNC_EXIT(uint64_t offset) {
+        if (stop_timing) return;
         // std::cout << "Stop sync timer" << std::endl;
-        auto stop = hrc::now();
+        // Case when synchronization function is called by a non-public function
+        if (stack_cnt == 0) return;
+        sync_exit = hrc::now();
+        // std::cout << "stopped sync" << std::endl;
 
-        SyncTime& sync_time = sync_times[sync_times.size()-1];
-        sync_time.end_time = stop;
-        sync_time.duration = std::chrono::duration<double, std::nano>(
-            stop - sync_time.start_time).count();
-
-        // std::cout << "stop recorded" << std::endl;
+        sync_total += std::chrono::duration<double, std::nano>(
+            sync_exit - sync_entry).count();
     }
 }
