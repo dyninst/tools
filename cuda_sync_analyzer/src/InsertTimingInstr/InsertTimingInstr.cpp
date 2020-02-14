@@ -1,10 +1,8 @@
 #include <atomic>
-#include <cassert>
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
+// #include <memory>
 #include <mutex>
 #include <vector>
 
@@ -19,7 +17,7 @@ struct ExecTime {
 };
 
 // Shared ptr to vector of ExecTimes
-typedef std::shared_ptr<std::vector<ExecTime> > ExecTimesPtr;
+// typedef std::shared_ptr<std::vector<ExecTime> > ExecTimesPtr;
 
 // class Aggregator {
 // private:
@@ -73,8 +71,9 @@ extern "C" {
         // which are called after thread is destroyed
         stop_timing = true;
 
-        std::ofstream outfile("InstrTimings.out");
-        assert(outfile.good());
+        FILE *outfile = fopen("Results.txt", "w");
+        if (outfile == NULL)
+            fprintf(stderr, "Error creating/opening results file!\n");
 
         // for (std::vector<ExecTime>::iterator it = exec_times->begin(); it != exec_times->end(); ++it) {
         //     if (it->id == 0) continue;
@@ -82,10 +81,12 @@ extern "C" {
         // }
         for (int i = 0; i < 1000; i++) {
             if (exec_times[i]->id == 0) continue;
-            outfile << exec_times[i]->func_name << " " << exec_times[i]->duration
-                    << " " << exec_times[i]->sync_duration << " "
-                    << exec_times[i]->call_cnt << std::endl;
+            fprintf(outfile, "%s %lu %lu %lu\n",
+                exec_times[i]->func_name,     exec_times[i]->duration,
+                exec_times[i]->sync_duration, exec_times[i]->call_cnt);
         }
+        if (fclose(outfile) != 0)
+            fprintf(stderr, "Error closing results file!\n");
     }
 
     /**
@@ -97,7 +98,6 @@ extern "C" {
         // if (!agg)
         //     agg = std::shared_ptr<Aggregator>(new Aggregator);
         if (!exec_times) {
-            //exec_times = ExecTimesPtr(new std::vector<ExecTime>(1000));
             exec_times = (ExecTime **) malloc(sizeof(ExecTime *) * 1000);
             for (int i = 0; i < 1000; i++) {
                 exec_times[i] = (ExecTime *) malloc(sizeof(ExecTime));
@@ -107,7 +107,7 @@ extern "C" {
         }
 
         if (atexit(DIOG_SAVE_INFO) != 0)
-            std::cerr << "Failed to register atexit function" << std::endl;
+            fprintf(stderr, "Failed to register atexit function\n");
     }
 
     /**
