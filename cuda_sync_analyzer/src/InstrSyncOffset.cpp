@@ -94,10 +94,10 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
         std::cout << "Inserting Instrumentation into function at offset = "
                   << std::hex << syncOffset << std::endl;
         // InsertSnippet(syncOffset, 0, funcMap[syncOffset], cSyncEntry, cSyncExit);
-        std::vector<BPatch_snippet*> entryArgs;
+        std::vector<BPatch_snippet *> entryArgs;
         entryArgs.push_back(new BPatch_constExpr(syncOffset));
 
-        std::vector<BPatch_snippet*> exitArgs;
+        std::vector<BPatch_snippet *> exitArgs;
         exitArgs.push_back(new BPatch_constExpr(syncOffset));
         // exitArgs.push_back(new BPatch_constExpr(id));
         InsertSnippet(funcMap[syncOffset], cSyncEntry, cSyncExit, entryArgs, exitArgs);
@@ -111,19 +111,19 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
  */
 void InstrSyncOffset::InsertSnippet(BPatch_function *f,
         std::vector<BPatch_function *> cEntry, std::vector<BPatch_function *> cExit,
-        std::vector<BPatch_snippet*> entryArgs, std::vector<BPatch_snippet*> exitArgs) {
+        std::vector<BPatch_snippet *> entryArgs, std::vector<BPatch_snippet *> exitArgs) {
     _mutatee->BeginInsertionSet();
 
     BPatch_funcCallExpr entryExpr(*cEntry[0], entryArgs);
     BPatch_funcCallExpr exitExpr(*cExit[0], exitArgs);
 
-    std::vector<BPatch_point*> *entry = f->findPoint(BPatch_locEntry);
-    std::vector<BPatch_point*> *exit = f->findPoint(BPatch_locExit);
+    std::vector<BPatch_point *> *entry = f->findPoint(BPatch_locEntry);
+    std::vector<BPatch_point *> *exit = f->findPoint(BPatch_locExit);
 
     _mutatee->GetAddressSpace()->insertSnippet(entryExpr,*entry);
 
     std::shared_ptr<DynOpsClass> ops = _mutatee->ReturnDynOps();
-    std::vector<BPatch_point*> prev;
+    std::vector<BPatch_point *> prev;
     prev.push_back(ops->FindPreviousPoint((*exit)[0], _mutatee->GetAddressSpace()));
     _mutatee->GetAddressSpace()->insertSnippet(exitExpr,prev);
 }

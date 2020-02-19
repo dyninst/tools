@@ -21,5 +21,4 @@ include(${CMAKE_SOURCE_DIR}/DyninstInstall.cmake)
 #include(${CMAKE_SOURCE_DIR}/CudaLibDetect.cmake)
 
 add_subdirectory(src)
-#add_subdirectory(test)
 
