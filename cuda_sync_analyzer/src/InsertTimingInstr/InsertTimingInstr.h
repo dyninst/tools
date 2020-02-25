@@ -19,6 +19,14 @@ typedef struct DIOG_InstrRecord {
     const char *func_name;
 } DIOG_InstrRecord;
 
+// per-thread struct which maintains buffer of records to be returned to the
+// user via callback
+typedef struct DIOG_Buffer {
+    uint64_t index;
+    uint64_t size;
+    DIOG_InstrRecord *records;
+} DIOG_Buffer;
+
 // The aggregates member contains pointers to
 // per-thread array of instrumentation records
 typedef struct DIOG_Aggregator {
