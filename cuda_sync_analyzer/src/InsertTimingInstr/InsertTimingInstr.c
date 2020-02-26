@@ -1,7 +1,8 @@
 #include "InsertTimingInstr.h"
 
+
 int DIOG_op_to_file = 0;
-char *DIOG_op_filename = NULL;
+char *DIOG_op_filename = "Results.txt";
 DIOG_Aggregator *DIOG_agg = NULL;
 DIOG_StopInstra *DIOG_stop_instra = NULL;
 
@@ -9,16 +10,19 @@ DIOG_StopInstra *DIOG_stop_instra = NULL;
 // 1. pass it as argument to entry instrumentation
 // 2. insert it in libcuda and fetch it here
 // 3. use constant value
-__thread DIOG_InstrRecord **exec_times = NULL;
+__thread DIOG_InstrRecord *exec_times = NULL;
 
 // Maintain a per-thread buffer of records for individual calls
 // to be returned to callback function when filled
 __thread DIOG_Buffer *DIOG_buffer = NULL;
+__thread void (*callback_func)(DIOG_Buffer *) = NULL;
 
 // Maintain count of unresolved API entries
 __thread uint64_t stack_cnt = 0;
 __thread uint64_t sync_total = 0;
 __thread struct timespec api_entry, api_exit, sync_entry, sync_exit;
+
+extern const char *__progname;
 
 
 void DIOG_initInstrRecord(DIOG_InstrRecord *record) {
@@ -34,7 +38,7 @@ void DIOG_initAggregator(DIOG_Aggregator *DIOG_agg) {
     pthread_mutex_init(&(DIOG_agg->mutex), NULL);
 }
 
-void DIOG_addVec(DIOG_Aggregator* DIOG_agg, DIOG_InstrRecord** thread_times) {
+void DIOG_addVec(DIOG_Aggregator* DIOG_agg, DIOG_InstrRecord* thread_times) {
     pthread_mutex_lock(&(DIOG_agg->mutex));
     DIOG_agg->aggregates[DIOG_agg->index] = thread_times;
     DIOG_agg->index++;
@@ -49,13 +53,16 @@ void DIOG_signalStop(DIOG_StopInstra* DIOG_stop_instra) {
 
 void DIOG_malloc_check(void *p) {
     if (!p) {
-        fprintf(stderr, "Error on malloc!\n");
+        fprintf(stderr, "[InsertTimingInstr] Error on malloc!\n");
         exit(1);
     }
 }
 
-void DIOG_regCallback(void (*callback)(void), int buffer_size, int to_file,
-        const char *output_file) {
+void DIOG_reg_callback(void (*callback)(DIOG_Buffer *), int buffer_size, int to_file,
+        char *output_file) {
+
+    callback_func = callback;
+
     if (to_file) {
         DIOG_op_to_file = 1;
     }
@@ -78,7 +85,7 @@ void DIOG_regCallback(void (*callback)(void), int buffer_size, int to_file,
     }
 }
 
-void DIOG_examineEnvVars() {
+void DIOG_examine_env_vars() {
     // Check if the env variable DIOG_TO_FILE is set to 1
     // If set, override default value for DIOG_op_to_file to 1
     // and enable output of results to file
@@ -89,12 +96,9 @@ void DIOG_examineEnvVars() {
         }
     }
 
-    const char *env_filename = getenv("DIOG_FILENAME");
+    char *env_filename = getenv("DIOG_FILENAME");
     if (env_filename) {
         DIOG_op_filename = env_filename;
-    }
-    else {
-        DIOG_op_filename = "DIOG_trace_<pid>.txt";
     }
 }
 
@@ -107,32 +111,43 @@ void DIOG_SAVE_INFO() {
     // which are called after thread is destroyed
     DIOG_signalStop(DIOG_stop_instra);
 
-    FILE *outfile = fopen("Results.txt", "w");
+    FILE *outfile = fopen(DIOG_op_filename, "w");
     if (outfile == NULL)
         fprintf(stderr, "Error creating/opening results file!\n");
 
-    fprintf(outfile, "PID: %d\t\tExecutable Name:\n", getpid());
+    int width1 = 30, width2 = 15;
+    fprintf(outfile, "PID: %d\tEXECUTABLE: %s\t", getpid(), __progname);
 
+    char *hostname = (char *) malloc(sizeof(char)*100);
+    if (gethostname(hostname, 100) != -1) {
+        fprintf(outfile, "HOSTNAME: %s", hostname);
+    }
+    fprintf(outfile, "\n");
+
+    fprintf(outfile, "\n%*s %*s %*s %*s\n", width1, "CUDA API",
+        width2, "TOTAL TIME (ns)", width2, "SYNC TIME (ns)",
+        width2, "CALL COUNT");
     for (int i = 0; i < 1000; i++) {
         if (DIOG_agg->aggregates[i] == NULL) break;
-        fprintf(outfile, "\n\nTID: %ld\n", gettid());
+        fprintf(outfile, "\nTHREAD ID: %ld\n", gettid());
         for (int j = 0; j < 1000; j++) {
-            if (DIOG_agg->aggregates[i][j]->id == 0) continue;
+            if (DIOG_agg->aggregates[i][j].id == 0) continue;
             printf("    DIOG_agg[%d][%d]\n", i, j);
-            fprintf(outfile, "%s %lu %lu %lu\n",
-                DIOG_agg->aggregates[i][j]->func_name,     DIOG_agg->aggregates[i][j]->duration,
-                DIOG_agg->aggregates[i][j]->sync_duration, DIOG_agg->aggregates[i][j]->call_cnt);
+            fprintf(outfile, "%*s %*lu %*lu %*lu\n",
+                width1, DIOG_agg->aggregates[i][j].func_name,
+                width2, DIOG_agg->aggregates[i][j].duration,
+                width2, DIOG_agg->aggregates[i][j].sync_duration,
+                width2, DIOG_agg->aggregates[i][j].call_cnt);
         }
     }
     if (fclose(outfile) != 0)
         fprintf(stderr, "Error closing results file!\n");
 
-    // TODO: free
     free(DIOG_stop_instra);
     free(DIOG_agg->aggregates);
     free(DIOG_agg);
-    for (int i = 0; i < 1000; i++)
-        free(exec_times[i]);
+    // for (int i = 0; i < 1000; i++)
+    //     free(exec_times[i]);
     free(exec_times);
 }
 
@@ -141,9 +156,7 @@ void DIOG_SAVE_INFO() {
  * Add ptr to thread-local array (exec_times) to a global array of ptrs (aggregators)
  */
 void DIOG_SignalStartInstra() {
-    // std::cout << "Signal start of intrumentation" << std::endl;
-
-    DIOG_examineEnvVars();
+    DIOG_examine_env_vars();
 
     if (!DIOG_stop_instra) {
         DIOG_stop_instra = (DIOG_StopInstra *) malloc(sizeof(DIOG_StopInstra));
@@ -158,7 +171,7 @@ void DIOG_SignalStartInstra() {
 
         DIOG_initAggregator(DIOG_agg);
 
-        DIOG_agg->aggregates = (DIOG_InstrRecord ***) malloc(1000*sizeof(DIOG_InstrRecord **));
+        DIOG_agg->aggregates = (DIOG_InstrRecord **) malloc(1000*sizeof(DIOG_InstrRecord *));
         DIOG_malloc_check((void *) (DIOG_agg->aggregates));
         for (int i = 0; i < 1000; i++) {
             DIOG_agg->aggregates[i] = NULL;
@@ -166,14 +179,14 @@ void DIOG_SignalStartInstra() {
     }
 
     if (!exec_times) {
-        exec_times = (DIOG_InstrRecord **) malloc(sizeof(DIOG_InstrRecord *) * 1000);
+        exec_times = (DIOG_InstrRecord *) malloc(sizeof(DIOG_InstrRecord) * 1000);
         DIOG_malloc_check((void *) exec_times);
 
         for (int i = 0; i < 1000; i++) {
-            exec_times[i] = (DIOG_InstrRecord *) malloc(sizeof(DIOG_InstrRecord));
-            DIOG_malloc_check((void *) (exec_times[i]));
+            // exec_times[i] = (DIOG_InstrRecord *) malloc(sizeof(DIOG_InstrRecord));
+            // DIOG_malloc_check((void *) (exec_times[i]));
 
-            DIOG_initInstrRecord(exec_times[i]);
+            DIOG_initInstrRecord(exec_times + i);
         }
 
         DIOG_addVec(DIOG_agg, exec_times);
@@ -188,7 +201,6 @@ void DIOG_SignalStartInstra() {
  * Increments stack_cnt, denoting number of public functions in the current call stack
  */
 void DIOG_API_ENTRY(uint64_t offset) {
-    // std::cout << "-------Start timer" << std::endl;
     if (exec_times == NULL)
         DIOG_SignalStartInstra();
 
@@ -206,8 +218,8 @@ void DIOG_API_ENTRY(uint64_t offset) {
  * Store instrumentation for the API in a thread-local vector
  */
 void DIOG_API_EXIT(uint64_t offset, uint64_t id, const char *name) {
-    // std::cout << "id: " << id << std::endl;
     if (DIOG_stop_instra->stop) return;
+
     stack_cnt--;
     // stack_cnt > 0 means this API is called from within another API
     if (stack_cnt > 0) return;
@@ -215,28 +227,29 @@ void DIOG_API_EXIT(uint64_t offset, uint64_t id, const char *name) {
     if (clock_gettime(CLOCK_REALTIME, &api_exit) == -1) {
         fprintf(stderr, "clock_gettime failed for exit instrumentation\n");
     }
-    // std::cout << "-------Stopped timer for " << name << ", id: " << id << std::endl;
 
     uint64_t duration = (uint64_t) (api_exit.tv_nsec - api_entry.tv_nsec)
        + (uint64_t) (api_exit.tv_sec - api_entry.tv_sec) * 1000000000;
-    exec_times[id]->id = id;
-    exec_times[id]->duration += duration;
-    exec_times[id]->sync_duration += sync_total;
-    exec_times[id]->call_cnt++;
-    exec_times[id]->func_name = name;
+    exec_times[id].id = id;
+    exec_times[id].duration += duration;
+    exec_times[id].sync_duration += sync_total;
+    exec_times[id].call_cnt++;
+    exec_times[id].func_name = name;
 
     if (DIOG_buffer) {
         uint64_t index = DIOG_buffer->index;
-        if (index == DIOG_buffer->size) {
+        DIOG_buffer->records[index].id = id;
+        DIOG_buffer->records[index].duration = duration;
+        DIOG_buffer->records[index].sync_duration = sync_total;
+        DIOG_buffer->records[index].call_cnt = 1;
+        DIOG_buffer->records[index].func_name = name;
+        DIOG_buffer->index++;
+
+        // If buffer is full, callback with the buffer
+        if (DIOG_buffer->index == DIOG_buffer->size) {
             // callback buffer
-        }
-        else {
-            DIOG_buffer->records[index].id = id;
-            DIOG_buffer->records[index].duration = duration;
-            DIOG_buffer->records[index].sync_duration = sync_total;
-            DIOG_buffer->records[index].call_cnt = 1;
-            DIOG_buffer->records[index].func_name = name;
-            DIOG_buffer->index++;
+            callback_func(DIOG_buffer);
+            DIOG_buffer->index = 0;
         }
     }
 
@@ -248,9 +261,10 @@ void DIOG_API_EXIT(uint64_t offset, uint64_t id, const char *name) {
  */
 void DIOG_SYNC_ENTRY(uint64_t offset) {
     if (DIOG_stop_instra->stop) return;
+
     // Case when synchronization function is called by a non-public function
     if (stack_cnt == 0) return;
-    // std::cout << "start sync ..." << std::endl;
+
     if (clock_gettime(CLOCK_REALTIME, &sync_entry) == -1) {
         fprintf(stderr, "clock_gettime failed for syn entry instrumentation\n");
     }
@@ -261,13 +275,13 @@ void DIOG_SYNC_ENTRY(uint64_t offset) {
  */
 void DIOG_SYNC_EXIT(uint64_t offset) {
     if (DIOG_stop_instra->stop) return;
-    // std::cout << "Stop sync timer" << std::endl;
+
     // Case when synchronization function is called by a non-public function
     if (stack_cnt == 0) return;
+
     if (clock_gettime(CLOCK_REALTIME, &sync_exit) == -1) {
         fprintf(stderr, "clock_gettime failed for syn exit instrumentation\n");
     }
-    // std::cout << "stopped sync" << std::endl;
 
     sync_total += ((uint64_t) (sync_exit.tv_nsec - sync_entry.tv_nsec)
        + (uint64_t) (sync_exit.tv_sec - sync_entry.tv_sec) * 1000000000);

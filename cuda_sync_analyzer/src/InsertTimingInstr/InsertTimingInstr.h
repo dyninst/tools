@@ -11,6 +11,7 @@
 #include <sys/syscall.h>
 #define gettid() syscall(SYS_gettid)
 
+
 typedef struct DIOG_InstrRecord {
     uint64_t id;
     uint64_t sync_duration;
@@ -31,7 +32,7 @@ typedef struct DIOG_Buffer {
 // per-thread array of instrumentation records
 typedef struct DIOG_Aggregator {
     uint64_t index;
-    DIOG_InstrRecord ***aggregates;
+    DIOG_InstrRecord **aggregates;
     pthread_mutex_t mutex;
 } DIOG_Aggregator;
 
