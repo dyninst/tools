@@ -2,7 +2,7 @@
 
 
 int DIOG_op_to_file = 0;
-char *DIOG_op_filename = "Results.txt";
+char DIOG_op_filename[100];
 DIOG_Aggregator *DIOG_agg = NULL;
 DIOG_StopInstra *DIOG_stop_instra = NULL;
 
@@ -58,16 +58,38 @@ void DIOG_malloc_check(void *p) {
     }
 }
 
+void DIOG_callback(DIOG_Buffer * buf) {
+    printf("Print func names from callback results\n");
+    for(int i = 0; i < 5; i++) {
+        printf("%s\n", buf->records[i].func_name);
+    }
+}
+
+/**
+ * Function to register callbacks
+ * Will call the callback function with results of latest
+ * buffer_size API times
+ *
+ * callback - Callback function to be executed
+ * buffer_size - Size of buffer to be returned to the callback function
+ * to_file - If 1, redirects all output to a file
+ * output_file - If specified, stores output in a file with that name
+ */
 void DIOG_reg_callback(void (*callback)(DIOG_Buffer *), int buffer_size, int to_file,
         char *output_file) {
 
     callback_func = callback;
+    // Sanitise input: truncate filename to 100 chars if required
 
     if (to_file) {
         DIOG_op_to_file = 1;
     }
     if (to_file && output_file) {
-        DIOG_op_filename = output_file;
+        // sanitise file name
+        // if (strlen(output_file) > 100) {
+        //     output_file[100] = NULL;
+        // }
+        strncpy(DIOG_op_filename, output_file, sizeof(DIOG_op_filename) / sizeof(char));
     }
     if (buffer_size <= 0)
         fprintf(stderr, "Invalid per-thread buffer size\n");
@@ -85,6 +107,16 @@ void DIOG_reg_callback(void (*callback)(DIOG_Buffer *), int buffer_size, int to_
     }
 }
 
+void DIOG_test_callback() {
+    DIOG_reg_callback(DIOG_callback, 5, 1, NULL);
+}
+
+/**
+ * Override the default values to store results using env variables
+ * 
+ * DIOG_TO_FILE - 1 => redirects all output to a file
+ * DIOG_FILENAME - <filename> => optional file name
+ */
 void DIOG_examine_env_vars() {
     // Check if the env variable DIOG_TO_FILE is set to 1
     // If set, override default value for DIOG_op_to_file to 1
@@ -98,12 +130,16 @@ void DIOG_examine_env_vars() {
 
     char *env_filename = getenv("DIOG_FILENAME");
     if (env_filename) {
-        DIOG_op_filename = env_filename;
+        strncpy(DIOG_op_filename, env_filename, sizeof(DIOG_op_filename) / sizeof(char));
     }
 }
 
 /**
  * Post-execution actions
+ *
+ * Set a flag to stop any further data collection
+ * Print propperly formatted results to stdout/file as specified by user
+ * Free memory for malloc-ed structures
  */
 void DIOG_SAVE_INFO() {
 
@@ -111,7 +147,23 @@ void DIOG_SAVE_INFO() {
     // which are called after thread is destroyed
     DIOG_signalStop(DIOG_stop_instra);
 
-    FILE *outfile = fopen(DIOG_op_filename, "w");
+    FILE *outfile = NULL;
+    if (DIOG_op_to_file) {
+        // Set default filename if none specified
+        if (strlen(DIOG_op_filename) == 0) {
+            pid_t pid = getpid();
+            char pid_str[10];
+            sprintf(pid_str, "%d", pid);
+            strcpy(DIOG_op_filename, "diogresults_");
+            strcat(DIOG_op_filename, pid_str);
+            strcat(DIOG_op_filename, ".txt");
+        }
+        FILE *file = fopen(DIOG_op_filename, "w");
+        outfile = file;
+    }
+    else {
+        outfile = stdout;
+    }
     if (outfile == NULL)
         fprintf(stderr, "Error creating/opening results file!\n");
 
@@ -120,9 +172,12 @@ void DIOG_SAVE_INFO() {
 
     char *hostname = (char *) malloc(sizeof(char)*100);
     if (gethostname(hostname, 100) != -1) {
-        fprintf(outfile, "HOSTNAME: %s", hostname);
+        fprintf(outfile, "HOSTNAME: %s\n", hostname);
     }
-    fprintf(outfile, "\n");
+    time_t curr_time;
+    if ((curr_time = time(NULL)) != -1) {
+        fprintf(outfile, "CURRENT TIME: %s\n", ctime(&curr_time));
+    }
 
     fprintf(outfile, "\n%*s %*s %*s %*s\n", width1, "CUDA API",
         width2, "TOTAL TIME (ns)", width2, "SYNC TIME (ns)",
@@ -132,7 +187,6 @@ void DIOG_SAVE_INFO() {
         fprintf(outfile, "\nTHREAD ID: %ld\n", gettid());
         for (int j = 0; j < 1000; j++) {
             if (DIOG_agg->aggregates[i][j].id == 0) continue;
-            printf("    DIOG_agg[%d][%d]\n", i, j);
             fprintf(outfile, "%*s %*lu %*lu %*lu\n",
                 width1, DIOG_agg->aggregates[i][j].func_name,
                 width2, DIOG_agg->aggregates[i][j].duration,
@@ -143,11 +197,14 @@ void DIOG_SAVE_INFO() {
     if (fclose(outfile) != 0)
         fprintf(stderr, "Error closing results file!\n");
 
-    free(DIOG_stop_instra);
+    // free-ing DIOG_stop_instra causes API functions run after atexit
+    // for eg., cumModuleUnload to run instrumentation code, which should not happen
+    // free(DIOG_stop_instra);
+
+    free(DIOG_buffer->records);
+    free(DIOG_buffer);
     free(DIOG_agg->aggregates);
     free(DIOG_agg);
-    // for (int i = 0; i < 1000; i++)
-    //     free(exec_times[i]);
     free(exec_times);
 }
 
@@ -194,6 +251,8 @@ void DIOG_SignalStartInstra() {
 
     if (atexit(DIOG_SAVE_INFO) != 0)
         fprintf(stderr, "Failed to register atexit function\n");
+
+    DIOG_test_callback();
 }
 
 /**
@@ -248,7 +307,7 @@ void DIOG_API_EXIT(uint64_t offset, uint64_t id, const char *name) {
         // If buffer is full, callback with the buffer
         if (DIOG_buffer->index == DIOG_buffer->size) {
             // callback buffer
-            callback_func(DIOG_buffer);
+            (*callback_func)(DIOG_buffer);
             DIOG_buffer->index = 0;
         }
     }
