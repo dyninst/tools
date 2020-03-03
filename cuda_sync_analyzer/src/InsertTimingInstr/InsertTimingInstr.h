@@ -13,6 +13,11 @@
 #include <sys/syscall.h>
 #define gettid() syscall(SYS_gettid)
 
+#define MAX_FILENAME_SZ 100
+#define MAX_THREADS 1000
+#define MAX_PUBLIC_FUNCS 1000
+#define SEC_TO_NS 1000000000
+
 
 typedef struct DIOG_InstrRecord {
     uint64_t id;

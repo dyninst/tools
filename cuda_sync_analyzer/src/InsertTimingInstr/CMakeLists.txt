@@ -1,4 +1,4 @@
-add_compile_options(-O3 -g)
+add_compile_options(-g)
 #add_compile_options(-mno-vsx)
 add_library(InsertTimingInstr SHARED "InsertTimingInstr.c")
 target_compile_options(InsertTimingInstr PUBLIC -pthread)

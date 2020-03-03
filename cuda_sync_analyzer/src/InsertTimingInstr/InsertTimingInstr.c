@@ -2,7 +2,7 @@
 
 
 int DIOG_op_to_file = 0;
-char DIOG_op_filename[100];
+char DIOG_op_filename[MAX_FILENAME_SZ];
 DIOG_Aggregator *DIOG_agg = NULL;
 DIOG_StopInstra *DIOG_stop_instra = NULL;
 
@@ -25,6 +25,13 @@ __thread struct timespec api_entry, api_exit, sync_entry, sync_exit;
 extern const char *__progname;
 
 
+void DIOG_malloc_check(void *p) {
+    if (!p) {
+        fprintf(stderr, "[InsertTimingInstr] Error on malloc!\n");
+        exit(1);
+    }
+}
+
 void DIOG_initInstrRecord(DIOG_InstrRecord *record) {
     record->id = 0;
     record->sync_duration = 0;
@@ -34,10 +41,20 @@ void DIOG_initInstrRecord(DIOG_InstrRecord *record) {
 
 void DIOG_initAggregator(DIOG_Aggregator *DIOG_agg) {
     DIOG_agg->index = 0;
-    DIOG_agg->aggregates = NULL;
     pthread_mutex_init(&(DIOG_agg->mutex), NULL);
+
+    DIOG_agg->aggregates = (DIOG_InstrRecord **) malloc(
+            MAX_THREADS * sizeof(DIOG_InstrRecord *));
+    DIOG_malloc_check((void *) (DIOG_agg->aggregates));
+    for (int i = 0; i < MAX_THREADS; i++) {
+        DIOG_agg->aggregates[i] = NULL;
+    }
 }
 
+/*
+ * Add pointer to a per-thread array of times to the global
+ * aggregator array
+ */
 void DIOG_addVec(DIOG_Aggregator* DIOG_agg, DIOG_InstrRecord* thread_times) {
     pthread_mutex_lock(&(DIOG_agg->mutex));
     DIOG_agg->aggregates[DIOG_agg->index] = thread_times;
@@ -45,23 +62,20 @@ void DIOG_addVec(DIOG_Aggregator* DIOG_agg, DIOG_InstrRecord* thread_times) {
     pthread_mutex_unlock(&(DIOG_agg->mutex));
 }
 
+/*
+ * Called when we want to stop instrumenting further calls
+ * Eg. - Functions like cuModuleUnload which are called after program exit
+ */
 void DIOG_signalStop(DIOG_StopInstra* DIOG_stop_instra) {
     pthread_mutex_lock(&(DIOG_stop_instra->mutex));
     DIOG_stop_instra->stop = 1;
     pthread_mutex_unlock(&(DIOG_stop_instra->mutex));
 }
 
-void DIOG_malloc_check(void *p) {
-    if (!p) {
-        fprintf(stderr, "[InsertTimingInstr] Error on malloc!\n");
-        exit(1);
-    }
-}
-
 void DIOG_callback(DIOG_Buffer * buf) {
     printf("Print func names from callback results\n");
-    for(int i = 0; i < 5; i++) {
-        printf("%s\n", buf->records[i].func_name);
+    for(int i = 0; i < buf->index; i++) {
+        printf("%s\t%lu ns\n", buf->records[i].func_name, buf->records[i].duration);
     }
 }
 
@@ -79,16 +93,12 @@ void DIOG_reg_callback(void (*callback)(DIOG_Buffer *), int buffer_size, int to_
         char *output_file) {
 
     callback_func = callback;
-    // Sanitise input: truncate filename to 100 chars if required
 
     if (to_file) {
         DIOG_op_to_file = 1;
     }
     if (to_file && output_file) {
         // sanitise file name
-        // if (strlen(output_file) > 100) {
-        //     output_file[100] = NULL;
-        // }
         strncpy(DIOG_op_filename, output_file, sizeof(DIOG_op_filename) / sizeof(char));
     }
     if (buffer_size <= 0)
@@ -108,7 +118,7 @@ void DIOG_reg_callback(void (*callback)(DIOG_Buffer *), int buffer_size, int to_
 }
 
 void DIOG_test_callback() {
-    DIOG_reg_callback(DIOG_callback, 5, 1, NULL);
+    DIOG_reg_callback(DIOG_callback, 50, 1, "results.txt");
 }
 
 /**
@@ -137,11 +147,18 @@ void DIOG_examine_env_vars() {
 /**
  * Post-execution actions
  *
+ * Call callback function with remaining buffer entries
  * Set a flag to stop any further data collection
  * Print propperly formatted results to stdout/file as specified by user
  * Free memory for malloc-ed structures
  */
 void DIOG_SAVE_INFO() {
+
+    // callback with whatever entries are left in the buffer
+    if (DIOG_buffer && DIOG_buffer->index > 0) {
+        (*callback_func)(DIOG_buffer);
+        DIOG_buffer->index = 0;
+    }
 
     // This is set to avoid instrumenting cuModuleUnload, etc.,
     // which are called after thread is destroyed
@@ -176,16 +193,17 @@ void DIOG_SAVE_INFO() {
     }
     time_t curr_time;
     if ((curr_time = time(NULL)) != -1) {
-        fprintf(outfile, "CURRENT TIME: %s\n", ctime(&curr_time));
+        fprintf(outfile, "TIME: %s\n", ctime(&curr_time));
     }
 
     fprintf(outfile, "\n%*s %*s %*s %*s\n", width1, "CUDA API",
         width2, "TOTAL TIME (ns)", width2, "SYNC TIME (ns)",
         width2, "CALL COUNT");
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < MAX_THREADS; i++) {
         if (DIOG_agg->aggregates[i] == NULL) break;
+        // TODO: TID below will be the same for all threads
         fprintf(outfile, "\nTHREAD ID: %ld\n", gettid());
-        for (int j = 0; j < 1000; j++) {
+        for (int j = 0; j < MAX_PUBLIC_FUNCS; j++) {
             if (DIOG_agg->aggregates[i][j].id == 0) continue;
             fprintf(outfile, "%*s %*lu %*lu %*lu\n",
                 width1, DIOG_agg->aggregates[i][j].func_name,
@@ -194,23 +212,24 @@ void DIOG_SAVE_INFO() {
                 width2, DIOG_agg->aggregates[i][j].call_cnt);
         }
     }
-    if (fclose(outfile) != 0)
+    if (outfile != stdout && fclose(outfile) != 0)
         fprintf(stderr, "Error closing results file!\n");
 
     // free-ing DIOG_stop_instra causes API functions run after atexit
     // for eg., cumModuleUnload to run instrumentation code, which should not happen
     // free(DIOG_stop_instra);
 
-    free(DIOG_buffer->records);
-    free(DIOG_buffer);
+    if (DIOG_buffer) {
+        free(DIOG_buffer->records);
+        free(DIOG_buffer);
+    }
     free(DIOG_agg->aggregates);
     free(DIOG_agg);
     free(exec_times);
 }
 
 /**
- * Perform initialization on the very first API entry
- * Add ptr to thread-local array (exec_times) to a global array of ptrs (aggregators)
+ * Perform initialization of data structures on the very first API entry
  */
 void DIOG_SignalStartInstra() {
     DIOG_examine_env_vars();
@@ -220,6 +239,11 @@ void DIOG_SignalStartInstra() {
         DIOG_malloc_check((void *) DIOG_stop_instra);
         DIOG_stop_instra->stop = 0;
         pthread_mutex_init(&(DIOG_stop_instra->mutex), NULL);
+
+        // TODO: register this only once
+        // SignalStartInstra can be called more than once from different threads?!?
+        if (atexit(DIOG_SAVE_INFO) != 0)
+            fprintf(stderr, "Failed to register atexit function\n");
     }
 
     if (!DIOG_agg) {
@@ -227,30 +251,19 @@ void DIOG_SignalStartInstra() {
         DIOG_malloc_check((void *) DIOG_agg);
 
         DIOG_initAggregator(DIOG_agg);
-
-        DIOG_agg->aggregates = (DIOG_InstrRecord **) malloc(1000*sizeof(DIOG_InstrRecord *));
-        DIOG_malloc_check((void *) (DIOG_agg->aggregates));
-        for (int i = 0; i < 1000; i++) {
-            DIOG_agg->aggregates[i] = NULL;
-        }
     }
 
     if (!exec_times) {
-        exec_times = (DIOG_InstrRecord *) malloc(sizeof(DIOG_InstrRecord) * 1000);
+        exec_times = (DIOG_InstrRecord *) malloc(
+                sizeof(DIOG_InstrRecord) * MAX_PUBLIC_FUNCS);
         DIOG_malloc_check((void *) exec_times);
 
-        for (int i = 0; i < 1000; i++) {
-            // exec_times[i] = (DIOG_InstrRecord *) malloc(sizeof(DIOG_InstrRecord));
-            // DIOG_malloc_check((void *) (exec_times[i]));
-
+        for (int i = 0; i < MAX_PUBLIC_FUNCS; i++) {
             DIOG_initInstrRecord(exec_times + i);
         }
 
         DIOG_addVec(DIOG_agg, exec_times);
     }
-
-    if (atexit(DIOG_SAVE_INFO) != 0)
-        fprintf(stderr, "Failed to register atexit function\n");
 
     DIOG_test_callback();
 }
@@ -288,7 +301,7 @@ void DIOG_API_EXIT(uint64_t offset, uint64_t id, const char *name) {
     }
 
     uint64_t duration = (uint64_t) (api_exit.tv_nsec - api_entry.tv_nsec)
-       + (uint64_t) (api_exit.tv_sec - api_entry.tv_sec) * 1000000000;
+       + (uint64_t) (api_exit.tv_sec - api_entry.tv_sec) * SEC_TO_NS;
     exec_times[id].id = id;
     exec_times[id].duration += duration;
     exec_times[id].sync_duration += sync_total;
@@ -306,7 +319,6 @@ void DIOG_API_EXIT(uint64_t offset, uint64_t id, const char *name) {
 
         // If buffer is full, callback with the buffer
         if (DIOG_buffer->index == DIOG_buffer->size) {
-            // callback buffer
             (*callback_func)(DIOG_buffer);
             DIOG_buffer->index = 0;
         }
@@ -343,5 +355,5 @@ void DIOG_SYNC_EXIT(uint64_t offset) {
     }
 
     sync_total += ((uint64_t) (sync_exit.tv_nsec - sync_entry.tv_nsec)
-       + (uint64_t) (sync_exit.tv_sec - sync_entry.tv_sec) * 1000000000);
+       + (uint64_t) (sync_exit.tv_sec - sync_entry.tv_sec) * SEC_TO_NS);
 }
