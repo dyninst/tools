@@ -1,4 +1,6 @@
 #include "InsertTimingInstr.h"
+#include "diog_buffer.h"
+#include "diog_aggregator.h"
 
 
 int DIOG_op_to_file = 0;
@@ -24,42 +26,11 @@ __thread struct timespec api_entry, api_exit, sync_entry, sync_exit;
 
 extern const char *__progname;
 
-
 void DIOG_malloc_check(void *p) {
     if (!p) {
         fprintf(stderr, "[InsertTimingInstr] Error on malloc!\n");
         exit(1);
     }
-}
-
-void DIOG_initInstrRecord(DIOG_InstrRecord *record) {
-    record->id = 0;
-    record->sync_duration = 0;
-    record->call_cnt = 0;
-    record->duration = 0;
-}
-
-void DIOG_initAggregator(DIOG_Aggregator *DIOG_agg) {
-    DIOG_agg->index = 0;
-    pthread_mutex_init(&(DIOG_agg->mutex), NULL);
-
-    DIOG_agg->aggregates = (DIOG_InstrRecord **) malloc(
-            MAX_THREADS * sizeof(DIOG_InstrRecord *));
-    DIOG_malloc_check((void *) (DIOG_agg->aggregates));
-    for (int i = 0; i < MAX_THREADS; i++) {
-        DIOG_agg->aggregates[i] = NULL;
-    }
-}
-
-/*
- * Add pointer to a per-thread array of times to the global
- * aggregator array
- */
-void DIOG_addVec(DIOG_Aggregator* DIOG_agg, DIOG_InstrRecord* thread_times) {
-    pthread_mutex_lock(&(DIOG_agg->mutex));
-    DIOG_agg->aggregates[DIOG_agg->index] = thread_times;
-    DIOG_agg->index++;
-    pthread_mutex_unlock(&(DIOG_agg->mutex));
 }
 
 /*
@@ -70,51 +41,6 @@ void DIOG_signalStop(DIOG_StopInstra* DIOG_stop_instra) {
     pthread_mutex_lock(&(DIOG_stop_instra->mutex));
     DIOG_stop_instra->stop = 1;
     pthread_mutex_unlock(&(DIOG_stop_instra->mutex));
-}
-
-void DIOG_callback(DIOG_Buffer * buf) {
-    printf("Print func names from callback results\n");
-    for(int i = 0; i < buf->index; i++) {
-        printf("%s\t%lu ns\n", buf->records[i].func_name, buf->records[i].duration);
-    }
-}
-
-/**
- * Function to register callbacks
- * Will call the callback function with results of latest
- * buffer_size API times
- *
- * callback - Callback function to be executed
- * buffer_size - Size of buffer to be returned to the callback function
- * to_file - If 1, redirects all output to a file
- * output_file - If specified, stores output in a file with that name
- */
-void DIOG_reg_callback(void (*callback)(DIOG_Buffer *), int buffer_size, int to_file,
-        char *output_file) {
-
-    callback_func = callback;
-
-    if (to_file) {
-        DIOG_op_to_file = 1;
-    }
-    if (to_file && output_file) {
-        // sanitise file name
-        strncpy(DIOG_op_filename, output_file, sizeof(DIOG_op_filename) / sizeof(char));
-    }
-    if (buffer_size <= 0)
-        fprintf(stderr, "Invalid per-thread buffer size\n");
-
-    if (!DIOG_buffer && buffer_size > 0) {
-        DIOG_buffer = (DIOG_Buffer *) malloc(sizeof(DIOG_Buffer));
-        if (!DIOG_buffer) {
-            fprintf(stderr, "Error malloc-ing per-thread buffer\n");
-            return;
-        }
-        DIOG_buffer->records = (DIOG_InstrRecord *) malloc(sizeof(DIOG_InstrRecord) * buffer_size);
-        DIOG_malloc_check((void *) (DIOG_buffer->records));
-        DIOG_buffer->index = 0;
-        DIOG_buffer->size = buffer_size;
-    }
 }
 
 void DIOG_test_callback() {
