@@ -1,4 +1,4 @@
-add_compile_options(-O0)
+add_compile_options(-O3)
 
 file(GLOB src "*.cpp")
 list(REMOVE_ITEM src "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")

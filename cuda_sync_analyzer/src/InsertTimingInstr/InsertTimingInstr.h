@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <locale.h>
 
 // See man 2 gettid
 #include <sys/syscall.h>

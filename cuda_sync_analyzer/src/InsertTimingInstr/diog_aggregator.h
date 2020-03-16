@@ -7,9 +7,9 @@
 typedef struct DIOG_Aggregator {
     uint64_t index;
     DIOG_InstrRecord **aggregates;
+    pid_t *tids;
     pthread_mutex_t mutex;
 } DIOG_Aggregator;
 
-void DIOG_initInstrRecord(DIOG_InstrRecord *record);
 void DIOG_initAggregator(DIOG_Aggregator *DIOG_agg);
 void DIOG_addVec(DIOG_Aggregator* DIOG_agg, DIOG_InstrRecord* thread_times);

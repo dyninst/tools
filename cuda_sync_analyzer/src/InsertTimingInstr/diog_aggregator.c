@@ -1,15 +1,10 @@
 #include "diog_aggregator.h"
 
-void DIOG_initInstrRecord(DIOG_InstrRecord *record) {
-    record->id = 0;
-    record->sync_duration = 0;
-    record->call_cnt = 0;
-    record->duration = 0;
-}
-
 void DIOG_initAggregator(DIOG_Aggregator *DIOG_agg) {
     DIOG_agg->index = 0;
     pthread_mutex_init(&(DIOG_agg->mutex), NULL);
+
+    DIOG_agg->tids = (pid_t *) malloc(MAX_THREADS * sizeof(pid_t));
 
     DIOG_agg->aggregates = (DIOG_InstrRecord **) malloc(
             MAX_THREADS * sizeof(DIOG_InstrRecord *));
@@ -26,6 +21,7 @@ void DIOG_initAggregator(DIOG_Aggregator *DIOG_agg) {
 void DIOG_addVec(DIOG_Aggregator* DIOG_agg, DIOG_InstrRecord* thread_times) {
     pthread_mutex_lock(&(DIOG_agg->mutex));
     DIOG_agg->aggregates[DIOG_agg->index] = thread_times;
+    DIOG_agg->tids[DIOG_agg->index] = gettid();
     DIOG_agg->index++;
     pthread_mutex_unlock(&(DIOG_agg->mutex));
 }

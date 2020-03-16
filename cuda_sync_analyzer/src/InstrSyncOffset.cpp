@@ -103,7 +103,7 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
         InsertSnippet(funcMap[syncOffset], cSyncEntry, cSyncExit, entryArgs, exitArgs);
     }
     else
-        std::cerr << "Offset " << std::hex << syncOffset << " not found!" << std::endl;    
+        std::cerr << "Offset " << std::hex << syncOffset << " not found!" << std::endl;
 }
 
 /**

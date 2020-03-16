@@ -26,6 +26,13 @@ __thread struct timespec api_entry, api_exit, sync_entry, sync_exit;
 
 extern const char *__progname;
 
+void DIOG_initInstrRecord(DIOG_InstrRecord *record) {
+    record->id = 0;
+    record->sync_duration = 0;
+    record->call_cnt = 0;
+    record->duration = 0;
+}
+
 void DIOG_malloc_check(void *p) {
     if (!p) {
         fprintf(stderr, "[InsertTimingInstr] Error on malloc!\n");
@@ -44,7 +51,7 @@ void DIOG_signalStop(DIOG_StopInstra* DIOG_stop_instra) {
 }
 
 void DIOG_test_callback() {
-    DIOG_reg_callback(DIOG_callback, 50, 1, "results.txt");
+    DIOG_reg_callback(DIOG_callback, 50, 1, NULL);
 }
 
 /**
@@ -110,7 +117,7 @@ void DIOG_SAVE_INFO() {
     if (outfile == NULL)
         fprintf(stderr, "Error creating/opening results file!\n");
 
-    int width1 = 30, width2 = 15;
+    int width1 = 60, width2 = 15;
     fprintf(outfile, "PID: %d\tEXECUTABLE: %s\t", getpid(), __progname);
 
     char *hostname = (char *) malloc(sizeof(char)*100);
@@ -125,13 +132,14 @@ void DIOG_SAVE_INFO() {
     fprintf(outfile, "\n%*s %*s %*s %*s\n", width1, "CUDA API",
         width2, "TOTAL TIME (ns)", width2, "SYNC TIME (ns)",
         width2, "CALL COUNT");
+    setlocale(LC_NUMERIC, "");
     for (int i = 0; i < MAX_THREADS; i++) {
         if (DIOG_agg->aggregates[i] == NULL) break;
         // TODO: TID below will be the same for all threads
-        fprintf(outfile, "\nTHREAD ID: %ld\n", gettid());
+        fprintf(outfile, "\nTHREAD ID: %d\n", DIOG_agg->tids[i]);
         for (int j = 0; j < MAX_PUBLIC_FUNCS; j++) {
             if (DIOG_agg->aggregates[i][j].id == 0) continue;
-            fprintf(outfile, "%*s %*lu %*lu %*lu\n",
+            fprintf(outfile, "%*s %'*lu %'*lu %'*lu\n",
                 width1, DIOG_agg->aggregates[i][j].func_name,
                 width2, DIOG_agg->aggregates[i][j].duration,
                 width2, DIOG_agg->aggregates[i][j].sync_duration,
@@ -150,6 +158,7 @@ void DIOG_SAVE_INFO() {
         free(DIOG_buffer);
     }
     free(DIOG_agg->aggregates);
+    free(DIOG_agg->tids);
     free(DIOG_agg);
     free(exec_times);
 }
@@ -191,7 +200,7 @@ void DIOG_SignalStartInstra() {
         DIOG_addVec(DIOG_agg, exec_times);
     }
 
-    DIOG_test_callback();
+    // DIOG_test_callback();
 }
 
 /**
