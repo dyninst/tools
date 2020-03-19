@@ -39,19 +39,19 @@ if (DEFINED CRAY_MACHINE)
 endif(DEFINED CRAY_MACHINE)
 
 if (NOT DEFINED LIBELF_LIBFILE)
-	message(ERROR " LIBELF_LIBFILE is not set, set -DLIBELF_LIBFILE=<full path to libelf.so>")
+    message(STATUS " LIBELF_LIBFILE is not set, set -DLIBELF_LIBFILE=<full path to libelf.so>")
 endif(NOT DEFINED LIBELF_LIBFILE)
 
 if (NOT DEFINED LIBELF_INCLUDE)
-	message(ERROR " LIBELF_INCLUDE is not set, set -DLIBELF_INCLUDE=<directory of libelf inc>")
+    message(STATUS " LIBELF_INCLUDE is not set, set -DLIBELF_INCLUDE=<directory of libelf inc>")
 endif(NOT DEFINED LIBELF_INCLUDE)
 
 if (NOT DEFINED LIBDWARF_LIBFILE)
-	message(ERROR " LIBDWARF_LIBFILE is not set, set -DLIBDWARF_LIBFILE=<full path to libdwarf.so>")
+    message(STATUS " LIBDWARF_LIBFILE is not set, set -DLIBDWARF_LIBFILE=<full path to libdwarf.so>")
 endif(NOT DEFINED LIBDWARF_LIBFILE)
 
 if (NOT DEFINED LIBDWARF_INCLUDE)
-	message(ERROR " LIBDWARF_INCLUDE is not set, set -DLIBDWARF_INCLUDE=<directory of libdwarf inc>")
+    message(STATUS " LIBDWARF_INCLUDE is not set, set -DLIBDWARF_INCLUDE=<directory of libdwarf inc>")
 endif(NOT DEFINED LIBDWARF_INCLUDE)
 
 ## Check if existing dyninst install was passed
