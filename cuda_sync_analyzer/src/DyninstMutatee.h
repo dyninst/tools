@@ -17,9 +17,11 @@ class DyninstMutatee {
 public:
     BPatch_addressSpace * GetAddressSpace();
     std::shared_ptr<DynOpsClass> ReturnDynOps();
-    virtual void BeginInsertionSet();
+    void BeginInsertionSet();
+    void CloseInsertionSet();
     BPatch_object * LoadLibrary(std::string library);
 protected:
+    bool _openInsertions;
     std::shared_ptr<DynOpsClass> _ops;
     BPatch_addressSpace * _aspace;
     BPatch bpatch;

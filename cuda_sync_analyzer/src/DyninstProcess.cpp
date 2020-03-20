@@ -30,12 +30,12 @@ void DyninstProcess::RunCudaInit() {
 	_insertedInit = true;
 }
 
-void DyninstProcess::BeginInsertionSet() {
+/*void DyninstProcess::BeginInsertionSet() {
 	if (_openInsertions)
 		return;
 	_aspace->beginInsertionSet();
 	_openInsertions = true;
-}
+}*/
 /*
 BPatch_object * DyninstProcess::LoadLibrary(std::string library) {
 	/**
@@ -78,12 +78,12 @@ BPatch_object * DyninstProcess::LoadLibrary(std::string library) {
 	return _aspace->loadLibrary(original.c_str());
 }
 */
-void DyninstProcess::CloseInsertionSet() {
+/*void DyninstProcess::CloseInsertionSet() {
 	if (_openInsertions) {
 		_aspace->finalizeInsertionSet(false);
 		_openInsertions = false;
 	}
-}
+}*/
 /*
 bool DyninstProcess::WriteFile(std::string newName) {
     assert(!newName.empty());

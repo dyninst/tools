@@ -47,14 +47,14 @@ public:
 	BPatch_addressSpace * LaunchProcess();
 	bool RunUntilCompleation(std::string filename = std::string(""));
 	void SetDynOps(std::shared_ptr<DynOpsClass> ops);
-	void BeginInsertionSet() override;
+	//void BeginInsertionSet() override;
 	void DetachForDebug();
 	void RunCudaInit();
 	void SetTrampGuard();
 
-	void CloseInsertionSet();
+	//void CloseInsertionSet();
 private:
 	std::vector<std::string> _launchString;
 	bool _insertedInit;
-	bool _openInsertions;
+	//bool _openInsertions;
 };

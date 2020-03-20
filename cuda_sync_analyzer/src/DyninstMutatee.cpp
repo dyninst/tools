@@ -41,6 +41,18 @@ BPatch_object * DyninstMutatee::LoadLibrary(std::string library) {
 }
 
 void DyninstMutatee::BeginInsertionSet() {
+    if (_openInsertions)
+        return;
+    _aspace->beginInsertionSet();
+    _openInsertions = true;
+}
+
+void DyninstMutatee::CloseInsertionSet() {
+    if (_openInsertions) {
+        // set to true because of the issue where sync time is not computed
+        _aspace->finalizeInsertionSet(true);
+        _openInsertions = false;
+    }
 }
 
 std::shared_ptr<DynOpsClass> DyninstMutatee::ReturnDynOps() {
