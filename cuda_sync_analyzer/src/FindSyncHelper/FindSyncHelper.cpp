@@ -2,11 +2,18 @@
 #include <map> 
 #include <memory>
 #include <mutex>
+#include <sys/types.h>
+#include <unistd.h>
 #include <unordered_set>
+
+// See man 2 gettid
+#include <sys/syscall.h>
+#define gettid() syscall(SYS_gettid)
 
 volatile int FINDSYNCFUNC_exited = 0;
 volatile int START_INSTRA = 0;
 volatile uint64_t FINDSYNCFUNC_globalCount = 0;
+volatile pid_t MAIN_tid = 0;
 
 struct MapStore{
 	std::map<uint64_t, uint64_t> ids;
@@ -61,14 +68,16 @@ extern "C" {
 	}
 
 	void SignalStartInstra() {
+        MAIN_tid = gettid();
 		SetupMemoryStructure();
 		START_INSTRA = 1;
 	}
 	void CALL_ENTRY(uint64_t id) {
+        if (gettid() != MAIN_tid) return;
 		if (FINDSYNCFUNC_exited > 0 || START_INSTRA == 0)
 			return;
 		SetupMemoryStructure();
-		if (FINDSYNCFUNC_globalCount > 30000) {
+		if (FINDSYNCFUNC_globalCount > 300000) {
 			FINDSYNCFUNC_exited = 1;
 			MS->WriteOutput();
 			std::cerr << "Program Terminating" << std::endl;
@@ -79,6 +88,7 @@ extern "C" {
 	};
 
 	void CALL_EXIT(uint64_t id) {
+        if (gettid() != MAIN_tid) return;
 		if (FINDSYNCFUNC_exited > 0 || START_INSTRA == 0)
 			return;
 		SetupMemoryStructure();
