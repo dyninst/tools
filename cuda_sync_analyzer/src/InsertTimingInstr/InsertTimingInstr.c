@@ -1,6 +1,7 @@
 #include "InsertTimingInstr.h"
 #include "diog_buffer.h"
 #include "diog_aggregator.h"
+#include "display.h"
 
 
 int DIOG_op_to_file = 0;
@@ -24,7 +25,6 @@ __thread uint64_t stack_cnt = 0;
 __thread uint64_t sync_total = 0;
 __thread struct timespec api_entry, api_exit, sync_entry, sync_exit;
 
-extern const char *__progname;
 
 void DIOG_initInstrRecord(DIOG_InstrRecord *record) {
     record->id = 0;
@@ -117,35 +117,11 @@ void DIOG_SAVE_INFO() {
     if (outfile == NULL)
         fprintf(stderr, "Error creating/opening results file!\n");
 
-    int width1 = 60, width2 = 15;
-    fprintf(outfile, "PID: %d\tEXECUTABLE: %s\t", getpid(), __progname);
+    if (outfile == stdout)
+        DIOG_print_output(outfile, DIOG_agg);
+    else
+        DIOG_print_output_csv(outfile, DIOG_agg);
 
-    char *hostname = (char *) malloc(sizeof(char)*100);
-    if (gethostname(hostname, 100) != -1) {
-        fprintf(outfile, "HOSTNAME: %s\n", hostname);
-    }
-    time_t curr_time;
-    if ((curr_time = time(NULL)) != -1) {
-        fprintf(outfile, "TIME: %s\n", ctime(&curr_time));
-    }
-
-    fprintf(outfile, "\n%*s %*s %*s %*s\n", width1, "CUDA API",
-        width2, "TOTAL TIME (ns)", width2, "SYNC TIME (ns)",
-        width2, "CALL COUNT");
-    setlocale(LC_NUMERIC, "");
-    for (int i = 0; i < MAX_THREADS; i++) {
-        if (DIOG_agg->aggregates[i] == NULL) break;
-        // TODO: TID below will be the same for all threads
-        fprintf(outfile, "\nTHREAD ID: %d\n", DIOG_agg->tids[i]);
-        for (int j = 0; j < MAX_PUBLIC_FUNCS; j++) {
-            if (DIOG_agg->aggregates[i][j].id == 0) continue;
-            fprintf(outfile, "%*s %'*lu %'*lu %'*lu\n",
-                width1, DIOG_agg->aggregates[i][j].func_name,
-                width2, DIOG_agg->aggregates[i][j].duration,
-                width2, DIOG_agg->aggregates[i][j].sync_duration,
-                width2, DIOG_agg->aggregates[i][j].call_cnt);
-        }
-    }
     if (outfile != stdout && fclose(outfile) != 0)
         fprintf(stderr, "Error closing results file!\n");
 
@@ -213,7 +189,7 @@ void DIOG_API_ENTRY(uint64_t offset) {
 
     if (DIOG_stop_instra->stop) return;
     stack_cnt++;
-    if (stack_cnt > 1) return; // 
+    if (stack_cnt > 1) return;
 
     if (clock_gettime(CLOCK_REALTIME, &api_entry) == -1) {
         fprintf(stderr, "clock_gettime failed for entry instrumentation\n");

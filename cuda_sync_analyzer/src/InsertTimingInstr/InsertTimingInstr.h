@@ -6,15 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
-#include <locale.h>
 
 // See man 2 gettid
 #include <sys/syscall.h>
 #define gettid() syscall(SYS_gettid)
 
-#define MAX_FILENAME_SZ 100
+#define MAX_FILENAME_SZ 256
 #define MAX_THREADS 1000
 #define MAX_PUBLIC_FUNCS 1000
 #define SEC_TO_NS 1000000000
