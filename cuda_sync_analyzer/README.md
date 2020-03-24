@@ -18,6 +18,7 @@ cmake ..  \
   -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
   -DCMAKE_INSTALL_PREFIX=<INSTALL_PREFIX>
 make && make install
+```
 
 ##### Run
 
