@@ -15,9 +15,8 @@ std::shared_ptr<DyninstProcess> LaunchApplicationByName(std::string name) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] <<
-            " <target mutated libcuda path> <livelocked program path>\n";
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <target mutated libcuda path>\n";
         return 1;
     }
 
@@ -25,10 +24,11 @@ int main(int argc, char *argv[]) {
     std::vector<uint64_t> potentials;
     uint64_t syncAddr = scuda.FindLibcudaOffset(false);
     std::string newLibcuda(argv[1]);
-    if (syncAddr == 0) { // temporary measure until driver on test machine is fixed
+    if (syncAddr == 0) {
         potentials = scuda.IdentifySyncFunction();
         {
-            std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(std::string(argv[2]));
+            std::shared_ptr<DyninstProcess> proc = LaunchApplicationByName(
+                    std::string(LOCAL_INSTALL_PATH) + std::string("/bin/hang_devsync"));
             proc->RunCudaInit();
             LaunchIdentifySync sync(proc);
             sync.InsertAnalysis(potentials, std::string("cudaDeviceSynchronize"),

@@ -5,7 +5,7 @@ set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
       STRING "Choose the type of build." FORCE)
 SET(CMAKE_CXX_STANDARD 17)
 
-project(cuda_sync_analyzer)
+project(cuda_sync_analyzer LANGUAGES C CXX CUDA)
 
 # the RPATH to be used when installing, but only if it's not a system directory
 LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
