@@ -24,5 +24,5 @@ make && make install
 
 ```
 Usage: <INSTALL_PREFIX>/bin/mutateLibcuda <target mutated libcuda>
-LD_PRELOAD=<target mutated libcuda> <path to executable>libcuda.so.1> <path to CUDA application>
+LD_PRELOAD=<target mutated libcuda> <path to executable>
 ```
