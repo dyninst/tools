@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     LocateCudaSynchronization scuda;
     std::vector<uint64_t> potentials;
     uint64_t syncAddr = scuda.FindLibcudaOffset(false);
-    std::string newLibcuda(argv[1]);
+    std::string newLibcuda(std::string(argv[1]) + std::string("/libcuda.so.1"));
     if (syncAddr == 0) {
         potentials = scuda.IdentifySyncFunction();
         {

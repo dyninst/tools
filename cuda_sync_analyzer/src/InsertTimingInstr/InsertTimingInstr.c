@@ -4,7 +4,7 @@
 #include "display.h"
 
 
-int DIOG_op_to_file = 0;
+int DIOG_op_to_file = 0, DIOG_print_op = 0;
 char DIOG_op_filename[MAX_FILENAME_SZ];
 DIOG_Aggregator *DIOG_agg = NULL;
 DIOG_StopInstra *DIOG_stop_instra = NULL;
@@ -71,6 +71,13 @@ void DIOG_examine_env_vars() {
         }
     }
 
+    const char *env_print_op = getenv("DIOG_PRINT");
+    if (env_print_op) {
+        if (strtol(env_print_op, NULL, 10) == 1) {
+            DIOG_print_op = 1;
+        }
+    }
+
     char *env_filename = getenv("DIOG_FILENAME");
     if (env_filename) {
         strncpy(DIOG_op_filename, env_filename, sizeof(DIOG_op_filename) / sizeof(char));
@@ -117,10 +124,12 @@ void DIOG_SAVE_INFO() {
     if (outfile == NULL)
         fprintf(stderr, "Error creating/opening results file!\n");
 
-    if (outfile == stdout)
-        DIOG_print_output(outfile, DIOG_agg);
-    else
+    if (outfile == stdout) {
+        if (DIOG_print_op)
+            DIOG_print_output(outfile, DIOG_agg);
+    } else {
         DIOG_print_output_csv(outfile, DIOG_agg);
+    }
 
     if (outfile != stdout && fclose(outfile) != 0)
         fprintf(stderr, "Error closing results file!\n");

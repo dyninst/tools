@@ -46,7 +46,7 @@ void DIOG_print_output_csv(FILE *out, DIOG_Aggregator *DIOG_agg) {
     }
     time_t curr_time;
     if ((curr_time = time(NULL)) != -1) {
-        fprintf(out, "time=%s\n", ctime(&curr_time));
+        fprintf(out, "time=%s", ctime(&curr_time));
     }
 
     fprintf(out, "\n%% CUDA API,TOTAL TIME (ns),SYNC TIME (ns),CALL COUNT");
