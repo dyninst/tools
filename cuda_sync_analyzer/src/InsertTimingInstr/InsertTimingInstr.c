@@ -8,11 +8,9 @@ int DIOG_op_to_file = 0, DIOG_print_op = 0;
 char DIOG_op_filename[MAX_FILENAME_SZ];
 DIOG_Aggregator *DIOG_agg = NULL;
 DIOG_StopInstra *DIOG_stop_instra = NULL;
+pthread_mutex_t DIOG_init_globals = PTHREAD_MUTEX_INITIALIZER;
 
-// TODO: how to get size -
-// 1. pass it as argument to entry instrumentation
-// 2. insert it in libcuda and fetch it here
-// 3. use constant value
+// Per-thread array to store timing info per API function
 __thread DIOG_InstrRecord *exec_times = NULL;
 
 // Maintain a per-thread buffer of records for individual calls
@@ -152,25 +150,30 @@ void DIOG_SAVE_INFO() {
  * Perform initialization of data structures on the very first API entry
  */
 void DIOG_SignalStartInstra() {
+
     DIOG_examine_env_vars();
 
     if (!DIOG_stop_instra) {
-        DIOG_stop_instra = (DIOG_StopInstra *) malloc(sizeof(DIOG_StopInstra));
-        DIOG_malloc_check((void *) DIOG_stop_instra);
-        DIOG_stop_instra->stop = 0;
-        pthread_mutex_init(&(DIOG_stop_instra->mutex), NULL);
+        // Only one thread should come in and initialize these globals
+        pthread_mutex_lock(&DIOG_init_globals);
 
-        // TODO: register this only once
-        // SignalStartInstra can be called more than once from different threads?!?
-        if (atexit(DIOG_SAVE_INFO) != 0)
-            fprintf(stderr, "Failed to register atexit function\n");
-    }
+        if (!DIOG_stop_instra) {
+            DIOG_stop_instra = (DIOG_StopInstra *) malloc(sizeof(DIOG_StopInstra));
+            DIOG_malloc_check((void *) DIOG_stop_instra);
+            DIOG_stop_instra->stop = 0;
+            pthread_mutex_init(&(DIOG_stop_instra->mutex), NULL);
 
-    if (!DIOG_agg) {
-        DIOG_agg = (DIOG_Aggregator *) malloc(sizeof(DIOG_Aggregator));
-        DIOG_malloc_check((void *) DIOG_agg);
+            if (atexit(DIOG_SAVE_INFO) != 0)
+                fprintf(stderr, "Failed to register atexit function\n");
+        }
 
-        DIOG_initAggregator(DIOG_agg);
+        if (!DIOG_agg) {
+            DIOG_agg = (DIOG_Aggregator *) malloc(sizeof(DIOG_Aggregator));
+            DIOG_malloc_check((void *) DIOG_agg);
+
+            DIOG_initAggregator(DIOG_agg);
+        }
+        pthread_mutex_unlock(&DIOG_init_globals);
     }
 
     if (!exec_times) {

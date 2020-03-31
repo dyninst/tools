@@ -16,7 +16,7 @@ std::shared_ptr<DyninstProcess> LaunchApplicationByName(std::string name) {
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <target mutated libcuda path>\n";
+        std::cerr << "Usage: " << argv[0] << " <target directory>\n";
         return 1;
     }
 
