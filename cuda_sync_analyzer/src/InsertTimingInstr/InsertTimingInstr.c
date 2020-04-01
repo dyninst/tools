@@ -124,7 +124,7 @@ void DIOG_SAVE_INFO() {
 
     if (outfile == stdout) {
         if (DIOG_print_op)
-            DIOG_print_output(outfile, DIOG_agg);
+            DIOG_print_output_csv(outfile, DIOG_agg);
     } else {
         DIOG_print_output_csv(outfile, DIOG_agg);
     }
