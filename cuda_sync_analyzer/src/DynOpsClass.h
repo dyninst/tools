@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <mutex>
 #include <queue>
+#include <unordered_map>
 #include <boost/filesystem.hpp>
 
 // Dyninst includes

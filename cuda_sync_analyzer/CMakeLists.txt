@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.1)
 set(default_build_type "Debug")
 set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
       STRING "Choose the type of build." FORCE)
-SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD 11)
 
 project(cuda_sync_analyzer LANGUAGES C CXX CUDA)
 

@@ -2,21 +2,21 @@
 
 #include "InsertTimingInstr.h"
 
-extern int DIOG_op_to_file;
-extern char DIOG_op_filename[MAX_FILENAME_SZ];
+extern int CPROF_op_to_file;
+extern char CPROF_op_filename[MAX_FILENAME_SZ];
 
 // per-thread struct which maintains buffer of records to be returned to the
 // user via callback
-typedef struct DIOG_Buffer {
+typedef struct CPROF_Buffer {
     uint64_t index;
     uint64_t size;
-    DIOG_InstrRecord *records;
-} DIOG_Buffer;
+    CPROF_InstrRecord *records;
+} CPROF_Buffer;
 
-extern __thread DIOG_Buffer *DIOG_buffer;
-extern __thread void (*callback_func)(DIOG_Buffer *);
+extern __thread CPROF_Buffer *CPROF_buffer;
+extern __thread void (*callback_func)(CPROF_Buffer *);
 
-void DIOG_reg_callback(void (*callback)(DIOG_Buffer *), int buffer_size, int to_file,
+void CPROF_reg_callback(void (*callback)(CPROF_Buffer *), int buffer_size, int to_file,
         char *output_file);
 
-void DIOG_callback(DIOG_Buffer * buf);
+void CPROF_callback(CPROF_Buffer * buf);

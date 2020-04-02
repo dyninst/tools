@@ -1,7 +1,7 @@
 #include <iostream>
 #include <map> 
 #include <memory>
-#include <mutex>
+//#include <mutex>
 #include <sys/types.h>
 #include <unistd.h>
 #include <unordered_set>
@@ -18,10 +18,10 @@ volatile pid_t MAIN_tid = 0;
 struct MapStore{
 	std::map<uint64_t, uint64_t> ids;
 	std::unordered_set<uint64_t> exclude;
-    std::mutex m;
+    //std::mutex m;
 
 	void Entry(uint64_t id) {
-        std::scoped_lock(m);
+//        std::scoped_lock(m);
 		FINDSYNCFUNC_globalCount++;
 		if (exclude.find(id) != exclude.end())
 			return;
@@ -32,7 +32,7 @@ struct MapStore{
 	};
 
 	void Exit(uint64_t id) {
-        std::scoped_lock(m);
+//        std::scoped_lock(m);
 		if (ids.find(id) != ids.end())
 			ids.erase(id);
 		exclude.insert(id);

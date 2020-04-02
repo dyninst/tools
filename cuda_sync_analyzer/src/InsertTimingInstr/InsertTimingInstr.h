@@ -18,19 +18,19 @@
 #define SEC_TO_NS 1000000000
 
 
-typedef struct DIOG_InstrRecord {
+typedef struct CPROF_InstrRecord {
     uint64_t id;
     uint64_t sync_duration;
     uint64_t call_cnt;
     uint64_t duration;
     const char *func_name;
-} DIOG_InstrRecord;
+} CPROF_InstrRecord;
 
 // This struct is used to indicate when the instrumentation needs to stop once
 // the threads are destroyed and not instrument function like cuModuleUnload, etc.
-typedef struct DIOG_StopInstra {
+typedef struct CPROF_StopInstra {
     int stop;
     pthread_mutex_t mutex;
-} DIOG_StopInstra;
+} CPROF_StopInstra;
 
-void DIOG_malloc_check(void *p);
+void CPROF_malloc_check(void *p);

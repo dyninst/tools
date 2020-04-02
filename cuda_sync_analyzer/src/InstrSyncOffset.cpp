@@ -22,12 +22,12 @@ std::vector<uint64_t> InstrSyncOffset::getOffsets(
 void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
     std::shared_ptr<DynOpsClass> ops = _mutatee->ReturnDynOps();
     BPatch_object *instrLib = _mutatee->LoadLibrary(
-            std::string(LOCAL_INSTALL_PATH) + std::string("/lib/libInsertTimingInstr.so"));
+            std::string(LOCAL_INSTALL_PATH) + std::string("/lib/libCudaProfInstr.so"));
 
     std::vector<BPatch_function *> cEntry = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("DIOG_API_ENTRY"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("CPROF_API_ENTRY"), instrLib);
     std::vector<BPatch_function *> cExit = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("DIOG_API_EXIT"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("CPROF_API_EXIT"), instrLib);
     assert(cEntry.size() == 1 && cExit.size() == 1);
 
     BPatch_object *libCuda = NULL;
@@ -85,9 +85,9 @@ void InstrSyncOffset::InsertInstr(uint64_t syncOffset) {
     }
 
     std::vector<BPatch_function *> cSyncEntry = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("DIOG_SYNC_ENTRY"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("CPROF_SYNC_ENTRY"), instrLib);
     std::vector<BPatch_function *> cSyncExit = ops->FindFuncsByName(
-            _mutatee->GetAddressSpace(), std::string("DIOG_SYNC_EXIT"), instrLib);
+            _mutatee->GetAddressSpace(), std::string("CPROF_SYNC_EXIT"), instrLib);
     assert(cSyncEntry.size() == 1 && cSyncExit.size() == 1);
 
     if (funcMap.find(syncOffset) != funcMap.end() || syncOffset < 0x200000) {

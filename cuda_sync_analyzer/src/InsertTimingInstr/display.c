@@ -2,7 +2,7 @@
 
 extern const char *__progname;
 
-void DIOG_print_output_csv(FILE *out, DIOG_Aggregator *DIOG_agg) {
+void CPROF_print_output_csv(FILE *out, CPROF_Aggregator *CPROF_agg) {
 
     fprintf(out, "pid=%d,executable=%s,", getpid(), __progname);
 
@@ -18,16 +18,16 @@ void DIOG_print_output_csv(FILE *out, DIOG_Aggregator *DIOG_agg) {
     fprintf(out, "\n%% CUDA API,TOTAL TIME (ns),SYNC TIME (ns),CALL COUNT");
 
     for (int i = 0; i < MAX_THREADS; i++) {
-        if (DIOG_agg->aggregates[i] == NULL) break;
-        fprintf(out, "\ntid=%d\n", DIOG_agg->tids[i]);
+        if (CPROF_agg->aggregates[i] == NULL) break;
+        fprintf(out, "\ntid=%d\n", CPROF_agg->tids[i]);
 
         for (int j = 0; j < MAX_PUBLIC_FUNCS; j++) {
-            if (DIOG_agg->aggregates[i][j].id == 0) continue;
+            if (CPROF_agg->aggregates[i][j].id == 0) continue;
             fprintf(out, "%s,%lu,%lu,%lu\n",
-                DIOG_agg->aggregates[i][j].func_name,
-                DIOG_agg->aggregates[i][j].duration,
-                DIOG_agg->aggregates[i][j].sync_duration,
-                DIOG_agg->aggregates[i][j].call_cnt);
+                CPROF_agg->aggregates[i][j].func_name,
+                CPROF_agg->aggregates[i][j].duration,
+                CPROF_agg->aggregates[i][j].sync_duration,
+                CPROF_agg->aggregates[i][j].call_cnt);
         }
     }
 }
