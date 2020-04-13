@@ -1,4 +1,4 @@
-#include "diog_buffer.h"
+#include "cprof_buffer.h"
 
 /**
  * Function to register callbacks

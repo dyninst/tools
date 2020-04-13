@@ -1,4 +1,4 @@
-#include "diog_aggregator.h"
+#include "cprof_aggregator.h"
 
 void CPROF_initAggregator(CPROF_Aggregator *CPROF_agg) {
     CPROF_agg->index = 0;

@@ -1,6 +1,6 @@
 #include "InsertTimingInstr.h"
-#include "diog_buffer.h"
-#include "diog_aggregator.h"
+#include "cprof_buffer.h"
+#include "cprof_aggregator.h"
 #include "display.h"
 
 
