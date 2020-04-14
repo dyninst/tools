@@ -109,7 +109,7 @@ void CPROF_SAVE_INFO() {
             pid_t pid = getpid();
             char pid_str[10];
             sprintf(pid_str, "%d", pid);
-            strcpy(CPROF_op_filename, "diogresults_");
+            strcpy(CPROF_op_filename, "cprofresults_");
             strcat(CPROF_op_filename, pid_str);
             strcat(CPROF_op_filename, ".txt");
         }
