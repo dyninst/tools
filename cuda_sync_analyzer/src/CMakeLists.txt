@@ -18,10 +18,12 @@ target_link_libraries(cuda_sync_analyzer PUBLIC "-lcrypto\
     ${DYNINST_LIBRARIES}")
     #    -L${CUDA_TOOLKIT_ROOT_DIR}/lib64\
 target_include_directories(cuda_sync_analyzer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(cuda_sync_analyzer PROPERTIES PUBLIC_HEADER "FindCudaSync.h")
 install(TARGETS cuda_sync_analyzer
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib/static
-        RUNTIME DESTINATION bin)
+        RUNTIME DESTINATION bin
+        PUBLIC_HEADER DESTINATION include)
 
 add_subdirectory(FindSyncHelper)
 add_subdirectory(InsertTimingInstr)
