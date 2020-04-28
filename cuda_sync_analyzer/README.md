@@ -1,6 +1,15 @@
 ### User Manual
 https://docs.google.com/document/d/1h12Uq-cQyNSRuajZQo9bhcpFFPZVmL1g-ztCRifze5s
 
+### About
+The tool profiles a CUDA program and provides information about how much time is spent synchronizing in a CUDA API call.
+
+Existing profiling tools for Nvidia GPUs rely on the CUPTI performance data collection framework, which does not provide information on CPU/GPU synchronizations in all but four functions in libcuda. Amongst approximately 450 API functions, CUPTI generates synchronization timing information for only two functions - cuStreamSynchronize and cuCtxSynchronize. Due to these limitations, existing tools provide incomplete synchronization times to the user.
+
+The tool avoids using CUPTI altogether by locating the synchronization function within libcuda using binary instrumentation. This allows it to capture synchronization events for all public API functions.
+
+Instrumentation that records function entry/exit times is inserted for the synchronization function as well as all other API functions using Dyninst. This is then used to calculate total execution times for the API functions along with their synchronization times.
+
 ### External Dependencies
 * Dyninst - https://github.com/dyninst/dyninst
 * Boost C++ Libraries (tested with version 1.61)
