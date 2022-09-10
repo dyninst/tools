@@ -39,4 +39,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	target_link_options(dlsonic PRIVATE "-no-pie")
 endif()
 
-add_custom_target(dlsonicproject DEPENDS dlsonic) 
+add_custom_target(dlsonicproject DEPENDS dlsonic)
+
+add_subdirectory(testbins)
