@@ -32,7 +32,7 @@ load_cache(${Dyninst_DIR}
 # The main tool executable
 add_executable(dlsonic dlsonic.C)
 target_include_directories(dlsonic PRIVATE ${DYNINST_INCLUDE_DIR} ${DYNINST_Boost_INCLUDE_DIRS} ${DYNINST_TBB_INCLUDE_DIRS})
-target_link_libraries(dlsonic dyninstAPI ${DYNINST_Boost_LIBRARIES})
+target_link_libraries(dlsonic dyninstAPI parseAPI symtabAPI ${DYNINST_Boost_LIBRARIES})
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	target_compile_options(dlsonic PRIVATE "-fno-pie")
