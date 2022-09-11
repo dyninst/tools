@@ -96,7 +96,7 @@ int main()
 		auto rgnName = r->getRegionName();
 		if ( rgnName == ".rela.plt" ) {
 			onRelaPlt( r );
-		} else if ( rgnName == ".got" ) {
+		} else if ( rgnName == ".got" ) { // we probably should also be handling .got.plt
 			GlobalMetaData::Instance().gotBaseAddr = r->getMemOffset();
 		}
 	}
@@ -142,8 +142,7 @@ int main()
 						}	
 
 						auto slotId = pltEntryAddr / PLT_SLOT_SIZE;
-
-
+						// it seems for PLT slot N, we jump to GOT slot N+3
 						auto gotAddr = GlobalMetaData::Instance().gotBaseAddr + (slotId + 3) * GOT_SLOT_SIZE;
 
 
