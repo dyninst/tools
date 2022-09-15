@@ -3,5 +3,5 @@
 
 void foo()
 {
-	std::cout << "Foo was called - yay!" << std::endl;
+    std::cout << "Foo was called - yay!" << std::endl;
 }
