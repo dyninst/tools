@@ -1,3 +1,3 @@
 #include <iostream>
 
-void foo();
+void foo( const char* );

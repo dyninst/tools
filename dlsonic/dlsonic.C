@@ -15,9 +15,6 @@ namespace dp = Dyninst::ParseAPI;
 namespace ds = Dyninst::SymtabAPI;
 namespace di = Dyninst::InstructionAPI;
 
-//di::InstructionAST* searchRIP( 
-
-
 
 void ondlopen( dp::Block* blk, ds::Symtab* obj )
 {
@@ -121,10 +118,13 @@ void ondlopen( dp::Block* blk, ds::Symtab* obj )
 
 }
 
-int main()
+int main( int argc, char* argv[] )
 {
+    std::string execName = argv[1];
+    std::cout << "Processing File: " << execName << std::endl;
+
     ds::Symtab* obj = nullptr;
-    std::ignore = ds::Symtab::openFile( obj, "testbins/trydl" ); 
+    std::ignore = ds::Symtab::openFile( obj, execName ); 
     
     std::vector<ds::Region*> reg;
     std::ignore = obj->getCodeRegions( reg );
@@ -156,7 +156,7 @@ int main()
     }
 
     // traverse call graph
-    auto sts = new dp::SymtabCodeSource( "testbins/trydl" );
+    auto sts = new dp::SymtabCodeSource( const_cast<char*>( execName.c_str() ) );
     auto co = new dp::CodeObject( sts );
     co->parse();
     auto funcList = co->funcs();
