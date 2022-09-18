@@ -15,12 +15,15 @@ namespace dp = Dyninst::ParseAPI;
 namespace ds = Dyninst::SymtabAPI;
 namespace di = Dyninst::InstructionAPI;
 
-
-void ondlopen( dp::Block* blk, ds::Symtab* obj )
+std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symtab* obj )
 {
+    // Currently we only handle the case when we have a static string assigned
+    // i.e. we have an instruction: lea REG [ADDR in RODATA]
+    // Note that the address here may depend on RIP, so we manually calculate
+    // RIP and plug it into the AST to evaluate.
     ds::Region* reg = obj->findEnclosingRegion( blk->start() );
     if ( ! reg ) {
-        return;
+        return "";
     }
 
     auto bufStart = (const char*) reg->getPtrToRawData() + blk->start() - reg->getMemOffset();
@@ -33,7 +36,6 @@ void ondlopen( dp::Block* blk, ds::Symtab* obj )
     // We are know that our code block will end with a call to dlopen, we are
     // interested in instructions immediately before it to figure out how the
     // arguments are setup.
-
 
     int offset = blk->start();
 
@@ -48,9 +50,6 @@ void ondlopen( dp::Block* blk, ds::Symtab* obj )
 
     std::reverse( instrVec.begin(), instrVec.end() );
 
-    // We want to look for first LEA instruction to %rdi / %edi
-    // This is because the library name is the first argument
-   
     std::pair<di::Instruction, uint32_t> targetInst;
     bool found = false;
     for ( auto inst: instrVec ) {
@@ -61,7 +60,7 @@ void ondlopen( dp::Block* blk, ds::Symtab* obj )
             std::set<di::RegisterAST::Ptr> write;
             op.getWriteSet( write );
             for ( auto w: write ) {
-               if ( w->format() == "RDI" || w->format() == "EDI" ) {
+               if ( w->format() == rgName ) {
                     found = true;
                     break;
                 }
@@ -77,14 +76,15 @@ void ondlopen( dp::Block* blk, ds::Symtab* obj )
     }
 
     if ( ! found ) {
-        std::cerr << "could not locate parameter for dlopen call" << std::endl;
-        return;
+        std::cerr << "could not locate given register: " << rgName << std::endl;
+        return "";
     }
 
-
+    // We want to look for first LEA instruction to the arg register we are tracking
     if ( targetInst.first.getOperation().getID() == e_lea 
-         && targetInst.first.getOperand(0).getValue()->format() == "RDI") {
-        // We will try to evaluate this, by just plugging in RIP
+         && targetInst.first.getOperand(0).getValue()->format() == rgName ) {
+        // We will try to evaluate this, by just plugging in RIP.
+        // The address may depend on RIP in PIC.
         auto targetValue = targetInst.first.getOperand(1).getValue();
         di::Expression::Ptr ripExpr;
 
@@ -103,19 +103,23 @@ void ondlopen( dp::Block* blk, ds::Symtab* obj )
         auto targetResult = targetValue->eval();
 
         if ( ! targetResult.defined  ) {
-            std::cerr << "could not calculate address loaded to RDI! strange!" << std::endl;
-            return;
+            std::cerr << "could not calculate address loaded to the given register: "
+                      << rgName << std::endl;
+            return "";
         }
 
 
         auto targetRegion = obj->findEnclosingRegion( targetResult.val.u32val );
-        std::cout << std::string(
+        return std::string(
             (const char*)targetRegion->getPtrToRawData()
             + targetResult.val.u32val
             - targetRegion->getMemOffset()
-        ) << std::endl;
+        );        
+    } else {
+        // All other cases will land here, which we don't know how to
+        // handle just yet.
+        return "";
     }
-
 }
 
 int main( int argc, char* argv[] )
@@ -190,14 +194,13 @@ int main( int argc, char* argv[] )
                         }
                         
                         auto funcName = containingFuncs.back()->name();
-                        if ( funcName == "dlopen" || funcName == "dlsym" ) {
-                            std::cout << "Found: " << funcName << std::endl;
-                        }
 
                         if ( funcName == "dlopen" ) {
-                            ondlopen( b, obj );
+                            std::cout << funcName << " : "
+                                      << trackArgRegisterString( "RDI", b, obj ) << std::endl;
                         } else if ( funcName == "dlsym" ) {
-                            // @TODO
+                            std::cout << funcName << " : "
+                                      << trackArgRegisterString( "RSI", b, obj ) << std::endl;
                         }
                     }
                 }

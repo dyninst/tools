@@ -1,8 +1,6 @@
 ### BUILD INSTRUCTIONS 
 
-
-export DYNINSTAPI_RT_LIB=/path/to/libdyninstAPI_RT.so
-export LD_LIBRARY_PATH=.:/path/to/build/lib:$LD_LIBRARY_PATH
-
 cmake . -DDyninst_DIR=/path/to/build/lib/cmake/Dyninst
 make
+
+./dlsonic testbins/trydl
