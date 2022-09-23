@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <vector>
-
+#include <queue>
 #include "BPatch.h"
 
 #include "dyn_regs.h"
@@ -96,20 +96,29 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
                 ripExpr = e;
             }
         }
-        targetValue->bind(
-            ripExpr.get(),
-            di::Result( di::u32, targetInst.first.size() + targetInst.second ) );
-        
+
+        if ( ripExpr ) {
+            targetValue->bind(
+                ripExpr.get(),
+                di::Result( di::u32, targetInst.first.size() + targetInst.second ) );
+        }
         auto targetResult = targetValue->eval();
 
         if ( ! targetResult.defined  ) {
-            std::cerr << "could not calculate address loaded to the given register: "
+            std::cout << "could not calculate address loaded to the given register: "
                       << rgName << std::endl;
             return "";
         }
 
 
         auto targetRegion = obj->findEnclosingRegion( targetResult.val.u32val );
+        
+        if ( targetRegion->getRegionName() != ".rodata" ) {
+            // We are reading an address but not from the rodata section.
+            std::cerr << "the read address does not belong to rodata" << std::endl;
+            return "";
+        }
+
         return std::string(
             (const char*)targetRegion->getPtrToRawData()
             + targetResult.val.u32val
@@ -140,22 +149,6 @@ int main( int argc, char* argv[] )
         if ( rgnName == ".plt" ) {
            pltBeginAddr = r->getMemOffset();
            pltEndAddr = r->getMemOffset() + r->getMemSize();
-        }
-    }
-    
-    const char* rodataStartPtr = nullptr;
-    const char* rodataEndPtr = nullptr;
-    int64_t rodataBeginAddr = 0, rodataEndAddr = 0;
-
-    std::ignore = obj->getDataRegions( reg );
-
-    for ( const auto r: reg ) {
-        auto rgnName = r->getRegionName();
-        if ( rgnName == ".rodata" ) {
-            rodataStartPtr = (const char*)r->getPtrToRawData();
-            rodataEndPtr = rodataStartPtr + r->getMemSize();
-            rodataBeginAddr = r->getMemOffset();
-            rodataEndAddr = r->getMemOffset() + r->getMemSize();
         }
     }
 
@@ -192,7 +185,7 @@ int main( int argc, char* argv[] )
                                          "exactly one function" << std::endl;
                             return 1;
                         }
-                        
+
                         auto funcName = containingFuncs.back()->name();
 
                         if ( funcName == "dlopen" ) {
