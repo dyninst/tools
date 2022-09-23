@@ -15,6 +15,32 @@ namespace dp = Dyninst::ParseAPI;
 namespace ds = Dyninst::SymtabAPI;
 namespace di = Dyninst::InstructionAPI;
 
+struct Stats
+{
+    int dlopenCount = 0;
+    int dlsymCount = 0;
+    int dlopenWithStaticString = 0;
+    int dlsymWithStaticString = 0;
+
+    static Stats& Instance() {
+        static Stats obj;
+        return obj;
+    }
+
+    void print()
+    {
+        std::cout << "Analysis Summary\n"
+                  << " total # dlopen(...) calls:   " << dlopenCount << '\n' 
+                  << " dlopen with static strings:  " << dlopenWithStaticString << '\n'
+                  << " total # dlsym(...) calls:    " << dlsymCount << '\n'
+                  << " dlsym with static strings:   " << dlsymWithStaticString
+                  << std::endl;
+    }
+    
+private:
+    Stats() {}
+};
+
 std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symtab* obj )
 {
     // Currently we only handle the case when we have a static string assigned
@@ -189,15 +215,24 @@ int main( int argc, char* argv[] )
                         auto funcName = containingFuncs.back()->name();
 
                         if ( funcName == "dlopen" ) {
-                            std::cout << funcName << " : "
-                                      << trackArgRegisterString( "RDI", b, obj ) << std::endl;
+                            Stats::Instance().dlopenCount++;
+                            auto param = trackArgRegisterString( "RDI", b, obj );
+                            if ( ! param.empty() ) {
+                                Stats::Instance().dlopenWithStaticString++;    
+                            }
+                            std::cout << funcName << " : " << param << std::endl;
                         } else if ( funcName == "dlsym" ) {
-                            std::cout << funcName << " : "
-                                      << trackArgRegisterString( "RSI", b, obj ) << std::endl;
+                            Stats::Instance().dlsymCount++;
+                            auto param = trackArgRegisterString( "RSI", b, obj );
+                            if ( ! param.empty() ) {
+                                Stats::Instance().dlsymWithStaticString++;
+                            }
+                            std::cout << funcName << " : " << param << std::endl;
                         }
                     }
                 }
             }
         }
     }
+    Stats::Instance().print();
 }
