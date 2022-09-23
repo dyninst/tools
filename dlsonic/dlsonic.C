@@ -15,6 +15,8 @@ namespace dp = Dyninst::ParseAPI;
 namespace ds = Dyninst::SymtabAPI;
 namespace di = Dyninst::InstructionAPI;
 
+namespace {
+
 struct Stats
 {
     int dlopenCount = 0;
@@ -41,6 +43,8 @@ private:
     Stats() {}
 };
 
+std::string UNKNOWN = "<unknown>";
+
 std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symtab* obj )
 {
     // Currently we only handle the case when we have a static string assigned
@@ -49,7 +53,7 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
     // RIP and plug it into the AST to evaluate.
     ds::Region* reg = obj->findEnclosingRegion( blk->start() );
     if ( ! reg ) {
-        return "";
+        return UNKNOWN;
     }
 
     auto bufStart = (const char*) reg->getPtrToRawData() + blk->start() - reg->getMemOffset();
@@ -103,7 +107,7 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
 
     if ( ! found ) {
         std::cerr << "could not locate given register: " << rgName << std::endl;
-        return "";
+        return UNKNOWN;
     }
 
     // We want to look for first LEA instruction to the arg register we are tracking
@@ -133,7 +137,7 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
         if ( ! targetResult.defined  ) {
             std::cout << "could not calculate address loaded to the given register: "
                       << rgName << std::endl;
-            return "";
+            return UNKNOWN;
         }
 
 
@@ -142,7 +146,7 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
         if ( targetRegion->getRegionName() != ".rodata" ) {
             // We are reading an address but not from the rodata section.
             std::cerr << "the read address does not belong to rodata" << std::endl;
-            return "";
+            return UNKNOWN;
         }
 
         return std::string(
@@ -153,18 +157,31 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
     } else {
         // All other cases will land here, which we don't know how to
         // handle just yet.
-        return "";
+        return UNKNOWN;
     }
 }
+
+} // end anonymous namespace
 
 int main( int argc, char* argv[] )
 {
     std::string execName = argv[1];
-    std::cout << "Processing File: " << execName << std::endl;
+    
+    if ( execName.empty() ) {
+        std::cerr << "Please provide input binary file via cmdline" << std::endl;
+        return 1;
+    }
 
     ds::Symtab* obj = nullptr;
-    std::ignore = ds::Symtab::openFile( obj, execName ); 
+    bool success = ds::Symtab::openFile( obj, execName ); 
     
+    if ( ! success ) {
+        std::cerr << "Could not open file: " << execName << std::endl;
+        return 1;
+    }
+
+    std::cout << "Processing File: " << execName << std::endl;
+
     std::vector<ds::Region*> reg;
     std::ignore = obj->getCodeRegions( reg );
 
@@ -217,14 +234,14 @@ int main( int argc, char* argv[] )
                         if ( funcName == "dlopen" ) {
                             Stats::Instance().dlopenCount++;
                             auto param = trackArgRegisterString( "RDI", b, obj );
-                            if ( ! param.empty() ) {
+                            if ( param != UNKNOWN ) { 
                                 Stats::Instance().dlopenWithStaticString++;    
                             }
                             std::cout << funcName << " : " << param << std::endl;
                         } else if ( funcName == "dlsym" ) {
                             Stats::Instance().dlsymCount++;
                             auto param = trackArgRegisterString( "RSI", b, obj );
-                            if ( ! param.empty() ) {
+                            if ( param != UNKNOWN ) {
                                 Stats::Instance().dlsymWithStaticString++;
                             }
                             std::cout << funcName << " : " << param << std::endl;
