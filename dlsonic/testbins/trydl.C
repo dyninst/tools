@@ -104,6 +104,28 @@ void type5()
     dlclose( hdl );
 }
 
+void type6()
+{
+    strcpy( data, "libhello" );
+    strcat( data, ".so" );
+     auto hdl = dlopen( data, RTLD_LAZY );
+    if ( ! hdl ) {
+        printf("failed to open %s\n", globallibname);
+        return;
+    }
+    void (*fptr)( const char* );
+    *(void**)(&fptr) = dlsym( hdl, "_Z3fooPKc" );
+
+    char* error = dlerror();
+    if ( error ) {
+        printf( "ERROR: %s\n", error );
+        return;
+    }
+    (*fptr)( "type5" );
+    dlclose( hdl );
+}   
+
+
 int main()
 {
     type1();
