@@ -4,7 +4,7 @@ project(dlsonicproject LANGUAGES CXX)
 set(_dyninst_dir $ENV{Dyninst_DIR})
 set(Dyninst_DIR ${_dyninst_dir})
 unset(_dyninst_dir)
-
+string(APPEND Dyninst_DIR "/lib/cmake/Dyninst")
 # Use the Dyninst-provided CMake modules
 set(CMAKE_MODULE_PATH
     "${Dyninst_DIR}"
