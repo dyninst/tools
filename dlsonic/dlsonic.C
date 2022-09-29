@@ -21,8 +21,10 @@ struct Stats
 {
     int dlopenCount = 0;
     int dlsymCount = 0;
+    int dlmopenCount = 0;
     int dlopenWithStaticString = 0;
     int dlsymWithStaticString = 0;
+    int dlmopenWithStaticString = 0;
 
     static Stats& Instance() {
         static Stats obj;
@@ -35,7 +37,9 @@ struct Stats
                   << " total # dlopen(...) calls:   " << dlopenCount << '\n' 
                   << " dlopen with static strings:  " << dlopenWithStaticString << '\n'
                   << " total # dlsym(...) calls:    " << dlsymCount << '\n'
-                  << " dlsym with static strings:   " << dlsymWithStaticString
+                  << " dlsym with static strings:   " << dlsymWithStaticString << '\n'
+                  << " total # dlmopen(...) calls:  " << dlmopenCount << '\n'
+                  << " dlmopen with static strings: " << dlmopenWithStaticString
                   << std::endl;
     }
     
@@ -243,6 +247,13 @@ int main( int argc, char* argv[] )
                             auto param = trackArgRegisterString( "RSI", b, obj );
                             if ( param != UNKNOWN ) {
                                 Stats::Instance().dlsymWithStaticString++;
+                            }
+                            std::cout << funcName << " : " << param << std::endl;
+                        } else if ( funcName == "dlmopen" ) {
+                            Stats::Instance().dlmopenCount++;
+                            auto param = trackArgRegisterString( "RSI", b, obj );
+                            if ( param != UNKNOWN ) {
+                                Stats::Instance().dlmopenWithStaticString++;
                             }
                             std::cout << funcName << " : " << param << std::endl;
                         }
