@@ -3,7 +3,8 @@
 #include <vector>
 #include <queue>
 #include "BPatch.h"
-
+#include "Graph.h"
+#include "slicing.h"
 #include "dyn_regs.h"
 #include "CFG.h"
 #include "CodeObject.h"
@@ -49,7 +50,53 @@ private:
 
 std::string UNKNOWN = "<unknown>";
 
-std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symtab* obj )
+
+std::vector<std::pair<di::Instruction, uint32_t>> doBackwardSlice(
+    ds::Symtab* obj, di::Instruction insObj, int32_t insAddr,
+    const dp::Function* fn, dp::Block* blk, int machRegInt )
+{
+    auto fnNoConst = const_cast<dp::Function*>( fn );
+    
+    Dyninst::AssignmentConverter ac( true, false );
+    std::vector<Dyninst::Assignment::Ptr> assignments;
+    ac.convert( insObj, insAddr, fnNoConst, blk, assignments );
+
+    Dyninst::Assignment::Ptr regAssign;
+    for ( auto it = assignments.begin(); it != assignments.end(); ++it ) {
+        auto curr = (*it)->out();
+        if ( curr.absloc().type() == Dyninst::Absloc::Register && curr.absloc().reg() == machRegInt ) {
+            regAssign = *it;
+            break;
+        }
+    }
+
+    if ( ! regAssign.get() ) {
+        return {};
+    }
+
+    Dyninst::Slicer handle( regAssign, blk, fnNoConst, true, false );
+    Dyninst::Slicer::Predicates predicate;
+
+    auto slice = handle.backwardSlice( predicate );
+
+    Dyninst::NodeIterator bgn, edn;
+    slice->allNodes( bgn, edn );
+
+    
+    std::vector<std::pair<di::Instruction, uint32_t>> ret;
+
+    for ( auto it = bgn; it != edn; ++it ) {
+        auto sliceNode = dynamic_cast<Dyninst::SliceNode*>( (*it).get() );
+        auto insn = sliceNode->assign()->insn();
+        ret.push_back( std::make_pair( insn, sliceNode->addr() ) );
+    }
+
+    return ret;
+    
+}
+
+
+std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
 {
     // Currently we only handle the case when we have a static string assigned
     // i.e. we have an instruction: lea REG [ADDR in RODATA]
@@ -57,7 +104,7 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
     // RIP and plug it into the AST to evaluate.
     ds::Region* reg = obj->findEnclosingRegion( blk->start() );
     if ( ! reg ) {
-        return UNKNOWN;
+        return {};;
     }
 
     auto bufStart = (const char*) reg->getPtrToRawData() + blk->start() - reg->getMemOffset();
@@ -84,7 +131,7 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
 
     std::reverse( instrVec.begin(), instrVec.end() );
 
-    std::pair<di::Instruction, uint32_t> targetInst;
+    std::pair<di::Instruction, uint32_t> firstInst;
     bool found = false;
     for ( auto inst: instrVec ) {
         // find first instruction whose operands involve RDI/EDI in the write set
@@ -94,7 +141,7 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
             std::set<di::RegisterAST::Ptr> write;
             op.getWriteSet( write );
             for ( auto w: write ) {
-               if ( w->format() == rgName ) {
+               if ( w->getID() == rgId ) {
                     found = true;
                     break;
                 }
@@ -104,65 +151,68 @@ std::string trackArgRegisterString( std::string rgName, dp::Block* blk, ds::Symt
             }
         }
         if ( found ) {
-            targetInst = inst;        
+            firstInst = inst;        
             break;
         }
     }
 
     if ( ! found ) {
-        std::cerr << "could not locate given register: " << rgName << std::endl;
-        return UNKNOWN;
+        std::cerr << "could not locate given register: " << rgId << std::endl;
+        return {};
     }
 
-    // We want to look for first LEA instruction to the arg register we are tracking
-    if ( targetInst.first.getOperation().getID() == e_lea 
-         && targetInst.first.getOperand(0).getValue()->format() == rgName ) {
-        // We will try to evaluate this, by just plugging in RIP.
-        // The address may depend on RIP in PIC.
-        auto targetValue = targetInst.first.getOperand(1).getValue();
-        di::Expression::Ptr ripExpr;
+    auto allTargets = doBackwardSlice(
+        obj, firstInst.first, firstInst.second, fn, blk, rgId );
 
-        // We should be traversing the entire graph
-        std::vector<di::Expression::Ptr> ret;
-        targetValue->getChildren(ret);
-        for ( auto e: ret ) {
-            if ( e->format() == "RIP" ) {
-                ripExpr = e;
+    std::vector<std::string> results;
+    
+    for ( auto targetInst: allTargets ) {
+        // We want to look for first LEA instruction to the arg register we are tracking
+        if ( targetInst.first.getOperation().getID() == e_lea ) {
+            // We will try to evaluate this, by just plugging in RIP.
+            // The address may depend on RIP in PIC.
+            auto targetValue = targetInst.first.getOperand(1).getValue();
+            di::Expression::Ptr ripExpr;
+
+            // We should be traversing the entire graph
+            std::vector<di::Expression::Ptr> ret;
+            targetValue->getChildren(ret);
+            for ( auto e: ret ) {
+                if ( e->format() == "RIP" ) {
+                    ripExpr = e;
+                }
             }
+
+            if ( ripExpr ) {
+                targetValue->bind(
+                    ripExpr.get(),
+                    di::Result( di::u32, targetInst.first.size() + targetInst.second ) );
+            }
+            auto targetResult = targetValue->eval();
+
+            if ( ! targetResult.defined  ) {
+                std::cout << "could not calculate address loaded to the given register: "
+                          << rgId << std::endl;
+                continue;
+            }
+
+
+            auto targetRegion = obj->findEnclosingRegion( targetResult.val.u32val );
+            
+            if ( targetRegion->getRegionName() != ".rodata" ) {
+                // We are reading an address but not from the rodata section.
+                std::cerr << "the read address does not belong to rodata" << std::endl;
+                continue;
+            }
+
+            results.push_back( std::string(
+                (const char*)targetRegion->getPtrToRawData()
+                + targetResult.val.u32val
+                - targetRegion->getMemOffset()
+            ) );
         }
-
-        if ( ripExpr ) {
-            targetValue->bind(
-                ripExpr.get(),
-                di::Result( di::u32, targetInst.first.size() + targetInst.second ) );
-        }
-        auto targetResult = targetValue->eval();
-
-        if ( ! targetResult.defined  ) {
-            std::cout << "could not calculate address loaded to the given register: "
-                      << rgName << std::endl;
-            return UNKNOWN;
-        }
-
-
-        auto targetRegion = obj->findEnclosingRegion( targetResult.val.u32val );
-        
-        if ( targetRegion->getRegionName() != ".rodata" ) {
-            // We are reading an address but not from the rodata section.
-            std::cerr << "the read address does not belong to rodata" << std::endl;
-            return UNKNOWN;
-        }
-
-        return std::string(
-            (const char*)targetRegion->getPtrToRawData()
-            + targetResult.val.u32val
-            - targetRegion->getMemOffset()
-        );        
-    } else {
-        // All other cases will land here, which we don't know how to
-        // handle just yet.
-        return UNKNOWN;
     }
+    return results;
 }
 
 } // end anonymous namespace
@@ -234,28 +284,39 @@ int main( int argc, char* argv[] )
                         }
 
                         auto funcName = containingFuncs.back()->name();
-
+                        auto printAndRecordResults = [&]( auto&& callCntr, auto&& strCntr, auto&& reg ) {
+                            callCntr++;
+                            auto strVec = trackArgRegisterString( reg, b, obj, f );
+                            std::cout << funcName << " : ";
+                            if ( ! strVec.empty() ) {
+                                strCntr++;
+                                for ( auto val: strVec ) {
+                                    std::cout << val << " ";
+                                }
+                            } else {
+                                std::cout << UNKNOWN;
+                            }
+                            std::cout << std::endl;
+                        };
+                        
                         if ( funcName == "dlopen" ) {
-                            Stats::Instance().dlopenCount++;
-                            auto param = trackArgRegisterString( "RDI", b, obj );
-                            if ( param != UNKNOWN ) { 
-                                Stats::Instance().dlopenWithStaticString++;    
-                            }
-                            std::cout << funcName << " : " << param << std::endl;
+                            printAndRecordResults(
+                                Stats::Instance().dlopenCount,
+                                Stats::Instance().dlopenWithStaticString,
+                                Dyninst::x86_64::irdi 
+                            ); 
                         } else if ( funcName == "dlsym" ) {
-                            Stats::Instance().dlsymCount++;
-                            auto param = trackArgRegisterString( "RSI", b, obj );
-                            if ( param != UNKNOWN ) {
-                                Stats::Instance().dlsymWithStaticString++;
-                            }
-                            std::cout << funcName << " : " << param << std::endl;
+                            printAndRecordResults(
+                                Stats::Instance().dlsymCount,
+                                Stats::Instance().dlsymWithStaticString,
+                                Dyninst::x86_64::irsi
+                            );
                         } else if ( funcName == "dlmopen" ) {
-                            Stats::Instance().dlmopenCount++;
-                            auto param = trackArgRegisterString( "RSI", b, obj );
-                            if ( param != UNKNOWN ) {
-                                Stats::Instance().dlmopenWithStaticString++;
-                            }
-                            std::cout << funcName << " : " << param << std::endl;
+                            printAndRecordResults(
+                                Stats::Instance().dlmopenCount,
+                                Stats::Instance().dlmopenWithStaticString,
+                                Dyninst::x86_64::irsi
+                            );
                         }
                     }
                 }
