@@ -48,6 +48,24 @@ private:
     Stats() {}
 };
 
+struct GlobalData
+{
+    int64_t pltStartAddr = 0;
+    int64_t pltEndAddr = 0;
+    int64_t pltSecStartAddr = 0;
+    int64_t pltSecEndAddr = 0;
+    // haven't seen a pltGot example but anyway:
+    int64_t pltGotStartAddr = 0;
+    int64_t pltGotEndAddr = 0;
+
+    static GlobalData& Instance() {
+        static GlobalData obj;
+        return obj;
+    }
+private:
+    GlobalData() {}
+};
+
 std::string UNKNOWN = "<unknown>";
 
 
@@ -215,6 +233,14 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
     return results;
 }
 
+bool containedInPLT( int64_t startAddr, int64_t endAddr )
+{
+    auto& state = GlobalData::Instance();
+    return ( startAddr >= state.pltStartAddr && endAddr <= state.pltEndAddr ) ||
+           ( startAddr >= state.pltSecStartAddr && endAddr <= state.pltSecEndAddr ) ||
+           ( startAddr >= state.pltGotStartAddr && endAddr <= state.pltGotEndAddr );
+}
+
 } // end anonymous namespace
 
 int main( int argc, char* argv[] )
@@ -244,10 +270,16 @@ int main( int argc, char* argv[] )
     for ( const auto r: reg ) {
         auto rgnName = r->getRegionName();
         if ( rgnName == ".plt" ) {
-           pltBeginAddr = r->getMemOffset();
-           pltEndAddr = r->getMemOffset() + r->getMemSize();
+            GlobalData::Instance().pltStartAddr = r->getMemOffset();
+            GlobalData::Instance().pltEndAddr = r->getMemOffset() + r->getMemSize();
+        } else if ( rgnName == ".plt.sec" ) {
+            GlobalData::Instance().pltSecStartAddr = r->getMemOffset();
+            GlobalData::Instance().pltSecEndAddr = r->getMemOffset() + r->getMemSize();
+        } else if ( rgnName == ".plt.got" ) {
+            GlobalData::Instance().pltGotStartAddr = r->getMemOffset();
+            GlobalData::Instance().pltGotEndAddr = r->getMemOffset() + r->getMemSize();
         }
-    }
+    }   
 
     // traverse call graph
     auto sts = new dp::SymtabCodeSource( const_cast<char*>( execName.c_str() ) );
@@ -271,7 +303,7 @@ int main( int argc, char* argv[] )
                 if ( e->type() == dp::CALL ) {
                     // if it is a call we are going to follow it
                     auto calltgt = e->trg();
-                    if ( calltgt->start() >= pltBeginAddr && calltgt->end() <= pltEndAddr ) {
+                    if ( containedInPLT( calltgt->start(), calltgt->end() ) ) {
 
                         std::vector<dp::Function*> containingFuncs;
 
