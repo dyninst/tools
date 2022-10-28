@@ -75,7 +75,7 @@ std::vector<std::pair<di::Instruction, uint32_t>> doBackwardSlice(
 {
     auto fnNoConst = const_cast<dp::Function*>( fn );
     
-    Dyninst::AssignmentConverter ac( true, false );
+    Dyninst::AssignmentConverter ac( true, true );
     std::vector<Dyninst::Assignment::Ptr> assignments;
     ac.convert( insObj, insAddr, fnNoConst, blk, assignments );
 
@@ -92,7 +92,7 @@ std::vector<std::pair<di::Instruction, uint32_t>> doBackwardSlice(
         return {};
     }
 
-    Dyninst::Slicer handle( regAssign, blk, fnNoConst, true, false );
+    Dyninst::Slicer handle( regAssign, blk, fnNoConst, true, true );
     Dyninst::Slicer::Predicates predicate;
 
     auto slice = handle.backwardSlice( predicate );
