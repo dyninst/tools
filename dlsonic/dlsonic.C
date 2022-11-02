@@ -61,6 +61,7 @@ struct GlobalData
     // index to identify particular calls to dlopen and dlsym
     uint32_t index = 0;
 
+    // used to map dlsym calls to corresponding dlopen calls
     std::map<uint32_t, std::vector<std::pair<di::Instruction, uint32_t>>> dlsymIndex2RDISlice;
     std::map<uint32_t, std::pair<uint32_t, uint32_t>> dlopenIndex2CallFTBlock;
 
@@ -415,6 +416,11 @@ int main( int argc, char* argv[] )
                                 Stats::Instance().dlopenWithStaticString,
                                 Dyninst::x86_64::irdi 
                             );
+                            // Take note of the call fallthrough block for this dlopen call
+                            // the returned value i.e. the lib handle is likely to be handled here.
+                            // This does not extensively cover all cases, control flow change (like ifs)
+                            // right after function call may break this scheme. But using it as a
+                            // starting point.
                             recordCallFTBlock( b, obj, f );
                         } else if ( funcName == "dlsym" ) {
                             GlobalData::Instance().updateIndex();
@@ -423,6 +429,9 @@ int main( int argc, char* argv[] )
                                 Stats::Instance().dlsymWithStaticString,
                                 Dyninst::x86_64::irsi
                             );
+                            // For each dlsym call, we look at the backward slice of RDI.
+                            // This should help us find references to RAX that belong to the call FT
+                            // block of corresponding dlopen.
                             recordRDISlice( b, obj, f );
                         } else if ( funcName == "dlmopen" ) {
                             GlobalData::Instance().updateIndex();
@@ -431,6 +440,7 @@ int main( int argc, char* argv[] )
                                 Stats::Instance().dlmopenWithStaticString,
                                 Dyninst::x86_64::irsi
                             );
+                            recordCallFTBlock( b, obj, f );
                         }
                     }
                 }
