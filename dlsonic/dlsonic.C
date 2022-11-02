@@ -58,9 +58,19 @@ struct GlobalData
     int64_t pltGotStartAddr = 0;
     int64_t pltGotEndAddr = 0;
 
+    // index to identify particular calls to dlopen and dlsym
+    uint32_t index = 0;
+
+    std::map<uint32_t, std::vector<std::pair<di::Instruction, uint32_t>>> dlsymIndex2RDISlice;
+    std::map<uint32_t, std::pair<uint32_t, uint32_t>> dlopenIndex2CallFTBlock;
+
     static GlobalData& Instance() {
         static GlobalData obj;
         return obj;
+    }
+
+    void updateIndex() {
+        index++;
     }
 private:
     GlobalData() {}
@@ -69,9 +79,10 @@ private:
 std::string UNKNOWN = "<unknown>";
 
 
-std::vector<std::pair<di::Instruction, uint32_t>> doBackwardSlice(
+std::vector<std::pair<di::Instruction, uint32_t>> doSlice(
     ds::Symtab* obj, di::Instruction insObj, int32_t insAddr,
-    const dp::Function* fn, dp::Block* blk, int machRegInt )
+    const dp::Function* fn, dp::Block* blk, int machRegInt,
+    bool sliceForward, bool isInput )
 {
     auto fnNoConst = const_cast<dp::Function*>( fn );
     
@@ -81,9 +92,23 @@ std::vector<std::pair<di::Instruction, uint32_t>> doBackwardSlice(
 
     Dyninst::Assignment::Ptr regAssign;
     for ( auto it = assignments.begin(); it != assignments.end(); ++it ) {
-        auto curr = (*it)->out();
-        if ( curr.absloc().type() == Dyninst::Absloc::Register && curr.absloc().reg() == machRegInt ) {
-            regAssign = *it;
+        bool found = false;
+        if ( isInput ) {
+            for ( auto curr: (*it)->inputs() ) {
+                if ( curr.absloc().type() == Dyninst::Absloc::Register && curr.absloc().reg() == machRegInt ) {
+                    found = true;
+                    regAssign = *it;
+                    break;
+                }
+            }
+        } else {
+            auto curr = (*it)->out();
+            if ( curr.absloc().type() == Dyninst::Absloc::Register && curr.absloc().reg() == machRegInt ) {
+                found = true;
+                regAssign = *it;
+            }
+        }
+        if ( found ) {
             break;
         }
     }
@@ -91,11 +116,13 @@ std::vector<std::pair<di::Instruction, uint32_t>> doBackwardSlice(
     if ( ! regAssign.get() ) {
         return {};
     }
-
+    
     Dyninst::Slicer handle( regAssign, blk, fnNoConst, true, true );
     Dyninst::Slicer::Predicates predicate;
 
-    auto slice = handle.backwardSlice( predicate );
+    auto slice = sliceForward ? handle.forwardSlice( predicate ) : handle.backwardSlice( predicate );
+    
+    slice->printDOT( std::to_string( insAddr ) + "_" + regAssign->format() );
 
     Dyninst::NodeIterator bgn, edn;
     slice->allNodes( bgn, edn );
@@ -113,13 +140,9 @@ std::vector<std::pair<di::Instruction, uint32_t>> doBackwardSlice(
     
 }
 
-
-std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
+std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
+    int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn, bool isInput, bool isFirst )
 {
-    // Currently we only handle the case when we have a static string assigned
-    // i.e. we have an instruction: lea REG [ADDR in RODATA]
-    // Note that the address here may depend on RIP, so we manually calculate
-    // RIP and plug it into the AST to evaluate.
     ds::Region* reg = obj->findEnclosingRegion( blk->start() );
     if ( ! reg ) {
         return {};;
@@ -147,18 +170,25 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
         offset += currInst.size();
     }
 
-    std::reverse( instrVec.begin(), instrVec.end() );
+    if ( ! isFirst ) {
+        std::reverse( instrVec.begin(), instrVec.end() );
+    }
 
-    std::pair<di::Instruction, uint32_t> firstInst;
+    std::pair<di::Instruction, uint32_t> targetInst;
     bool found = false;
     for ( auto inst: instrVec ) {
         // find first instruction whose operands involve RDI/EDI in the write set
         std::vector<di::Operand> instOpr;
         inst.first.getOperands( instOpr );
         for ( auto op: instOpr ) {
-            std::set<di::RegisterAST::Ptr> write;
-            op.getWriteSet( write );
-            for ( auto w: write ) {
+            std::set<di::RegisterAST::Ptr> regSet;
+            if ( isInput ) {
+                op.getReadSet( regSet );
+            } else {
+                op.getWriteSet( regSet );
+            }
+            
+            for ( auto w: regSet ) {
                if ( w->getID() == rgId ) {
                     found = true;
                     break;
@@ -169,7 +199,7 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
             }
         }
         if ( found ) {
-            firstInst = inst;        
+            targetInst = inst;        
             break;
         }
     }
@@ -178,9 +208,26 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
         std::cerr << "could not locate given register: " << rgId << std::endl;
         return {};
     }
+    return targetInst;
+}
 
-    auto allTargets = doBackwardSlice(
-        obj, firstInst.first, firstInst.second, fn, blk, rgId );
+std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
+{
+    // Currently we only handle the case when we have a static string assigned
+    // i.e. we have an instruction: lea REG [ADDR in RODATA]
+    // Note that the address here may depend on RIP, so we manually calculate
+    // RIP and plug it into the AST to evaluate.
+
+    auto firstInstObj = locateAssignmentInstruction ( rgId, blk, obj, fn, false, false ); 
+
+    if ( ! firstInstObj.has_value() ) {
+        return {};
+    }
+
+    auto firstInst = firstInstObj.value();
+
+    auto allTargets = doSlice(
+        obj, firstInst.first, firstInst.second, fn, blk, rgId, false, false );
 
     std::vector<std::string> results;
     
@@ -240,6 +287,36 @@ bool containedInPLT( int64_t startAddr, int64_t endAddr )
            ( startAddr >= state.pltSecStartAddr && endAddr <= state.pltSecEndAddr ) ||
            ( startAddr >= state.pltGotStartAddr && endAddr <= state.pltGotEndAddr );
 }
+
+void recordCallFTBlock(
+    dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
+{
+    dp::Block* currFTBlk = nullptr;
+    int callFTEdgeCount = 0;
+    for ( auto e : b->targets() ) {
+        if ( e->type() == dp::CALL_FT ) {
+            callFTEdgeCount++;
+            currFTBlk = e->trg();
+        }
+    }
+
+    // there should only be one CALL_FT block corresponding to a dlopen call
+    assert( callFTEdgeCount == 1 );
+
+    // save the CALL_FT block's start and end addresses
+    GlobalData::Instance().dlopenIndex2CallFTBlock[GlobalData::Instance().index]
+        = std::make_pair( currFTBlk->start(), currFTBlk->end() );
+}
+
+void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
+{
+    auto inst =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn, false, false );
+    assert ( inst.has_value() );
+    auto val = inst.value();
+    auto allTargets = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi, false, false );
+    GlobalData::Instance().dlsymIndex2RDISlice[GlobalData::Instance().index] = allTargets; 
+}
+
 
 } // end anonymous namespace
 
@@ -319,7 +396,7 @@ int main( int argc, char* argv[] )
                         auto printAndRecordResults = [&]( auto&& callCntr, auto&& strCntr, auto&& reg ) {
                             callCntr++;
                             auto strVec = trackArgRegisterString( reg, b, obj, f );
-                            std::cout << funcName << " : ";
+                            std::cout << GlobalData::Instance().index << " => " << funcName << " : ";
                             if ( ! strVec.empty() ) {
                                 strCntr++;
                                 for ( auto val: strVec ) {
@@ -332,18 +409,23 @@ int main( int argc, char* argv[] )
                         };
                         
                         if ( funcName == "dlopen" ) {
+                            GlobalData::Instance().updateIndex();
                             printAndRecordResults(
                                 Stats::Instance().dlopenCount,
                                 Stats::Instance().dlopenWithStaticString,
                                 Dyninst::x86_64::irdi 
-                            ); 
+                            );
+                            recordCallFTBlock( b, obj, f );
                         } else if ( funcName == "dlsym" ) {
+                            GlobalData::Instance().updateIndex();
                             printAndRecordResults(
                                 Stats::Instance().dlsymCount,
                                 Stats::Instance().dlsymWithStaticString,
                                 Dyninst::x86_64::irsi
                             );
+                            recordRDISlice( b, obj, f );
                         } else if ( funcName == "dlmopen" ) {
+                            GlobalData::Instance().updateIndex();
                             printAndRecordResults(
                                 Stats::Instance().dlmopenCount,
                                 Stats::Instance().dlmopenWithStaticString,
@@ -355,5 +437,40 @@ int main( int argc, char* argv[] )
             }
         }
     }
+
+
     Stats::Instance().print();
+
+
+    std::cout << "Finding DLSYM <- DLOPEN mappings" << std::endl;
+    for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
+        auto index = index2slice.first;
+        auto& slice = index2slice.second;
+        
+        for ( auto& node : slice ) {
+            std::vector<di::Operand> instOpr;
+            node.first.getOperands( instOpr );
+            for ( auto op: instOpr ) {
+                std::set<di::RegisterAST::Ptr> regSet;
+                op.getReadSet( regSet );
+                bool found = false;
+                for ( auto w: regSet ) {
+                    if ( w->getID() == Dyninst::x86_64::irax ) {
+                        found = true;
+                        break;
+                    }
+                }
+                if ( found ) {
+                    // we have found an instruction in the slice that reads from the
+                    // RAX, just need to see if this RAX has anything to do        
+                    for ( auto index2range : GlobalData::Instance().dlopenIndex2CallFTBlock ) {
+                        if ( node.second >= index2range.second.first && node.second < index2range.second.second ) {
+                            std::cout << index << " <- " << index2range.first << std::endl;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::cout << "End of mappings" << std::endl;
 }
