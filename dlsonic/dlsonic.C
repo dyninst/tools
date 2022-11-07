@@ -62,9 +62,12 @@ struct GlobalData
     uint32_t index = 0;
 
     // used to map dlsym calls to corresponding dlopen calls
-    std::map<uint32_t, std::vector<std::pair<di::Instruction, uint32_t>>> dlsymIndex2RDISlice;
-    std::map<uint32_t, std::pair<uint32_t, uint32_t>> dlopenIndex2CallFTBlock;
+    std::map<uint32_t, std::vector<Dyninst::Node::Ptr>> dlsymIndex2RDISlice;
+    std::map<uint32_t, std::vector<std::pair<uint32_t, uint32_t>>> dlopenIndex2CallFTBlock;
 
+    // used while traversing the block graph
+    std::map<uint32_t, bool> seen;
+    
     static GlobalData& Instance() {
         static GlobalData obj;
         return obj;
@@ -80,7 +83,8 @@ private:
 std::string UNKNOWN = "<unknown>";
 
 
-std::vector<std::pair<di::Instruction, uint32_t>> doSlice(
+//std::vector<std::pair<di::Instruction, uint32_t>> 
+std::vector<Dyninst::Node::Ptr> doSlice(
     ds::Symtab* obj, di::Instruction insObj, int32_t insAddr,
     const dp::Function* fn, dp::Block* blk, int machRegInt,
     bool sliceForward, bool isInput )
@@ -123,22 +127,17 @@ std::vector<std::pair<di::Instruction, uint32_t>> doSlice(
 
     auto slice = sliceForward ? handle.forwardSlice( predicate ) : handle.backwardSlice( predicate );
     
-    slice->printDOT( std::to_string( insAddr ) + "_" + regAssign->format() );
+    // slice->printDOT( std::to_string( insAddr ) + "_" + regAssign->format() );
 
     Dyninst::NodeIterator bgn, edn;
     slice->allNodes( bgn, edn );
 
-    
-    std::vector<std::pair<di::Instruction, uint32_t>> ret;
-
+    std::vector<Dyninst::Node::Ptr> ret;
     for ( auto it = bgn; it != edn; ++it ) {
-        auto sliceNode = dynamic_cast<Dyninst::SliceNode*>( (*it).get() );
-        auto insn = sliceNode->assign()->insn();
-        ret.push_back( std::make_pair( insn, sliceNode->addr() ) );
+        ret.push_back(*it);
     }
 
     return ret;
-    
 }
 
 std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
@@ -227,8 +226,17 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
 
     auto firstInst = firstInstObj.value();
 
-    auto allTargets = doSlice(
+    auto allNodes = doSlice(
         obj, firstInst.first, firstInst.second, fn, blk, rgId, false, false );
+
+    std::vector<std::pair<di::Instruction, uint32_t>> allTargets;
+
+    for ( auto it = allNodes.begin(); it != allNodes.end(); ++it ) {
+        auto sliceNode = dynamic_cast<Dyninst::SliceNode*>( (*it).get() );
+        auto insn = sliceNode->assign()->insn();
+        allTargets.push_back( std::make_pair( insn, sliceNode->addr() ) );
+    }
+
 
     std::vector<std::string> results;
     
@@ -289,6 +297,32 @@ bool containedInPLT( int64_t startAddr, int64_t endAddr )
            ( startAddr >= state.pltGotStartAddr && endAddr <= state.pltGotEndAddr );
 }
 
+
+void discover( dp::Block* b, uint32_t index )
+{
+    GlobalData::Instance().seen[b->start()] = true;
+    GlobalData::Instance().dlopenIndex2CallFTBlock[index]
+        .push_back(std::make_pair(b->start(), b->end()));
+    
+    for ( auto e : b->targets() ) {
+        // If this block has a CALL edge, it means the last instruction is a
+        // CALL, which means we should not follow through any further.
+        if ( e->type() == dp::CALL ) {
+            return;
+        }
+    }
+
+    for ( auto e : b->targets() ) {
+        // We need to follow all edges, except for those relating to function calls
+        if ( e->type() == dp::CALL  || e->type() == dp::RET || e->type() == dp::CATCH ) {
+            continue;
+        }
+        if ( ! GlobalData::Instance().seen[e->trg()->start()] ) {
+            discover( e->trg(), index );
+        }
+    }
+}
+
 void recordCallFTBlock(
     dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 {
@@ -305,8 +339,11 @@ void recordCallFTBlock(
     assert( callFTEdgeCount == 1 );
 
     // save the CALL_FT block's start and end addresses
-    GlobalData::Instance().dlopenIndex2CallFTBlock[GlobalData::Instance().index]
-        = std::make_pair( currFTBlk->start(), currFTBlk->end() );
+    auto index = GlobalData::Instance().index; 
+    GlobalData::Instance().dlopenIndex2CallFTBlock[index].push_back(
+        std::make_pair( currFTBlk->start(), currFTBlk->end() ) );
+    discover( currFTBlk, index );
+
 }
 
 void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
@@ -314,8 +351,29 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
     auto inst =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn, false, false );
     assert ( inst.has_value() );
     auto val = inst.value();
-    auto allTargets = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi, false, false );
-    GlobalData::Instance().dlsymIndex2RDISlice[GlobalData::Instance().index] = allTargets; 
+    auto allNodes = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi, false, false );
+
+    GlobalData::Instance().dlsymIndex2RDISlice[GlobalData::Instance().index] = allNodes; 
+}
+
+bool sliceNodeContainsRAXIn( Dyninst::Node::Ptr node )
+{
+    auto insn = dynamic_cast<Dyninst::SliceNode*>(node.get())->assign()->insn();
+
+    std::vector<di::Operand> instOpr;
+    insn.getOperands( instOpr );
+
+    for ( auto op: instOpr ) {
+        std::set<di::RegisterAST::Ptr> regSet;
+        op.getReadSet( regSet );
+        for ( auto w: regSet ) {
+            if ( w->getID() == Dyninst::x86_64::irax ) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 
@@ -451,36 +509,42 @@ int main( int argc, char* argv[] )
 
     Stats::Instance().print();
 
-
     std::cout << "Finding DLSYM <- DLOPEN mappings" << std::endl;
+
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;
         auto& slice = index2slice.second;
-        
-        for ( auto& node : slice ) {
-            std::vector<di::Operand> instOpr;
-            node.first.getOperands( instOpr );
-            for ( auto op: instOpr ) {
-                std::set<di::RegisterAST::Ptr> regSet;
-                op.getReadSet( regSet );
-                bool found = false;
-                for ( auto w: regSet ) {
-                    if ( w->getID() == Dyninst::x86_64::irax ) {
-                        found = true;
-                        break;
-                    }
+        bool done = false;
+        for ( auto& node : slice ) {            
+            Dyninst::NodeIterator bgn, edn;
+            bool isRAXIn = sliceNodeContainsRAXIn( node );
+            if ( ! isRAXIn ) {
+                continue;
+            }
+            node->ins( bgn, edn );
+            for ( auto it = bgn; it != edn; ++it ) {
+                if ( sliceNodeContainsRAXIn( *it ) ) {
+                    isRAXIn = false;
+                    break;
                 }
-                if ( found ) {
-                    // we have found an instruction in the slice that reads from the
-                    // RAX, just need to see if this RAX has anything to do        
-                    for ( auto index2range : GlobalData::Instance().dlopenIndex2CallFTBlock ) {
-                        if ( node.second >= index2range.second.first && node.second < index2range.second.second ) {
-                            std::cout << index << " <- " << index2range.first << std::endl;
+            }
+            if ( isRAXIn ) {
+                auto addr = node->addr();
+                for ( auto index2range : GlobalData::Instance().dlopenIndex2CallFTBlock ) {
+                    for ( auto interval : index2range.second ) {
+                        if ( addr >= interval.first && addr < interval.second ) {
+                            std::cout << index << " <-- " << index2range.first << std::endl;
+                            done = true;
+                            break;
                         }
                     }
                 }
             }
+            if ( done ) {
+                break;
+            }
         }
     }
+
     std::cout << "End of mappings" << std::endl;
 }
