@@ -1,3 +1,4 @@
+#include <sstream>
 #include <iostream>
 #include <cstring>
 #include <vector>
@@ -20,12 +21,14 @@ namespace {
 
 struct Stats
 {
+    std::string filename;
     int dlopenCount = 0;
     int dlsymCount = 0;
     int dlmopenCount = 0;
     int dlopenWithStaticString = 0;
     int dlsymWithStaticString = 0;
     int dlmopenWithStaticString = 0;
+    int dlsymMapped = 0;
 
     static Stats& Instance() {
         static Stats obj;
@@ -34,14 +37,17 @@ struct Stats
 
     void print()
     {
-        std::cout << "Analysis Summary\n"
-                  << " total # dlopen(...) calls:   " << dlopenCount << '\n' 
-                  << " dlopen with static strings:  " << dlopenWithStaticString << '\n'
-                  << " total # dlsym(...) calls:    " << dlsymCount << '\n'
-                  << " dlsym with static strings:   " << dlsymWithStaticString << '\n'
-                  << " total # dlmopen(...) calls:  " << dlmopenCount << '\n'
-                  << " dlmopen with static strings: " << dlmopenWithStaticString
-                  << std::endl;
+#define STAT_FIX_STR(x) (#x "=" + std::to_string(x)) 
+        std::cout << "DIGEST:" << filename << "=["
+                  << STAT_FIX_STR(dlopenCount) << "|"
+                  << STAT_FIX_STR(dlopenWithStaticString) << "|"
+                  << STAT_FIX_STR(dlsymCount) << "|"
+                  << STAT_FIX_STR(dlsymWithStaticString) << "|"
+                  << STAT_FIX_STR(dlmopenCount) << "|"
+                  << STAT_FIX_STR(dlmopenWithStaticString) << "|"
+                  << STAT_FIX_STR(dlsymMapped)
+                  << "]\n";
+#undef STAT_FIX_STR
     }
     
 private:
@@ -80,10 +86,9 @@ private:
     GlobalData() {}
 };
 
+
 std::string UNKNOWN = "<unknown>";
 
-
-//std::vector<std::pair<di::Instruction, uint32_t>> 
 std::vector<Dyninst::Node::Ptr> doSlice(
     ds::Symtab* obj, di::Instruction insObj, int32_t insAddr,
     const dp::Function* fn, dp::Block* blk, int machRegInt,
@@ -205,7 +210,6 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
     }
 
     if ( ! found ) {
-        std::cerr << "could not locate given register: " << rgId << std::endl;
         return {};
     }
     return targetInst;
@@ -265,8 +269,6 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
             auto targetResult = targetValue->eval();
 
             if ( ! targetResult.defined  ) {
-                std::cout << "could not calculate address loaded to the given register: "
-                          << rgId << std::endl;
                 continue;
             }
 
@@ -275,10 +277,9 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
             
             if ( targetRegion->getRegionName() != ".rodata" ) {
                 // We are reading an address but not from the rodata section.
-                std::cerr << "the read address does not belong to rodata" << std::endl;
                 continue;
             }
-
+            
             results.push_back( std::string(
                 (const char*)targetRegion->getPtrToRawData()
                 + targetResult.val.u32val
@@ -349,7 +350,13 @@ void recordCallFTBlock(
 void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 {
     auto inst =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn, false, false );
-    assert ( inst.has_value() );
+    if ( ! inst.has_value() ) {
+        // this means we couldn't find any assignment to RDI
+        // typically this will imply that a dlsym with nullptr
+        // often this appears as xor rdi rdi.
+        return;
+    }
+
     auto val = inst.value();
     auto allNodes = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi, false, false );
 
@@ -387,6 +394,8 @@ int main( int argc, char* argv[] )
         std::cerr << "Please provide input binary file via cmdline" << std::endl;
         return 1;
     }
+
+    Stats::Instance().filename = execName;
 
     ds::Symtab* obj = nullptr;
     bool success = ds::Symtab::openFile( obj, execName ); 
@@ -455,16 +464,25 @@ int main( int argc, char* argv[] )
                         auto printAndRecordResults = [&]( auto&& callCntr, auto&& strCntr, auto&& reg ) {
                             callCntr++;
                             auto strVec = trackArgRegisterString( reg, b, obj, f );
-                            std::cout << GlobalData::Instance().index << " => " << funcName << " : ";
+                            std::cout << "CALLDETAIL:" << execName << "=["
+                                      << "Id=" << GlobalData::Instance().index << "|"
+                                      << "Addr=" << std::hex << b->last() << "|"
+                                      << "Type=" << funcName << "|"
+                                      << "Param="; 
                             if ( ! strVec.empty() ) {
                                 strCntr++;
-                                for ( auto val: strVec ) {
-                                    std::cout << val << " ";
+                                std::cout << "[";
+                                for ( size_t i = 0; i < strVec.size(); ++i ) {
+                                    if ( i != 0 ) {
+                                        std::cout << "|";
+                                    }
+                                    std::cout << strVec[i];
                                 }
+                                std::cout << "]";
                             } else {
                                 std::cout << UNKNOWN;
                             }
-                            std::cout << std::endl;
+                            std::cout << "]\n";
                         };
                         
                         if ( funcName == "dlopen" ) {
@@ -506,10 +524,9 @@ int main( int argc, char* argv[] )
         }
     }
 
+    std::ostringstream mappingOut;
 
-    Stats::Instance().print();
-
-    std::cout << "Finding DLSYM <- DLOPEN mappings" << std::endl;
+    mappingOut << "MAPPINGS:" << execName << "=[ ";
 
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;
@@ -533,8 +550,9 @@ int main( int argc, char* argv[] )
                 for ( auto index2range : GlobalData::Instance().dlopenIndex2CallFTBlock ) {
                     for ( auto interval : index2range.second ) {
                         if ( addr >= interval.first && addr < interval.second ) {
-                            std::cout << index << " <-- " << index2range.first << std::endl;
+                            mappingOut << index << "<" << index2range.first << " ";
                             done = true;
+                            Stats::Instance().dlsymMapped++;
                             break;
                         }
                     }
@@ -546,5 +564,10 @@ int main( int argc, char* argv[] )
         }
     }
 
-    std::cout << "End of mappings" << std::endl;
+    mappingOut << "]";
+
+    std::cout << mappingOut.str() << std::endl;
+
+    Stats::Instance().print();
 }
+
