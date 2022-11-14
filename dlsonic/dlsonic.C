@@ -465,7 +465,7 @@ int main( int argc, char* argv[] )
                             callCntr++;
                             auto strVec = trackArgRegisterString( reg, b, obj, f );
                             std::cout << "CALLDETAIL:" << execName << "=["
-                                      << "Id=" << GlobalData::Instance().index << "|"
+                                      << "Id=" << std::dec << GlobalData::Instance().index << "|"
                                       << "Addr=" << std::hex << b->last() << "|"
                                       << "Type=" << funcName << "|"
                                       << "Param="; 
