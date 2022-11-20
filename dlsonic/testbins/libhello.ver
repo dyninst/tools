@@ -1,0 +1,17 @@
+LIB_V1 {
+    global:
+        _Z3fooPKc;
+        extern "C++" {
+            "foo( const char* )";
+        };
+    local:
+        *;
+};
+
+LIB_V2 {
+    global:
+        _Z3fooPKc;
+        extern "C++" {
+            "foo( const char* )";
+        };
+} LIB_V1;

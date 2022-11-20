@@ -24,9 +24,11 @@ struct Stats
     std::string filename;
     int dlopenCount = 0;
     int dlsymCount = 0;
+    int dlvsymCount = 0;
     int dlmopenCount = 0;
     int dlopenWithStaticString = 0;
     int dlsymWithStaticString = 0;
+    int dlvsymWithStaticString = 0;
     int dlmopenWithStaticString = 0;
     int dlsymMapped = 0;
 
@@ -43,6 +45,8 @@ struct Stats
                   << STAT_FIX_STR(dlopenWithStaticString) << "|"
                   << STAT_FIX_STR(dlsymCount) << "|"
                   << STAT_FIX_STR(dlsymWithStaticString) << "|"
+                  << STAT_FIX_STR(dlvsymCount) << "|"
+                  << STAT_FIX_STR(dlvsymWithStaticString) << "|"
                   << STAT_FIX_STR(dlmopenCount) << "|"
                   << STAT_FIX_STR(dlmopenWithStaticString) << "|"
                   << STAT_FIX_STR(dlsymMapped)
@@ -517,6 +521,14 @@ int main( int argc, char* argv[] )
                                 Dyninst::x86_64::irsi
                             );
                             recordCallFTBlock( b, obj, f );
+                        } else if ( funcName == "dlvsym" ) {
+                            GlobalData::Instance().updateIndex();
+                            printAndRecordResults(
+                                Stats::Instance().dlvsymCount,
+                                Stats::Instance().dlvsymWithStaticString,
+                                Dyninst::x86_64::irsi
+                            );
+                            recordRDISlice( b, obj, f ); 
                         }
                     }
                 }

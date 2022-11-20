@@ -155,6 +155,27 @@ void type7()
     dlclose( hdl );
 }
 
+// Most basic case when the string is read from .rodata
+void type8()
+{
+    auto hdl = dlopen( "libhello.so", RTLD_LAZY );
+    if ( ! hdl ) {
+        printf( "failed to open libhello.so" );
+        return;
+    }
+    void (*fptr)( const char* );
+
+    *(void**)(&fptr)  = dlvsym( hdl, "_Z3fooPKc", "LIB_V1" );
+
+    char* error = dlerror();
+    if ( error ) {
+        printf( "ERROR: %s", error ); 
+        return;
+    }
+    (*fptr)( "type8" );
+    dlclose( hdl );
+}
+
 int main()
 {
     type1();
@@ -164,5 +185,6 @@ int main()
     type5();
     type6();
     type7();
+    type8();
     return 0;
 }
