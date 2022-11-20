@@ -32,7 +32,9 @@ struct Stats
     int dlmopenWithStaticString = 0;
     int dlsymMapped = 0;
     int dlsymWithConstHandle = 0;
-
+    int dlvsymMapped = 0;
+    int dlvsymWithConstHandle = 0;
+    
     static Stats& Instance() {
         static Stats obj;
         return obj;
@@ -51,7 +53,9 @@ struct Stats
                   << STAT_FIX_STR(dlmopenCount) << "|"
                   << STAT_FIX_STR(dlmopenWithStaticString) << "|"
                   << STAT_FIX_STR(dlsymMapped) << "|"
-                  << STAT_FIX_STR(dlsymWithConstHandle)
+                  << STAT_FIX_STR(dlsymWithConstHandle) << "|"
+                  << STAT_FIX_STR(dlvsymMapped) << "|"
+                  << STAT_FIX_STR(dlvsymWithConstHandle)
                   << "]\n";
 #undef STAT_FIX_STR
     }
@@ -73,9 +77,19 @@ struct GlobalData
     // index to identify particular calls to dlopen and dlsym
     uint32_t index = 0;
 
+    enum class CallType {
+        DLOPEN,
+        DLSYM,
+        DLMOPEN,
+        DLVSYM
+    };
+
+    // map index to calltype
+    std::map<uint32_t, CallType> index2CallType;
+
     // used to map dlsym calls to corresponding dlopen calls
     std::map<uint32_t, std::vector<Dyninst::Node::Ptr>> dlsymIndex2RDISlice;
-    std::map<uint32_t, bool> dlsymWithConstHandle;
+    std::map<uint32_t, bool> hasConstHandle;
     std::map<uint32_t, std::vector<std::pair<uint32_t, uint32_t>>> dlopenIndex2CallFTBlock;
 
     // used while traversing the block graph
@@ -86,8 +100,8 @@ struct GlobalData
         return obj;
     }
 
-    void updateIndex() {
-        index++;
+    void updateIndex( CallType ct ) {
+        index2CallType[index++] = ct;
     }
 private:
     GlobalData() {}
@@ -384,9 +398,9 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 
     if ( isConstHandle ) {
         Stats::Instance().dlsymWithConstHandle++;
-        GlobalData::Instance().dlsymWithConstHandle[GlobalData::Instance().index] = true;       
+        GlobalData::Instance().hasConstHandle[GlobalData::Instance().index] = true;       
     } else {
-        GlobalData::Instance().dlsymWithConstHandle[GlobalData::Instance().index] = false;
+        GlobalData::Instance().hasConstHandle[GlobalData::Instance().index] = false;
     }
 
     GlobalData::Instance().dlsymIndex2RDISlice[GlobalData::Instance().index] = allNodes; 
@@ -515,7 +529,7 @@ int main( int argc, char* argv[] )
                         };
                         
                         if ( funcName == "dlopen" ) {
-                            GlobalData::Instance().updateIndex();
+                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLOPEN );
                             printAndRecordResults(
                                 Stats::Instance().dlopenCount,
                                 Stats::Instance().dlopenWithStaticString,
@@ -528,7 +542,7 @@ int main( int argc, char* argv[] )
                             // starting point.
                             recordCallFTBlock( b, obj, f );
                         } else if ( funcName == "dlsym" ) {
-                            GlobalData::Instance().updateIndex();
+                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLSYM );
                             printAndRecordResults(
                                 Stats::Instance().dlsymCount,
                                 Stats::Instance().dlsymWithStaticString,
@@ -539,7 +553,7 @@ int main( int argc, char* argv[] )
                             // block of corresponding dlopen.
                             recordRDISlice( b, obj, f );
                         } else if ( funcName == "dlmopen" ) {
-                            GlobalData::Instance().updateIndex();
+                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLMOPEN );
                             printAndRecordResults(
                                 Stats::Instance().dlmopenCount,
                                 Stats::Instance().dlmopenWithStaticString,
@@ -547,7 +561,7 @@ int main( int argc, char* argv[] )
                             );
                             recordCallFTBlock( b, obj, f );
                         } else if ( funcName == "dlvsym" ) {
-                            GlobalData::Instance().updateIndex();
+                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLVSYM );
                             printAndRecordResults(
                                 Stats::Instance().dlvsymCount,
                                 Stats::Instance().dlvsymWithStaticString,
@@ -567,7 +581,7 @@ int main( int argc, char* argv[] )
 
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;
-        if ( GlobalData::Instance().dlsymWithConstHandle[index] ) {
+        if ( GlobalData::Instance().hasConstHandle[index] ) {
             mappingOut << index << "<CONST" << " ";
             continue;
         }
@@ -593,7 +607,13 @@ int main( int argc, char* argv[] )
                         if ( addr >= interval.first && addr < interval.second ) {
                             mappingOut << index << "<" << index2range.first << " ";
                             done = true;
-                            Stats::Instance().dlsymMapped++;
+                            if ( GlobalData::Instance().index2CallType[index]
+                                 == GlobalData::CallType::DLVSYM )
+                            {
+                                Stats::Instance().dlvsymMapped++;    
+                            } else {
+                                Stats::Instance().dlsymMapped++;
+                            }
                             break;
                         }
                     }
