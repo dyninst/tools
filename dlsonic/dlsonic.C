@@ -31,6 +31,7 @@ struct Stats
     int dlvsymWithStaticString = 0;
     int dlmopenWithStaticString = 0;
     int dlsymMapped = 0;
+    int dlsymWithConstHandle = 0;
 
     static Stats& Instance() {
         static Stats obj;
@@ -49,7 +50,8 @@ struct Stats
                   << STAT_FIX_STR(dlvsymWithStaticString) << "|"
                   << STAT_FIX_STR(dlmopenCount) << "|"
                   << STAT_FIX_STR(dlmopenWithStaticString) << "|"
-                  << STAT_FIX_STR(dlsymMapped)
+                  << STAT_FIX_STR(dlsymMapped) << "|"
+                  << STAT_FIX_STR(dlsymWithConstHandle)
                   << "]\n";
 #undef STAT_FIX_STR
     }
@@ -73,6 +75,7 @@ struct GlobalData
 
     // used to map dlsym calls to corresponding dlopen calls
     std::map<uint32_t, std::vector<Dyninst::Node::Ptr>> dlsymIndex2RDISlice;
+    std::map<uint32_t, bool> dlsymWithConstHandle;
     std::map<uint32_t, std::vector<std::pair<uint32_t, uint32_t>>> dlopenIndex2CallFTBlock;
 
     // used while traversing the block graph
@@ -363,6 +366,28 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 
     auto val = inst.value();
     auto allNodes = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi, false, false );
+    bool isConstHandle = false;
+
+    // now we look at constant assignment case
+    // instead of the handle for dlsym, RTLD_NEXT / RTLD_DEFAULT are often passed
+    // we need to keep track of these 
+    if ( allNodes.size() == 1 ) {
+        auto sliceNode = dynamic_cast<Dyninst::SliceNode*>( allNodes.back().get() );
+        auto tgt = sliceNode->assign()->insn();
+        if ( tgt.getOperation().getID() == e_mov ) {
+            auto result = tgt.getOperand(1).getValue()->eval();
+            if ( result.defined ) {
+                isConstHandle = true;
+            }
+        }
+    }
+
+    if ( isConstHandle ) {
+        Stats::Instance().dlsymWithConstHandle++;
+        GlobalData::Instance().dlsymWithConstHandle[GlobalData::Instance().index] = true;       
+    } else {
+        GlobalData::Instance().dlsymWithConstHandle[GlobalData::Instance().index] = false;
+    }
 
     GlobalData::Instance().dlsymIndex2RDISlice[GlobalData::Instance().index] = allNodes; 
 }
@@ -542,6 +567,10 @@ int main( int argc, char* argv[] )
 
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;
+        if ( GlobalData::Instance().dlsymWithConstHandle[index] ) {
+            mappingOut << index << "<CONST" << " ";
+            continue;
+        }
         auto& slice = index2slice.second;
         bool done = false;
         for ( auto& node : slice ) {            
