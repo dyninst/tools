@@ -126,7 +126,9 @@ std::vector<Dyninst::Node::Ptr> doSlice(
         bool found = false;
         if ( isInput ) {
             for ( auto curr: (*it)->inputs() ) {
-                if ( curr.absloc().type() == Dyninst::Absloc::Register && curr.absloc().reg() == machRegInt ) {
+                if ( curr.absloc().type() == Dyninst::Absloc::Register 
+                        && curr.absloc().reg() == machRegInt )
+                {
                     found = true;
                     regAssign = *it;
                     break;
@@ -134,7 +136,9 @@ std::vector<Dyninst::Node::Ptr> doSlice(
             }
         } else {
             auto curr = (*it)->out();
-            if ( curr.absloc().type() == Dyninst::Absloc::Register && curr.absloc().reg() == machRegInt ) {
+            if ( curr.absloc().type() == Dyninst::Absloc::Register
+                    && curr.absloc().reg() == machRegInt )
+            {
                 found = true;
                 regAssign = *it;
             }
@@ -151,7 +155,8 @@ std::vector<Dyninst::Node::Ptr> doSlice(
     Dyninst::Slicer handle( regAssign, blk, fnNoConst, true, true );
     Dyninst::Slicer::Predicates predicate;
 
-    auto slice = sliceForward ? handle.forwardSlice( predicate ) : handle.backwardSlice( predicate );
+    auto slice = sliceForward ? handle.forwardSlice( predicate )
+                              : handle.backwardSlice( predicate );
     
     // slice->printDOT( std::to_string( insAddr ) + "_" + regAssign->format() );
 
@@ -236,7 +241,8 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
     return targetInst;
 }
 
-std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
+std::vector<std::string> trackArgRegisterString(
+    int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
 {
     // Currently we only handle the case when we have a static string assigned
     // i.e. we have an instruction: lea REG [ADDR in RODATA]
