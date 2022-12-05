@@ -314,9 +314,9 @@ std::vector<std::string> trackArgRegisterString( int rgId, dp::Block* blk, ds::S
 bool containedInPLT( int64_t startAddr, int64_t endAddr )
 {
     auto& state = GlobalData::Instance();
-    return ( startAddr >= state.pltStartAddr && endAddr <= state.pltEndAddr ) ||
-           ( startAddr >= state.pltSecStartAddr && endAddr <= state.pltSecEndAddr ) ||
-           ( startAddr >= state.pltGotStartAddr && endAddr <= state.pltGotEndAddr );
+    return ( state.pltStartAddr     <= startAddr && endAddr <= state.pltEndAddr )    ||
+           ( state.pltSecStartAddr  <= startAddr && endAddr <= state.pltSecEndAddr ) ||
+           ( state.pltGotStartAddr  <= startAddr && endAddr <= state.pltGotEndAddr );
 }
 
 
