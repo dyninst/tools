@@ -1,6 +1,0 @@
-### BUILD INSTRUCTIONS 
-
-cmake . -DDyninst_DIR=/path/to/build/lib/cmake/Dyninst
-make
-
-./dlsonic testbins/trydl
