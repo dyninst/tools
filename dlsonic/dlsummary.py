@@ -10,10 +10,10 @@ def main():
     parser = ArgumentParser(
         prog='dlsonic test utility',
         description='run tests and generate reports', 
-        epilog='please read the code')
-    parser.add_argument('-c', '--csv-output')
-    parser.add_argument('-r', '--raw-output')
-    parser.add_argument('-i', '--input')
+        epilog='all options are compulsory!')
+    parser.add_argument('-c', '--csv-output', required=True)
+    parser.add_argument('-r', '--raw-output', required=True)
+    parser.add_argument('-i', '--input', required=True)
 
     args = parser.parse_args()
     if not os.path.exists(args.input):

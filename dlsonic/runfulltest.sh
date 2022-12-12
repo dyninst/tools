@@ -11,4 +11,4 @@ for d in /bin /sbin /lib* /usr; do
   fi
 done > elf.files
 
-python testutil.py --input elf.files --raw-output raw.txt --csv-output results.csv
+python dlsummary.py --input elf.files --raw-output raw.txt --csv-output results.csv

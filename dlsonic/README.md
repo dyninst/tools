@@ -6,14 +6,15 @@ Study of dlopen and dlsym calls is an essential step towards understanding linka
 
 ## Quick build and run flow
 
-```bash
-(base) ➜  dlsonic git:(dlproject) ✗ cd dlsonic
-(base) ➜  dlsonic git:(dlproject) ✗ cmake .  -DDyninst_DIR=/path/to/dyninst-build-dir
-(base) ➜  dlsonic git:(dlproject) ✗ make
+```console
+$ cd dlsonic
+$ cmake .  -DDyninst_DIR=/path/to/dyninst-build-dir
+$ make
+```
+The above builds the dlsonic executable along with `testbins/trydl` which can be used for doing a quick test.
 
-# the above builds the dlsonic executable along with testbins/trydl
-# testbins/trydl can be used for doing a quick test  
-(base) ➜  dlsonic git:(dlproject) ✗ ./dlsonic testbins/trydl                                               
+```console
+$ ./dlsonic testbins/trydl                                               
 Processing File: testbins/trydl
 CALLDETAIL:testbins/trydl=[Id=1|Addr=12d4|Type=dlopen|Param=[libhello.so]]
 CALLDETAIL:testbins/trydl=[Id=2|Addr=130f|Type=dlsym|Param=[_Z3fooPKc]]
@@ -53,12 +54,11 @@ This format aids post-processing scripts in drawing insights from the output and
 3. `DIGEST`: This entry is also logged once per processed file and provides an overall summary of the analysis for the given file. It contains a number of statistics that the tool tracks. See the example run for a list of fields we offer.
 
 
-## Running on a number of files
-A python utility `testutil.py` is provided to run the tool on a list of files and generate a CSV report.
+## Generating CSV summary of multiple files
+A python utility `dlsummary.py` is provided to run the tool on a list of files and generate a CSV report.
 
-First, we create a file list as follows:
-```shell
-(base) ➜  dlsonic git:(dlproject) ✗ cat input_files.txt 
+If we have a list of ELF files in `input_files.txt` as follows:
+```console
 /usr/sbin/genl
 /usr/share/teams/libvulkan.so
 /usr/share/code/libvulkan.so.1
@@ -69,16 +69,15 @@ First, we create a file list as follows:
 ```
 
 Now we pass this list to the python utility.
-```shell
-(base) ➜  dlsonic git:(dlproject) ✗ python testutil.py --input input_files.txt --raw-output raw.txt --csv-output results.txt 
+```console
+$ python dlsummary.py --input input_files.txt --raw-output raw.txt --csv-output results.txt 
 INFO:root:Processing input file list: input_files.txt
 INFO:root:# available digests: 7
 INFO:root:Completed Writing: results.txt
 ```
 
 The results are written to the `results.txt`. Note only the results with non-zero findings are reported.
-```shell
-(base) ➜  dlsonic git:(dlproject) ✗ cat csv.txt 
+```console
 File,dlopenCount,dlopenWithStaticString,dlsymCount,dlsymWithStaticString,dlvsymCount,dlvsymWithStaticString,dlmopenCount,dlmopenWithStaticString,dlsymMapped,dlsymWithConstHandle,dlvsymMapped,dlvsymWithConstHandle
 /usr/sbin/genl,2,0,1,0,0,0,0,0,1,0,0,0
 /usr/share/teams/libvulkan.so,6,0,16,9,0,0,0,0,15,0,0,0
@@ -95,10 +94,12 @@ For this use the `runfulltest.sh` script (simply execute it). It will scan for E
 ## Deep Dive
 
 ### 1. Identifying dlopen, dlsym, dlvsym, and dlmopen calls.
-The tool makes use of the dyninst call graph and finds determines calls to the abovementioned functions. This is done by looking at call edges going into the PLT and finding the associated function.
+The tool makes use of the dyninst call graph and finds determines calls to the abovementioned functions. This is done by finding all calls locations in the 
+code and then checking for the call edge to a function in the PLT with 
+the proper name.
 
 ### 2. Argument tracking for identified calls
-For each of the calls that we identify, we try to figure out some of the key arguments. More specifically, in case of `dlopen` and `dlmopen` the idea is to figure out the library path/name string. Similarly, for `dlsym` and `dlvsym`, the symbol string is of particular interest. This is also an area of major future work.
+For each of the calls that we identify, we try to figure out some of the key arguments. More specifically, in case of `dlopen` and `dlmopen` the idea is to figure out the library path/name string. Similarly, for `dlsym` and `dlvsym`, the symbol string is of particular interest. This is also an area of future work.
 
 Currently we are only able to figure out any static string literals (being read from `.rodata`) while forming the arguments. This is not necessarily same as saying "a static string was passed" and is actually a larger set containing static string args and more.
 
@@ -107,7 +108,7 @@ The approach goes as follows:
  - Going back from the `call` instruction, we locate the last assignment made to `reg` and run backward slicing (with stack analysis enabled) on it. 
  - The backward slicing returns a graph of assignments. We traverse this graph and find any string reads happening from the `.rodata` section.
 
-### 3. Mapping dlsym<dlopen calls
+### 3. Mapping dlsym handles to dlopen calls
 It is worth noting that currently we are only able to map calls that are intra-procedural i.e. dlopen and related dlsym calls happen from within the same function. This leaves a large number of wrapper based calling patterns unsupported.
 
 The mapping logic goes as follows:
@@ -121,6 +122,6 @@ Here again, the idea is similar to (2) and we backward slice from the argument r
 
 ## Future Work
  - The call identification code makes use of parseAPI instead of dyninstAPI. This limits our ability to handle stripped binaries. We need to migrate the tool to use dyninstAPI instead.
- - Many applications are found to be making use of wrappers for dlopen/dlsym calls. The current analysis methodology will yield an incorrect number of calls in such cases. For eg., if there is one wrapper that calls dlopen, the tool will report one call to dlopen while in reality the wrapper might be getting called a large number of times (each time resulting in a dlopen call).
+ - Many applications are found to be making use of wrappers for dlopen/dlsym calls. The current analysis methodology will resolve the libnames and symbols to function parameters and will not detect string literals which the parameters might have resolved to upon further backward slicing.
  - String based optimisations are quite common. The behaviour of strcpy, strcat, strcmp, etc. needs to be studied and common operations need to be supported to improve argument tracking.
 
