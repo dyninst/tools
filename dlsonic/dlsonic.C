@@ -19,6 +19,8 @@ namespace di = Dyninst::InstructionAPI;
 
 namespace {
 
+std::string UNKNOWN = "<unknown>";
+
 struct Stats
 {
     std::string filename;
@@ -84,12 +86,19 @@ struct GlobalData
         DLVSYM
     };
 
-    // map index to calltype
-    std::map<uint32_t, CallType> index2CallType;
+    struct CallDetail {
+        uint64_t id = 0;
+        CallType ctype;
+        bool hasConstHandle = false;
+        std::optional<uint32_t> mappedTo;
+        uint64_t addr = 0;
+        std::vector<std::string> paramStrs;
+    };
+
+    std::vector<CallDetail> calldetails;
 
     // used to map dlsym calls to corresponding dlopen calls
     std::map<uint32_t, std::vector<Dyninst::Node::Ptr>> dlsymIndex2RDISlice;
-    std::map<uint32_t, bool> hasConstHandle;
     std::map<uint32_t, std::vector<std::pair<uint32_t, uint32_t>>> dlopenIndex2CallFTBlock;
 
     // used while traversing the block graph
@@ -100,15 +109,16 @@ struct GlobalData
         return obj;
     }
 
-    void updateIndex( CallType ct ) {
-        index2CallType[index++] = ct;
+    static std::string getFuncName( CallType ct ) {
+        if ( ct == CallType::DLOPEN  ) return "dlopen";
+        if ( ct == CallType::DLMOPEN ) return "dlmopen";
+        if ( ct == CallType::DLSYM   ) return "dlsym";
+        if ( ct == CallType::DLVSYM  ) return "dlvsym";
+        return UNKNOWN;
     }
 private:
     GlobalData() {}
 };
-
-
-std::string UNKNOWN = "<unknown>";
 
 std::vector<Dyninst::Node::Ptr> doSlice(
     ds::Symtab* obj, di::Instruction insObj, int32_t insAddr,
@@ -367,7 +377,7 @@ void recordCallFTBlock(
     assert( callFTEdgeCount == 1 );
 
     // save the CALL_FT block's start and end addresses
-    auto index = GlobalData::Instance().index; 
+    auto index = GlobalData::Instance().calldetails.back().id; 
     GlobalData::Instance().dlopenIndex2CallFTBlock[index].push_back(
         std::make_pair( currFTBlk->start(), currFTBlk->end() ) );
     discover( currFTBlk, index );
@@ -402,14 +412,16 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
         }
     }
 
+    auto index = GlobalData::Instance().calldetails.back().id;
+
     if ( isConstHandle ) {
         Stats::Instance().dlsymWithConstHandle++;
-        GlobalData::Instance().hasConstHandle[GlobalData::Instance().index] = true;       
+        GlobalData::Instance().calldetails[index-1].hasConstHandle = true;
     } else {
-        GlobalData::Instance().hasConstHandle[GlobalData::Instance().index] = false;
+        GlobalData::Instance().calldetails[index-1].hasConstHandle = false;
     }
 
-    GlobalData::Instance().dlsymIndex2RDISlice[GlobalData::Instance().index] = allNodes; 
+    GlobalData::Instance().dlsymIndex2RDISlice[index] = allNodes; 
 }
 
 bool sliceNodeContainsRAXIn( Dyninst::Node::Ptr node )
@@ -510,36 +522,28 @@ int main( int argc, char* argv[] )
                         }
 
                         auto funcName = containingFuncs.back()->name();
-                        auto printAndRecordResults = [&]( auto&& callCntr, auto&& strCntr, auto&& reg ) {
+                        auto recordResults = [&]( auto&& callCntr, auto&& strCntr, auto&& reg, auto&& calltype ) {
                             callCntr++;
                             auto strVec = trackArgRegisterString( reg, b, obj, f );
-                            std::cout << "CALLDETAIL:" << execName << "=["
-                                      << "Id=" << std::dec << GlobalData::Instance().index << "|"
-                                      << "Addr=" << std::hex << b->last() << "|"
-                                      << "Type=" << funcName << "|"
-                                      << "Param="; 
                             if ( ! strVec.empty() ) {
                                 strCntr++;
-                                std::cout << "[";
-                                for ( size_t i = 0; i < strVec.size(); ++i ) {
-                                    if ( i != 0 ) {
-                                        std::cout << "|";
-                                    }
-                                    std::cout << strVec[i];
-                                }
-                                std::cout << "]";
-                            } else {
-                                std::cout << UNKNOWN;
                             }
-                            std::cout << "]\n";
+                            GlobalData::Instance().calldetails.push_back(GlobalData::CallDetail{
+                                .id = GlobalData::Instance().calldetails.size()+1, 
+                                .ctype = calltype,
+                                .hasConstHandle = false,
+                                .mappedTo = {},
+                                .addr = b->last(),
+                                .paramStrs = strVec
+                            });
                         };
                         
                         if ( funcName == "dlopen" ) {
-                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLOPEN );
-                            printAndRecordResults(
+                            recordResults(
                                 Stats::Instance().dlopenCount,
                                 Stats::Instance().dlopenWithStaticString,
-                                Dyninst::x86_64::irdi 
+                                Dyninst::x86_64::irdi,
+                                GlobalData::CallType::DLOPEN
                             );
                             // Take note of the call fallthrough block for this dlopen call
                             // the returned value i.e. the lib handle is likely to be handled here.
@@ -548,30 +552,30 @@ int main( int argc, char* argv[] )
                             // starting point.
                             recordCallFTBlock( b, obj, f );
                         } else if ( funcName == "dlsym" ) {
-                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLSYM );
-                            printAndRecordResults(
+                            recordResults(
                                 Stats::Instance().dlsymCount,
                                 Stats::Instance().dlsymWithStaticString,
-                                Dyninst::x86_64::irsi
+                                Dyninst::x86_64::irsi,
+                                GlobalData::CallType::DLSYM
                             );
                             // For each dlsym call, we look at the backward slice of RDI.
                             // This should help us find references to RAX that belong to the call FT
                             // block of corresponding dlopen.
                             recordRDISlice( b, obj, f );
                         } else if ( funcName == "dlmopen" ) {
-                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLMOPEN );
-                            printAndRecordResults(
+                            recordResults(
                                 Stats::Instance().dlmopenCount,
                                 Stats::Instance().dlmopenWithStaticString,
-                                Dyninst::x86_64::irsi
+                                Dyninst::x86_64::irsi,
+                                GlobalData::CallType::DLMOPEN
                             );
                             recordCallFTBlock( b, obj, f );
                         } else if ( funcName == "dlvsym" ) {
-                            GlobalData::Instance().updateIndex( GlobalData::CallType::DLVSYM );
-                            printAndRecordResults(
+                            recordResults(
                                 Stats::Instance().dlvsymCount,
                                 Stats::Instance().dlvsymWithStaticString,
-                                Dyninst::x86_64::irsi
+                                Dyninst::x86_64::irsi,
+                                GlobalData::CallType::DLVSYM
                             );
                             recordRDISlice( b, obj, f ); 
                         }
@@ -583,12 +587,9 @@ int main( int argc, char* argv[] )
 
     std::ostringstream mappingOut;
 
-    mappingOut << "MAPPINGS:" << execName << "=[ ";
-
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;
-        if ( GlobalData::Instance().hasConstHandle[index] ) {
-            mappingOut << index << "<CONST" << " ";
+        if ( GlobalData::Instance().calldetails[index-1].hasConstHandle ) {
             continue;
         }
         auto& slice = index2slice.second;
@@ -611,9 +612,12 @@ int main( int argc, char* argv[] )
                 for ( auto index2range : GlobalData::Instance().dlopenIndex2CallFTBlock ) {
                     for ( auto interval : index2range.second ) {
                         if ( addr >= interval.first && addr < interval.second ) {
-                            mappingOut << index << "<" << index2range.first << " ";
                             done = true;
-                            if ( GlobalData::Instance().index2CallType[index]
+                            if ( GlobalData::Instance().calldetails.size() >= index ) {
+                                GlobalData::Instance().calldetails[index-1].mappedTo = {index2range.first};
+                            }
+                            if ( GlobalData::Instance().calldetails.size() >= index &&
+                                 GlobalData::Instance().calldetails[index-1].ctype 
                                  == GlobalData::CallType::DLVSYM )
                             {
                                 Stats::Instance().dlvsymMapped++;    
@@ -631,10 +635,41 @@ int main( int argc, char* argv[] )
         }
     }
 
-    mappingOut << "]";
-
-    std::cout << mappingOut.str() << std::endl;
+    // Print all results
+    for ( auto& det : GlobalData::Instance().calldetails ) {
+        std::cout   << "CALLDETAIL:" << execName << "=["
+                    << "Id=" << std::dec << det.id << "|"
+                    << "Addr=" << std::hex << det.addr << "|"
+                    << "Type=" << GlobalData::getFuncName( det.ctype ) << "|"
+                    << "Param=";
+        if ( ! det.paramStrs.empty() ) {
+            std::cout << "[";
+            for ( size_t i = 0; i < det.paramStrs.size(); ++i ) {
+                if ( i != 0 ) {
+                    std::cout << "|";
+                }
+                std::cout << det.paramStrs[i];
+            }
+            std::cout << "]";
+        } else {
+            std::cout << UNKNOWN;
+        }
+        if ( det.ctype == GlobalData::CallType::DLSYM
+             || det.ctype == GlobalData::CallType::DLVSYM )
+        {
+            std::cout << "|Handle=";
+            if ( det.mappedTo.has_value() ) {
+                std::cout << std::dec << det.mappedTo.value();
+            } else if ( det.hasConstHandle ) {
+                std::cout << "CONST";
+            } else {
+                std::cout << UNKNOWN;
+            }
+        }
+        std::cout << "]\n";
+    }
 
     Stats::Instance().print();
+
 }
 
