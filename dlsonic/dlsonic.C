@@ -3,6 +3,7 @@
 #include <cstring>
 #include <vector>
 #include <queue>
+#include <dlfcn.h>
 #include "BPatch.h"
 #include "Graph.h"
 #include "slicing.h"
@@ -86,10 +87,17 @@ struct GlobalData
         DLVSYM
     };
 
+    enum class DlHandleType {
+        CONST_RTLDDEFAULT,
+        CONST_RTLDNEXT,
+        CONST_UNKNOWN,
+        CUSTOM
+    };
+
     struct CallDetail {
         uint64_t id = 0;
         CallType ctype;
-        bool hasConstHandle = false;
+        DlHandleType htype = DlHandleType::CUSTOM;
         std::optional<uint32_t> mappedTo;
         uint64_t addr = 0;
         std::vector<std::string> paramStrs;
@@ -386,8 +394,15 @@ void recordCallFTBlock(
 
 void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 {
-    auto inst =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn, false, false );
-    if ( ! inst.has_value() ) {
+    std::optional<std::pair<di::Instruction, uint32_t>> inst;
+    auto inst_rdi =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn, false, false );
+    auto inst_edi = locateAssignmentInstruction( Dyninst::x86_64::iedi, b, obj, fn, false, false );
+    
+    if ( inst_rdi.has_value() ) {
+        inst = inst_rdi;
+    } else if ( inst_edi.has_value() ) {
+        inst = inst_edi;
+    } else {
         // this means we couldn't find any assignment to RDI
         // typically this will imply that a dlsym with nullptr
         // often this appears as xor rdi rdi.
@@ -396,7 +411,8 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 
     auto val = inst.value();
     auto allNodes = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi, false, false );
-    bool isConstHandle = false;
+
+    auto index = GlobalData::Instance().calldetails.back().id;
 
     // now we look at constant assignment case
     // instead of the handle for dlsym, RTLD_NEXT / RTLD_DEFAULT are often passed
@@ -407,18 +423,19 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
         if ( tgt.getOperation().getID() == e_mov ) {
             auto result = tgt.getOperand(1).getValue()->eval();
             if ( result.defined ) {
-                isConstHandle = true;
+                // std::cout << result.convert<int64_t>() << std::endl;
+                auto val = result.convert<int64_t>();
+                if ( val == reinterpret_cast<int64_t>( RTLD_DEFAULT ) ) {
+                    GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDDEFAULT;
+                } else if (val == reinterpret_cast<int64_t>( RTLD_NEXT ) ) {
+                    GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDNEXT; 
+                } else {
+                    std::cerr << "An unknown const handle found for dlsym call" << std::endl;
+                    GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_UNKNOWN; 
+                }
+                Stats::Instance().dlsymWithConstHandle++;
             }
         }
-    }
-
-    auto index = GlobalData::Instance().calldetails.back().id;
-
-    if ( isConstHandle ) {
-        Stats::Instance().dlsymWithConstHandle++;
-        GlobalData::Instance().calldetails[index-1].hasConstHandle = true;
-    } else {
-        GlobalData::Instance().calldetails[index-1].hasConstHandle = false;
     }
 
     GlobalData::Instance().dlsymIndex2RDISlice[index] = allNodes; 
@@ -531,7 +548,7 @@ int main( int argc, char* argv[] )
                             GlobalData::Instance().calldetails.push_back(GlobalData::CallDetail{
                                 .id = GlobalData::Instance().calldetails.size()+1, 
                                 .ctype = calltype,
-                                .hasConstHandle = false,
+                                .htype = GlobalData::DlHandleType::CUSTOM,
                                 .mappedTo = {},
                                 .addr = b->last(),
                                 .paramStrs = strVec
@@ -589,7 +606,7 @@ int main( int argc, char* argv[] )
 
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;
-        if ( GlobalData::Instance().calldetails[index-1].hasConstHandle ) {
+        if ( GlobalData::Instance().calldetails[index-1].htype != GlobalData::DlHandleType::CUSTOM ) {
             continue;
         }
         auto& slice = index2slice.second;
@@ -660,8 +677,10 @@ int main( int argc, char* argv[] )
             std::cout << "|Handle=";
             if ( det.mappedTo.has_value() ) {
                 std::cout << std::dec << det.mappedTo.value();
-            } else if ( det.hasConstHandle ) {
-                std::cout << "CONST";
+            } else if ( det.htype == GlobalData::DlHandleType::CONST_RTLDDEFAULT ) {
+                std::cout << "RTLD_DEFAULT";
+            } else if ( det.htype == GlobalData::DlHandleType::CONST_RTLDNEXT ) {
+                std::cout << "RTLD_NEXT";
             } else {
                 std::cout << UNKNOWN;
             }
