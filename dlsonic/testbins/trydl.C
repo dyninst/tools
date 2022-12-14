@@ -176,6 +176,19 @@ void type8()
     dlclose( hdl );
 }
 
+void type9()
+{
+    void (*fptr)( const char* );
+    *(void**)(&fptr)  = dlsym( RTLD_DEFAULT, "_Z3fooPKc" );
+
+    char* error = dlerror();
+    if ( error ) {
+        printf( "ERROR: %s", error ); 
+        return;
+    }
+    (*fptr)( "type8" );
+}
+
 int main()
 {
     type1();
@@ -186,5 +199,6 @@ int main()
     type6();
     type7();
     type8();
+    type9();
     return 0;
 }

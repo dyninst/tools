@@ -426,7 +426,7 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
             auto result = tgt.getOperand(1).getValue()->eval();
             if ( result.defined ) {
                 // std::cout << result.convert<int64_t>() << std::endl;
-                auto val = result.convert<int64_t>();
+                auto val = result.convert<int32_t>();
                 if ( val == reinterpret_cast<int64_t>( RTLD_DEFAULT ) ) {
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDDEFAULT;
                     Stats::Instance().dlsymWithRTLD_DEFAULT++;
@@ -434,6 +434,7 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDNEXT; 
                     Stats::Instance().dlsymWithRTLD_NEXT++;
                 } else {
+                    std::cout << val << std::endl;
                     std::cerr << "An unknown const handle found for dlsym call" << std::endl;
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_UNKNOWN; 
                 }

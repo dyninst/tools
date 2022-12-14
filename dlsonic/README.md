@@ -17,28 +17,27 @@ The above builds the dlsonic executable along with `testbins/trydl` which can be
 $ ./dlsonic testbins/trydl                                               
 Processing File: testbins/trydl
 CALLDETAIL:testbins/trydl=[Id=1|Addr=12d4|Type=dlopen|Param=[libhello.so]]
-CALLDETAIL:testbins/trydl=[Id=2|Addr=130f|Type=dlsym|Param=[_Z3fooPKc]]
+CALLDETAIL:testbins/trydl=[Id=2|Addr=130f|Type=dlsym|Param=[_Z3fooPKc]|Handle=1]
 CALLDETAIL:testbins/trydl=[Id=3|Addr=13ad|Type=dlopen|Param=[libhello.so]]
-CALLDETAIL:testbins/trydl=[Id=4|Addr=13e3|Type=dlsym|Param=[_Z3fooPKc]]
+CALLDETAIL:testbins/trydl=[Id=4|Addr=13e3|Type=dlsym|Param=[_Z3fooPKc]|Handle=3]
 CALLDETAIL:testbins/trydl=[Id=5|Addr=147a|Type=dlopen|Param=<unknown>]
-CALLDETAIL:testbins/trydl=[Id=6|Addr=14bc|Type=dlsym|Param=[_Z3fooPKc]]
+CALLDETAIL:testbins/trydl=[Id=6|Addr=14bc|Type=dlsym|Param=[_Z3fooPKc]|Handle=5]
 CALLDETAIL:testbins/trydl=[Id=7|Addr=156d|Type=dlopen|Param=<unknown>]
-CALLDETAIL:testbins/trydl=[Id=8|Addr=15a3|Type=dlsym|Param=[_Z3fooPKc]]
+CALLDETAIL:testbins/trydl=[Id=8|Addr=15a3|Type=dlsym|Param=[_Z3fooPKc]|Handle=7]
 CALLDETAIL:testbins/trydl=[Id=9|Addr=163c|Type=dlopen|Param=<unknown>]
-CALLDETAIL:testbins/trydl=[Id=10|Addr=1684|Type=dlsym|Param=[_Z3fooPKc]]
+CALLDETAIL:testbins/trydl=[Id=10|Addr=1684|Type=dlsym|Param=[_Z3fooPKc]|Handle=9]
 CALLDETAIL:testbins/trydl=[Id=11|Addr=1754|Type=dlopen|Param=<unknown>]
-CALLDETAIL:testbins/trydl=[Id=12|Addr=179c|Type=dlsym|Param=[_Z3fooPKc]]
+CALLDETAIL:testbins/trydl=[Id=12|Addr=179c|Type=dlsym|Param=[_Z3fooPKc]|Handle=11]
 CALLDETAIL:testbins/trydl=[Id=13|Addr=1837|Type=dlmopen|Param=[libhello.so]]
-CALLDETAIL:testbins/trydl=[Id=14|Addr=1872|Type=dlsym|Param=[_Z3fooPKc]]
+CALLDETAIL:testbins/trydl=[Id=14|Addr=1872|Type=dlsym|Param=[_Z3fooPKc]|Handle=13]
 CALLDETAIL:testbins/trydl=[Id=15|Addr=1908|Type=dlopen|Param=[libhello.so]]
-CALLDETAIL:testbins/trydl=[Id=16|Addr=194a|Type=dlvsym|Param=[_Z3fooPKc]]
-MAPPINGS:testbins/trydl=[ 2<1 4<3 6<5 8<7 10<9 12<11 14<13 16<15 ]
-DIGEST:testbins/trydl=[dlopenCount=7|dlopenWithStaticString=3|dlsymCount=7|dlsymWithStaticString=7|dlvsymCount=1|dlvsymWithStaticString=1|dlmopenCount=1|dlmopenWithStaticString=1|dlsymMapped=8|dlsymWithConstHandle=0|dlvsymMapped=0|dlvsymWithConstHandle=0]
-
+CALLDETAIL:testbins/trydl=[Id=16|Addr=194a|Type=dlvsym|Param=[_Z3fooPKc]|Handle=15]
+CALLDETAIL:testbins/trydl=[Id=17|Addr=19e4|Type=dlsym|Param=[_Z3fooPKc]|Handle=RTLD_DEFAULT]
+DIGEST:testbins/trydl=[dlopenCount=7|dlopenWithStaticString=3|dlsymCount=8|dlsymWithStaticString=8|dlvsymCount=1|dlvsymWithStaticString=1|dlmopenCount=1|dlmopenWithStaticString=1|dlsymMapped=7|dlsymWithConstHandle=1|dlsymWithRTLD_NEXT=0|dlsymWithRTLD_DEFAULT=1|dlvsymMapped=1]
 ```
 
 ## Understanding output format
-The lines in output are tagged as one of: `CALLDETAIL`, `MAPPINGS`, and `DIGEST`.
+The lines in output are tagged as one of: `CALLDETAIL` and `DIGEST`.
 Each line is expresed as:
 ```
 <TAG>:<FILENAME>=<CONTENT>
@@ -50,8 +49,8 @@ This format aids post-processing scripts in drawing insights from the output and
    - `Addr`: The address of the `call` instruction for the given call.
    - `Type`: can be either `dlopen`, `dlmopen`, `dlsym`, or `dlvsym`.
    - `Param`: A list of strings that we are able to identify as forming the library name/path in case of dlopen and symbol in case of dlsym. The value is equal to `<unknown>` if the tool is not able to identify any.
-2. `MAPPINGS`: This entry is logged once per processed file. The tool tries to connect dlsym calls to corresponding dlopen calls. The content is a space separated list: `[ dlsymId1<dlopenId1 dlsymId2<dlopenId2 ... ]`.
-3. `DIGEST`: This entry is also logged once per processed file and provides an overall summary of the analysis for the given file. It contains a number of statistics that the tool tracks. See the example run for a list of fields we offer.
+   - (only available for `dlsym`) `Handle`: Set to one of (i) `Id` of `dlopen` which supplies the handle if we are able to map, (ii) `RTLD_DEFAULT`, (iii) `RTLD_NEXT`, (iv) `<unknown>` if all previous options fail.
+2. `DIGEST`: This entry is also logged once per processed file and provides an overall summary of the analysis for the given file. It contains a number of statistics that the tool tracks. See the example run for a list of fields we offer.
 
 
 ## Generating CSV summary of multiple files
