@@ -106,5 +106,14 @@ It is easy to guess that this pattern may be combined with one of the wrapper pa
 | 4 | dmeventd.c | Wrapper B* | [Source](https://android.googlesource.com/platform/external/lvm2/+/d44af0be2c6f4652eafd90a70e7ba5f24c0f6d5a/daemons/dmeventd/dmeventd.c), * it is hard to figure out the input here since the input arg is a struct and libname string is read from this struct. |
 | 5 | rsyslogd | Wrapper B | [Source](https://github.com/rsyslog/rsyslog/blob/master/runtime/modules.c#L1088) |
 | 6 | libvulkan | Class Member Handle | [Source](https://android.googlesource.com/platform/frameworks/native/+/master/vulkan/libvulkan/layers_extensions.cpp) |
-| x | tmp | tmp | tmp | 
-| x | tmp | tmp | tmp |  
+| 7 | libEGL | Wrapper A | dlopen is wrapped, dlsyms are called with symbol name passed as arguments to containing function (so also a wrapper) | 
+| 8 | /usr/bin/DistanceEst | - | dlsym with RTLD_NEXT and static str symbol |
+| 9 | /usr/bin/xbrlapi | Wrapper A | Wrapper for both dlopen and dlsym |
+| 10 | /usr/bin/brltty-ttb | Wrapper A | Wrapper for both dlopen and dlsym |
+| 11 | /usr/bin/abyss-fixmate | - | dlsym with RTLD_NEXT and static str symbol |
+| 12 | /usr/bin/luatex | Wrapper B | - |
+| 13 | libuno_sal.so | Wrapper B | - |
+| x | tmp | tmp | tmp |
+| x | tmp | tmp | tmp |
+| x | tmp | tmp | tmp |
+| x | tmp | tmp | tmp |
