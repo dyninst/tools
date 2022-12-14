@@ -35,8 +35,9 @@ struct Stats
     int dlmopenWithStaticString = 0;
     int dlsymMapped = 0;
     int dlsymWithConstHandle = 0;
+    int dlsymWithRTLD_NEXT = 0;
+    int dlsymWithRTLD_DEFAULT = 0;
     int dlvsymMapped = 0;
-    int dlvsymWithConstHandle = 0;
     
     static Stats& Instance() {
         static Stats obj;
@@ -57,8 +58,9 @@ struct Stats
                   << STAT_FIX_STR(dlmopenWithStaticString) << "|"
                   << STAT_FIX_STR(dlsymMapped) << "|"
                   << STAT_FIX_STR(dlsymWithConstHandle) << "|"
-                  << STAT_FIX_STR(dlvsymMapped) << "|"
-                  << STAT_FIX_STR(dlvsymWithConstHandle)
+                  << STAT_FIX_STR(dlsymWithRTLD_NEXT) << "|"
+                  << STAT_FIX_STR(dlsymWithRTLD_DEFAULT) << "|"
+                  << STAT_FIX_STR(dlvsymMapped)
                   << "]\n";
 #undef STAT_FIX_STR
     }
@@ -427,8 +429,10 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
                 auto val = result.convert<int64_t>();
                 if ( val == reinterpret_cast<int64_t>( RTLD_DEFAULT ) ) {
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDDEFAULT;
+                    Stats::Instance().dlsymWithRTLD_DEFAULT++;
                 } else if (val == reinterpret_cast<int64_t>( RTLD_NEXT ) ) {
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDNEXT; 
+                    Stats::Instance().dlsymWithRTLD_NEXT++;
                 } else {
                     std::cerr << "An unknown const handle found for dlsym call" << std::endl;
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_UNKNOWN; 
