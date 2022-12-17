@@ -22,22 +22,32 @@ namespace {
 
 std::string UNKNOWN = "<unknown>";
 
+// Statistics to capture binary analysis summary for a given binary.
 struct Stats
 {
     std::string filename;
+    // counters for the 4 functions we are tracking
     int dlopenCount = 0;
     int dlsymCount = 0;
     int dlvsymCount = 0;
     int dlmopenCount = 0;
+
+    // counters for calls for which we are able to backtrack
+    // arguments (or parts of them) to .rodata
     int dlopenWithStaticString = 0;
     int dlsymWithStaticString = 0;
     int dlvsymWithStaticString = 0;
     int dlmopenWithStaticString = 0;
+
+    // these are to count the # dlsym/dlvsym calls that can be matched
+    // with a corresponding dlopen call.
     int dlsymMapped = 0;
+    int dlvsymMapped = 0;
+
+    // ideally dlsymWithConstHandl == dlsymWithRTLD_NEXT + dlsymWithRTLD_DEFAULT
     int dlsymWithConstHandle = 0;
     int dlsymWithRTLD_NEXT = 0;
     int dlsymWithRTLD_DEFAULT = 0;
-    int dlvsymMapped = 0;
     
     static Stats& Instance() {
         static Stats obj;
@@ -69,8 +79,10 @@ private:
     Stats() {}
 };
 
+// Store global state helpful in processing
 struct GlobalData
 {
+    // .plt and .plt.sec section limits
     int64_t pltStartAddr = 0;
     int64_t pltEndAddr = 0;
     int64_t pltSecStartAddr = 0;
@@ -93,9 +105,11 @@ struct GlobalData
         CONST_RTLDDEFAULT,
         CONST_RTLDNEXT,
         CONST_UNKNOWN,
-        CUSTOM
+        CUSTOM // this means handle comes from dlopen
     };
 
+    // We capture this information each time we find a call to one of the functions
+    // we are tracking.
     struct CallDetail {
         uint64_t id = 0;
         CallType ctype;
@@ -130,10 +144,10 @@ private:
     GlobalData() {}
 };
 
+// Extract needed assignment from an assignment and slice forward/backward
 std::vector<Dyninst::Node::Ptr> doSlice(
     ds::Symtab* obj, di::Instruction insObj, int32_t insAddr,
-    const dp::Function* fn, dp::Block* blk, int machRegInt,
-    bool sliceForward, bool isInput )
+    const dp::Function* fn, dp::Block* blk, int machRegInt )
 {
     auto fnNoConst = const_cast<dp::Function*>( fn );
     
@@ -143,27 +157,11 @@ std::vector<Dyninst::Node::Ptr> doSlice(
 
     Dyninst::Assignment::Ptr regAssign;
     for ( auto it = assignments.begin(); it != assignments.end(); ++it ) {
-        bool found = false;
-        if ( isInput ) {
-            for ( auto curr: (*it)->inputs() ) {
-                if ( curr.absloc().type() == Dyninst::Absloc::Register 
-                        && curr.absloc().reg() == machRegInt )
-                {
-                    found = true;
-                    regAssign = *it;
-                    break;
-                }
-            }
-        } else {
-            auto curr = (*it)->out();
-            if ( curr.absloc().type() == Dyninst::Absloc::Register
-                    && curr.absloc().reg() == machRegInt )
-            {
-                found = true;
-                regAssign = *it;
-            }
-        }
-        if ( found ) {
+        auto curr = (*it)->out();
+        if ( curr.absloc().type() == Dyninst::Absloc::Register
+                && curr.absloc().reg() == machRegInt )
+        {
+            regAssign = *it;
             break;
         }
     }
@@ -175,8 +173,7 @@ std::vector<Dyninst::Node::Ptr> doSlice(
     Dyninst::Slicer handle( regAssign, blk, fnNoConst, true, true );
     Dyninst::Slicer::Predicates predicate;
 
-    auto slice = sliceForward ? handle.forwardSlice( predicate )
-                              : handle.backwardSlice( predicate );
+    auto slice = handle.backwardSlice( predicate );
     
     // slice->printDOT( std::to_string( insAddr ) + "_" + regAssign->format() );
 
@@ -191,8 +188,9 @@ std::vector<Dyninst::Node::Ptr> doSlice(
     return ret;
 }
 
+// locate the last assignment to a register in a given basic block
 std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
-    int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn, bool isInput, bool isFirst )
+    int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
 {
     ds::Region* reg = obj->findEnclosingRegion( blk->start() );
     if ( ! reg ) {
@@ -221,9 +219,7 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
         offset += currInst.size();
     }
 
-    if ( ! isFirst ) {
-        std::reverse( instrVec.begin(), instrVec.end() );
-    }
+    std::reverse( instrVec.begin(), instrVec.end() );
 
     std::pair<di::Instruction, uint32_t> targetInst;
     bool found = false;
@@ -233,11 +229,7 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
         inst.first.getOperands( instOpr );
         for ( auto op: instOpr ) {
             std::set<di::RegisterAST::Ptr> regSet;
-            if ( isInput ) {
-                op.getReadSet( regSet );
-            } else {
-                op.getWriteSet( regSet );
-            }
+            op.getWriteSet( regSet );
             
             for ( auto w: regSet ) {
                if ( w->getID() == rgId ) {
@@ -261,15 +253,14 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
     return targetInst;
 }
 
+// Main entry point for tracking arguments for a call. The block passed here is assumed
+// to end in a call instruction and rgId denotes the register that is supposed to
+// contain the passed argument to the call. Currently, we use backward slice and fetch
+// all instances where we end in .rodata.
 std::vector<std::string> trackArgRegisterString(
     int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
 {
-    // Currently we only handle the case when we have a static string assigned
-    // i.e. we have an instruction: lea REG [ADDR in RODATA]
-    // Note that the address here may depend on RIP, so we manually calculate
-    // RIP and plug it into the AST to evaluate.
-
-    auto firstInstObj = locateAssignmentInstruction ( rgId, blk, obj, fn, false, false ); 
+    auto firstInstObj = locateAssignmentInstruction ( rgId, blk, obj, fn ); 
 
     if ( ! firstInstObj.has_value() ) {
         return {};
@@ -278,7 +269,7 @@ std::vector<std::string> trackArgRegisterString(
     auto firstInst = firstInstObj.value();
 
     auto allNodes = doSlice(
-        obj, firstInst.first, firstInst.second, fn, blk, rgId, false, false );
+        obj, firstInst.first, firstInst.second, fn, blk, rgId );
 
     std::vector<std::pair<di::Instruction, uint32_t>> allTargets;
 
@@ -346,6 +337,7 @@ bool containedInPLT( int64_t startAddr, int64_t endAddr )
 }
 
 
+// Discover more blocks starting from block b, without follwing CALL or RET branches.
 void discover( dp::Block* b, uint32_t index )
 {
     GlobalData::Instance().seen[b->start()] = true;
@@ -371,6 +363,8 @@ void discover( dp::Block* b, uint32_t index )
     }
 }
 
+// Upon seeing a dlopen/dlmopen call, we record all the potential basic blocks
+// where the return value register might be valid.
 void recordCallFTBlock(
     dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 {
@@ -390,15 +384,19 @@ void recordCallFTBlock(
     auto index = GlobalData::Instance().calldetails.back().id; 
     GlobalData::Instance().dlopenIndex2CallFTBlock[index].push_back(
         std::make_pair( currFTBlk->start(), currFTBlk->end() ) );
+    
+    // similar mark all blocks which are reachable from CALL_FT block without
+    // returning from current function, 
     discover( currFTBlk, index );
-
 }
 
+// Upon seeing a dlsym/dlvsym call, we backward slice for the argument register containing
+// the handle. While doing so we also check if the handle is one RTLD_DEFAULT or RTLD_NEXT.
 void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 {
     std::optional<std::pair<di::Instruction, uint32_t>> inst;
-    auto inst_rdi =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn, false, false );
-    auto inst_edi = locateAssignmentInstruction( Dyninst::x86_64::iedi, b, obj, fn, false, false );
+    auto inst_rdi =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn );
+    auto inst_edi = locateAssignmentInstruction( Dyninst::x86_64::iedi, b, obj, fn );
     
     if ( inst_rdi.has_value() ) {
         inst = inst_rdi;
@@ -412,7 +410,7 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
     }
 
     auto val = inst.value();
-    auto allNodes = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi, false, false );
+    auto allNodes = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi );
 
     auto index = GlobalData::Instance().calldetails.back().id;
 
@@ -425,7 +423,7 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
         if ( tgt.getOperation().getID() == e_mov ) {
             auto result = tgt.getOperand(1).getValue()->eval();
             if ( result.defined ) {
-                // std::cout << result.convert<int64_t>() << std::endl;
+                // Internally dyninst is storing void* values as unsigned 4 byte values
                 auto val = result.convert<int32_t>();
                 if ( val == reinterpret_cast<int64_t>( RTLD_DEFAULT ) ) {
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDDEFAULT;
@@ -434,8 +432,7 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_RTLDNEXT; 
                     Stats::Instance().dlsymWithRTLD_NEXT++;
                 } else {
-                    std::cout << val << std::endl;
-                    std::cerr << "An unknown const handle found for dlsym call" << std::endl;
+                    std::cerr << "Found an unknown const handle found for dlsym call: " << val << std::endl;
                     GlobalData::Instance().calldetails[index-1].htype = GlobalData::DlHandleType::CONST_UNKNOWN; 
                 }
                 Stats::Instance().dlsymWithConstHandle++;
