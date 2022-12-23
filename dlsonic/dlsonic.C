@@ -105,8 +105,8 @@ struct GlobalData
     enum class DlHandleType {
         CONST_RTLDDEFAULT,
         CONST_RTLDNEXT,
-        CONST_UNKNOWN,
-        CUSTOM // this means handle comes from dlopen
+        CONST_UNKNOWN,  // a const handle which we don't know about
+        UNRESOLVED      // this means handle comes from dlopen
     };
 
     // We capture this information each time we find a call to one of the functions
@@ -114,7 +114,7 @@ struct GlobalData
     struct CallDetail {
         uint64_t id = 0;
         CallType ctype;
-        DlHandleType htype = DlHandleType::CUSTOM;
+        DlHandleType htype = DlHandleType::UNRESOLVED;
         std::optional<uint32_t> mappedTo;
         Dyninst::Address addr = 0;
         std::vector<std::string> paramStrs;
@@ -553,7 +553,7 @@ int main( int argc, char* argv[] )
                             GlobalData::Instance().calldetails.push_back(GlobalData::CallDetail{
                                 .id = GlobalData::Instance().calldetails.size()+1, 
                                 .ctype = calltype,
-                                .htype = GlobalData::DlHandleType::CUSTOM,
+                                .htype = GlobalData::DlHandleType::UNRESOLVED,
                                 .mappedTo = {},
                                 .addr = b->last(),
                                 .paramStrs = strVec
@@ -609,7 +609,7 @@ int main( int argc, char* argv[] )
 
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;
-        if ( GlobalData::Instance().calldetails[index-1].htype != GlobalData::DlHandleType::CUSTOM ) {
+        if ( GlobalData::Instance().calldetails[index-1].htype != GlobalData::DlHandleType::UNRESOLVED ) {
             continue;
         }
         auto& slice = index2slice.second;
