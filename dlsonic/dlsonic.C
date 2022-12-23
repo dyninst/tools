@@ -12,6 +12,7 @@
 #include "CodeObject.h"
 #include "InstructionDecoder.h"
 #include "entryIDs.h"
+#include "dyntypes.h"
 #include <elf.h>
 
 namespace dp = Dyninst::ParseAPI; 
@@ -83,13 +84,13 @@ private:
 struct GlobalData
 {
     // .plt and .plt.sec section limits
-    int64_t pltStartAddr = 0;
-    int64_t pltEndAddr = 0;
-    int64_t pltSecStartAddr = 0;
-    int64_t pltSecEndAddr = 0;
+    Dyninst::Address pltStartAddr = 0;
+    Dyninst::Address pltEndAddr = 0;
+    Dyninst::Address pltSecStartAddr = 0;
+    Dyninst::Address pltSecEndAddr = 0;
     // haven't seen a pltGot example but anyway:
-    int64_t pltGotStartAddr = 0;
-    int64_t pltGotEndAddr = 0;
+    Dyninst::Address pltGotStartAddr = 0;
+    Dyninst::Address pltGotEndAddr = 0;
 
     // index to identify particular calls to dlopen and dlsym
     uint32_t index = 0;
@@ -115,7 +116,7 @@ struct GlobalData
         CallType ctype;
         DlHandleType htype = DlHandleType::CUSTOM;
         std::optional<uint32_t> mappedTo;
-        uint64_t addr = 0;
+        Dyninst::Address addr = 0;
         std::vector<std::string> paramStrs;
     };
 
@@ -126,7 +127,7 @@ struct GlobalData
     std::map<uint32_t, std::vector<std::pair<uint32_t, uint32_t>>> dlopenIndex2CallFTBlock;
 
     // used while traversing the block graph
-    std::map<uint32_t, bool> seen;
+    std::map<Dyninst::Address, bool> seen;
     
     static GlobalData& Instance() {
         static GlobalData obj;
@@ -146,7 +147,7 @@ private:
 
 // Extract needed assignment from an assignment and slice forward/backward
 std::vector<Dyninst::Node::Ptr> doSlice(
-    di::Instruction insObj, int32_t insAddr,
+    di::Instruction insObj, Dyninst::Address insAddr,
     const dp::Function* fn, dp::Block* blk, int machRegInt )
 {
     auto fnNoConst = const_cast<dp::Function*>( fn );
@@ -189,7 +190,7 @@ std::vector<Dyninst::Node::Ptr> doSlice(
 }
 
 // locate the last assignment to a register in a given basic block
-std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
+std::optional<std::pair<di::Instruction, Dyninst::Address>> locateAssignmentInstruction(
     int rgId, dp::Block* blk, ds::Symtab* obj )
 {
     ds::Region* reg = obj->findEnclosingRegion( blk->start() );
@@ -202,13 +203,13 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
 
     auto decoder = di::InstructionDecoder( bufStart, bufSize, Dyninst::Arch_x86_64 );
     
-    std::vector<std::pair<di::Instruction, uint32_t>> instrVec;
+    std::vector<std::pair<di::Instruction, Dyninst::Address>> instrVec;
 
     // We are know that our code block will end with a call to dlopen, we are
     // interested in instructions immediately before it to figure out how the
     // arguments are setup.
 
-    int offset = blk->start();
+    Dyninst::Address offset = blk->start();
 
     while ( true ) {
         auto currInst = decoder.decode();
@@ -221,7 +222,7 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
 
     std::reverse( instrVec.begin(), instrVec.end() );
 
-    std::pair<di::Instruction, uint32_t> targetInst;
+    std::pair<di::Instruction, Dyninst::Address> targetInst;
     bool found = false;
     for ( auto inst: instrVec ) {
         // find first instruction whose operands involve RDI/EDI in the write set
@@ -271,7 +272,7 @@ std::vector<std::string> trackArgRegisterString(
     auto allNodes = doSlice(
         firstInst.first, firstInst.second, fn, blk, rgId );
 
-    std::vector<std::pair<di::Instruction, uint32_t>> allTargets;
+    std::vector<std::pair<di::Instruction, Dyninst::Address>> allTargets;
 
     for ( auto it = allNodes.begin(); it != allNodes.end(); ++it ) {
         auto sliceNode = dynamic_cast<Dyninst::SliceNode*>( (*it).get() );
@@ -328,7 +329,7 @@ std::vector<std::string> trackArgRegisterString(
     return results;
 }
 
-bool containedInPLT( int64_t startAddr, int64_t endAddr )
+bool containedInPLT( Dyninst::Address startAddr, Dyninst::Address endAddr )
 {
     auto& state = GlobalData::Instance();
     return ( state.pltStartAddr     <= startAddr && endAddr <= state.pltEndAddr )    ||
@@ -393,7 +394,7 @@ void recordCallFTBlock( dp::Block* b )
 // the handle. While doing so we also check if the handle is one RTLD_DEFAULT or RTLD_NEXT.
 void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 {
-    std::optional<std::pair<di::Instruction, uint32_t>> inst;
+    std::optional<std::pair<di::Instruction, Dyninst::Address>> inst;
     auto inst_rdi =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj );
     auto inst_edi = locateAssignmentInstruction( Dyninst::x86_64::iedi, b, obj );
     
@@ -485,7 +486,7 @@ int main( int argc, char* argv[] )
     bool success = ds::Symtab::openFile( obj, execName ); 
     
     if ( ! success ) {
-        std::cerr << "Could not open file: " << execName << std::endl;
+        std::cerr << "Could not open file, are you sure it is an ELF file? " << execName << std::endl;
         return 1;
     }
 
