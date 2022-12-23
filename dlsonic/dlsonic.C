@@ -468,6 +468,11 @@ bool sliceNodeContainsRAXIn( Dyninst::Node::Ptr node )
 
 int main( int argc, char* argv[] )
 {
+    if ( argc != 2 ) {
+        std::cerr << "Expected number of arguments is 1" << std::endl;
+        return 1;
+    }
+
     std::string execName = argv[1];
     
     if ( execName.empty() ) {
@@ -603,8 +608,6 @@ int main( int argc, char* argv[] )
             }
         }
     }
-
-    std::ostringstream mappingOut;
 
     for ( auto& index2slice : GlobalData::Instance().dlsymIndex2RDISlice ) {
         auto index = index2slice.first;

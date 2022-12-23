@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import subprocess as sp
 import sys
 import os
@@ -14,11 +16,19 @@ def main():
     parser.add_argument('-c', '--csv-output', required=True)
     parser.add_argument('-r', '--raw-output', required=True)
     parser.add_argument('-i', '--input', required=True)
+    parser.add_argument('-d', '--dlsonic')
 
     args = parser.parse_args()
     if not os.path.exists(args.input):
         logging.error('input file does not exist')
         return
+
+    # by default we assume the binary is in current working directory    
+    binary = 'dlsonic'
+
+    # user can provide an alternate binary this way
+    if args.dlsonic:
+        binary = args.dlsonic.strip()
 
     raw_output = args.raw_output.strip()
     
@@ -30,7 +40,7 @@ def main():
             filename = line.strip()
             if not os.path.exists(filename):
                 logging.warning('file ({}) does not exist'.format(filename))
-            sp.call('./dlsonic {} >> {} 2>&1'.format(filename, raw_output), shell=True)
+            sp.call('./{} {} >> {} 2>&1'.format(binary, filename, raw_output), shell=True)
     
     digests = []
     with open(raw_output, 'rb') as raw_out:

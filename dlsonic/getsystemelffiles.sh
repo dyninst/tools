@@ -10,5 +10,3 @@ for d in /bin /sbin /lib* /usr; do
     done
   fi
 done > elf.files
-
-python dlsummary.py --input elf.files --raw-output raw.txt --csv-output results.csv

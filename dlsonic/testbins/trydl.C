@@ -7,7 +7,7 @@ void type1()
 {
     auto hdl = dlopen( "libhello.so", RTLD_LAZY );
     if ( ! hdl ) {
-        printf( "failed to open libhello.so" );
+        printf( "failed to open libhello.so\n" );
         return;
     }
     void (*fptr)( const char* );
@@ -16,7 +16,7 @@ void type1()
 
     char* error = dlerror();
     if ( error ) {
-        printf( "ERROR: %s", error ); 
+        printf( "ERROR: %s\n", error ); 
         return;
     }
     (*fptr)( "type1" );
@@ -140,7 +140,7 @@ void type7()
 {
     auto hdl = dlmopen( LM_ID_BASE, "libhello.so", RTLD_LAZY );
     if ( ! hdl ) {
-        printf("failed to open libhello.so");
+        printf("failed to open libhello.so\n");
         return;
     }
     void (*fptr)( const char * );
@@ -160,7 +160,7 @@ void type8()
 {
     auto hdl = dlopen( "libhello.so", RTLD_LAZY );
     if ( ! hdl ) {
-        printf( "failed to open libhello.so" );
+        printf( "failed to open libhello.so\n" );
         return;
     }
     void (*fptr)( const char* );
@@ -169,13 +169,35 @@ void type8()
 
     char* error = dlerror();
     if ( error ) {
-        printf( "ERROR: %s", error ); 
+        printf( "ERROR: %s\n", error ); 
         return;
     }
     (*fptr)( "type8" );
     dlclose( hdl );
 }
 
+// Most basic case when the string is read from .rodata
+void type8B()
+{
+    auto hdl = dlopen( "libhello.so", RTLD_LAZY );
+    if ( ! hdl ) {
+        printf( "failed to open libhello.so\n" );
+        return;
+    }
+    void (*fptr)( const char* );
+
+    *(void**)(&fptr)  = dlvsym( hdl, "_Z4foo2PKc", "LIB_V2" );
+
+    char* error = dlerror();
+    if ( error ) {
+        printf( "ERROR: %s\n", error ); 
+        return;
+    }
+    (*fptr)( "type8B" );
+    dlclose( hdl );
+}
+
+// this one is expected to error out when we run
 void type9()
 {
     void (*fptr)( const char* );
@@ -183,7 +205,7 @@ void type9()
 
     char* error = dlerror();
     if ( error ) {
-        printf( "ERROR: %s", error ); 
+        printf( "ERROR: %s\n", error ); 
         return;
     }
     (*fptr)( "type8" );
@@ -199,6 +221,7 @@ int main()
     type6();
     type7();
     type8();
+    type8B();
     type9();
     return 0;
 }

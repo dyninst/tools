@@ -1,8 +1,7 @@
 # dlsonic: binary analysis tool for dlopen/dlsym
 
 ## Introduction
-
-Study of dlopen and dlsym calls is an essential step towards understanding linkage behaviour of libraries and executables. This tool makes use of binary analysis tool DynInst to study ELF files and provides details on the dlopen and dlsym usage in them.
+`dlsonic` is a tool statically analyzes an ELF library or executable's use of calls that load libraries (`dlopen` and `dlmopen`) and the querying of symbols (`dlsym` and `dlvsym`) in these ELF files. Specifically, the tool determines if the filename passed to `dlopen` or `dlmopen`, or the names of symbols passed to `dlsym` or `dlvsym` are string literals. It also tries to determine if the handle passed to `dlsym` or `dlvsym` is from a particular `dlopen` or `dlmopen` call. The output of this tool is the result of this analysis. This tool makes use of binary analysis tool [DynInst](https://github.com/dyninst/dyninst) to do the analysis.
 
 ## Quick build and run flow
 
@@ -38,14 +37,14 @@ DIGEST:testbins/trydl=[dlopenCount=7|dlopenWithStaticString=3|dlsymCount=8|dlsym
 
 ## Understanding output format
 The lines in output are tagged as one of: `CALLDETAIL` and `DIGEST`.
-Each line is expresed as:
+Each line is expressed as:
 ```
 <TAG>:<FILENAME>=<CONTENT>
 ```
 This format aids post-processing scripts in drawing insights from the output and generate more readable reports.
 
-1. `CALLDETAIL`: Whenever a dlopen/dlsym/dlvsym/dlmopen call is identified in the binary, a `CALLDETAIL` is logged. The content is in the format `[ContentTag1=Value1|ContentTag2=Value2|...]` to aid parsing. The content tags are as follows:
-   - `Id`: Each dlopen or dlsym call is assigned a unique id that allows understanding the mappings later on.
+1. `CALLDETAIL`: Whenever a `dlopen`, `dlmopen`, `dlsym`, or `dlvsym` call is identified in the binary, a `CALLDETAIL` is logged. The content is in the format `[ContentTag1=Value1|ContentTag2=Value2|...]` to aid parsing. The content tags are as follows:
+   - `Id`: Each call is assigned a unique id (positive integer) that allows understanding the mappings later on.
    - `Addr`: The address of the `call` instruction for the given call.
    - `Type`: can be either `dlopen`, `dlmopen`, `dlsym`, or `dlvsym`.
    - `Param`: A list of strings that we are able to identify as forming the library name/path in case of dlopen and symbol in case of dlsym. The value is equal to `<unknown>` if the tool is not able to identify any.
@@ -67,15 +66,15 @@ If we have a list of ELF files in `input_files.txt` as follows:
 /usr/lib/x86_64-linux-gnu/libnl-genl-3.so.200.26.0
 ```
 
-Now we pass this list to the python utility.
+Now we pass this list to the python utility. Note that by default this script assumes that the `dlsonic` executable is in the current directory. Optionally a user can pass any other dlsonic binary by using `--dlsonic /path/to/dlsonic`.
 ```console
-$ python dlsummary.py --input input_files.txt --raw-output raw.txt --csv-output results.txt 
+$ ./dlsummary.py --input input_files.txt --raw-output raw.txt --csv-output results.csv 
 INFO:root:Processing input file list: input_files.txt
 INFO:root:# available digests: 7
 INFO:root:Completed Writing: results.txt
 ```
 
-The results are written to the `results.txt`. Note only the results with non-zero findings are reported.
+The results are written to the `results.csv`. Note only the results with non-zero findings are reported.
 ```console
 File,dlopenCount,dlopenWithStaticString,dlsymCount,dlsymWithStaticString,dlvsymCount,dlvsymWithStaticString,dlmopenCount,dlmopenWithStaticString,dlsymMapped,dlsymWithConstHandle,dlvsymMapped,dlvsymWithConstHandle
 /usr/sbin/genl,2,0,1,0,0,0,0,0,1,0,0,0
@@ -88,22 +87,23 @@ File,dlopenCount,dlopenWithStaticString,dlsymCount,dlsymWithStaticString,dlvsymC
 The full output is dumped to the `raw.txt` file in this case.
 
 ## Running on system-wide ELF files
-For this use the `runfulltest.sh` script (simply execute it). It will scan for ELF files in locations under `/usr/*` and then use the above utility to run against this list.
+For this use the `getsystemelffiles.sh` script (simply execute it) to generate a list. 
+It will scan for ELF files in locations under `/usr/*` and output a file named `elf.files` with a list. Following this `dlsummary.py` can be used with this file as input to finish the test.
 
 ## Deep Dive
 
-### 1. Identifying dlopen, dlsym, dlvsym, and dlmopen calls.
-The tool makes use of the dyninst call graph and finds determines calls to the abovementioned functions. This is done by finding all calls locations in the 
+### 1. Identifying dlopen, dlmopen, dlsym, and dlvsym calls.
+The tool makes use of the dyninst call graph and finds determines calls to the above functions. This is done by finding all calls locations in the 
 code and then checking for the call edge to a function in the PLT with 
 the proper name.
 
 ### 2. Argument tracking for identified calls
 For each of the calls that we identify, we try to figure out some of the key arguments. More specifically, in case of `dlopen` and `dlmopen` the idea is to figure out the library path/name string. Similarly, for `dlsym` and `dlvsym`, the symbol string is of particular interest. This is also an area of future work.
 
-Currently we are only able to figure out any static string literals (being read from `.rodata`) while forming the arguments. This is not necessarily same as saying "a static string was passed" and is actually a larger set containing static string args and more.
+Currently we can determine if an argument is a string literal based on it being in the .rodata section.. This is not necessarily same as saying "a static string was passed" and is actually a larger set containing static string args and more.
 
 The approach goes as follows:
- - We figure out the argument register `reg` that is supposed to contain the argument of interest as per the position in the call.
+ - From the function signature of the architecture ABI we know the `reg` that contains the argument of interest.
  - Going back from the `call` instruction, we locate the last assignment made to `reg` and run backward slicing (with stack analysis enabled) on it. 
  - The backward slicing returns a graph of assignments. We traverse this graph and find any string reads happening from the `.rodata` section.
 
@@ -123,4 +123,4 @@ Here again, the idea is similar to (2) and we backward slice from the argument r
  - The call identification code makes use of parseAPI instead of dyninstAPI. This limits our ability to handle stripped binaries. We need to migrate the tool to use dyninstAPI instead.
  - Many applications are found to be making use of wrappers for dlopen/dlsym calls. The current analysis methodology will resolve the libnames and symbols to function parameters and will not detect string literals which the parameters might have resolved to upon further backward slicing.
  - String based optimisations are quite common. The behaviour of strcpy, strcat, strcmp, etc. needs to be studied and common operations need to be supported to improve argument tracking.
-
+ - Make this analysis work on all architectures supported by Dyninst. Right now this code only works on x86_64.
