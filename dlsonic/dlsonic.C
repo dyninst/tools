@@ -146,7 +146,7 @@ private:
 
 // Extract needed assignment from an assignment and slice forward/backward
 std::vector<Dyninst::Node::Ptr> doSlice(
-    ds::Symtab* obj, di::Instruction insObj, int32_t insAddr,
+    di::Instruction insObj, int32_t insAddr,
     const dp::Function* fn, dp::Block* blk, int machRegInt )
 {
     auto fnNoConst = const_cast<dp::Function*>( fn );
@@ -190,7 +190,7 @@ std::vector<Dyninst::Node::Ptr> doSlice(
 
 // locate the last assignment to a register in a given basic block
 std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
-    int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
+    int rgId, dp::Block* blk, ds::Symtab* obj )
 {
     ds::Region* reg = obj->findEnclosingRegion( blk->start() );
     if ( ! reg ) {
@@ -260,7 +260,7 @@ std::optional<std::pair<di::Instruction, uint32_t>> locateAssignmentInstruction(
 std::vector<std::string> trackArgRegisterString(
     int rgId, dp::Block* blk, ds::Symtab* obj, const dp::Function* fn )
 {
-    auto firstInstObj = locateAssignmentInstruction ( rgId, blk, obj, fn ); 
+    auto firstInstObj = locateAssignmentInstruction ( rgId, blk, obj ); 
 
     if ( ! firstInstObj.has_value() ) {
         return {};
@@ -269,7 +269,7 @@ std::vector<std::string> trackArgRegisterString(
     auto firstInst = firstInstObj.value();
 
     auto allNodes = doSlice(
-        obj, firstInst.first, firstInst.second, fn, blk, rgId );
+        firstInst.first, firstInst.second, fn, blk, rgId );
 
     std::vector<std::pair<di::Instruction, uint32_t>> allTargets;
 
@@ -365,8 +365,7 @@ void discover( dp::Block* b, uint32_t index )
 
 // Upon seeing a dlopen/dlmopen call, we record all the potential basic blocks
 // where the return value register might be valid.
-void recordCallFTBlock(
-    dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
+void recordCallFTBlock( dp::Block* b )
 {
     dp::Block* currFTBlk = nullptr;
     int callFTEdgeCount = 0;
@@ -395,8 +394,8 @@ void recordCallFTBlock(
 void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
 {
     std::optional<std::pair<di::Instruction, uint32_t>> inst;
-    auto inst_rdi =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj, fn );
-    auto inst_edi = locateAssignmentInstruction( Dyninst::x86_64::iedi, b, obj, fn );
+    auto inst_rdi =  locateAssignmentInstruction( Dyninst::x86_64::irdi, b, obj );
+    auto inst_edi = locateAssignmentInstruction( Dyninst::x86_64::iedi, b, obj );
     
     if ( inst_rdi.has_value() ) {
         inst = inst_rdi;
@@ -410,7 +409,7 @@ void recordRDISlice( dp::Block* b, ds::Symtab* obj, const dp::Function* fn )
     }
 
     auto val = inst.value();
-    auto allNodes = doSlice( obj, val.first, val.second, fn, b, Dyninst::x86_64::irdi );
+    auto allNodes = doSlice( val.first, val.second, fn, b, Dyninst::x86_64::irdi );
 
     auto index = GlobalData::Instance().calldetails.back().id;
 
@@ -495,8 +494,6 @@ int main( int argc, char* argv[] )
     std::vector<ds::Region*> reg;
     std::ignore = obj->getCodeRegions( reg );
 
-    int64_t pltBeginAddr = 0, pltEndAddr = 0;
-
     for ( const auto r: reg ) {
         auto rgnName = r->getRegionName();
         if ( rgnName == ".plt" ) {
@@ -574,7 +571,7 @@ int main( int argc, char* argv[] )
                             // This does not extensively cover all cases, control flow change (like ifs)
                             // right after function call may break this scheme. But using it as a
                             // starting point.
-                            recordCallFTBlock( b, obj, f );
+                            recordCallFTBlock( b );
                         } else if ( funcName == "dlsym" ) {
                             recordResults(
                                 Stats::Instance().dlsymCount,
@@ -593,7 +590,7 @@ int main( int argc, char* argv[] )
                                 Dyninst::x86_64::irsi,
                                 GlobalData::CallType::DLMOPEN
                             );
-                            recordCallFTBlock( b, obj, f );
+                            recordCallFTBlock( b );
                         } else if ( funcName == "dlvsym" ) {
                             recordResults(
                                 Stats::Instance().dlvsymCount,
