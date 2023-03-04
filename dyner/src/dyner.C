@@ -567,10 +567,10 @@ int loadSource(const char *inp) {
    unlink(fname);
    
    //Create a shared object from input file
-   char cmdBuf[1024];
-   sprintf(cmdBuf,"g++ -g -fPIC -shared -o %s %s", fname, dupstr);
-   
-   system(cmdBuf);
+   auto cmd = std::string("g++ -g -fPIC -shared -o ") + fname + dupstr;
+   if(system(cmd.c_str()) == -1) {
+	   return TCL_ERROR;
+   }
    
    //Test whether or not shared object is created
    FILE *fp = fopen(fname,"rb");
