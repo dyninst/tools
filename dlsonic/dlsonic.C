@@ -226,9 +226,7 @@ std::optional<std::pair<di::Instruction, Dyninst::Address>> locateAssignmentInst
     bool found = false;
     for ( auto inst: instrVec ) {
         // find first instruction whose operands involve RDI/EDI in the write set
-        std::vector<di::Operand> instOpr;
-        inst.first.getOperands( instOpr );
-        for ( auto op: instOpr ) {
+        for ( auto op: inst.first.getAllOperands()) {
             std::set<di::RegisterAST::Ptr> regSet;
             op.getWriteSet( regSet );
             
@@ -292,9 +290,7 @@ std::vector<std::string> trackArgRegisterString(
             di::Expression::Ptr ripExpr;
 
             // We should be traversing the entire graph
-            std::vector<di::Expression::Ptr> ret;
-            targetValue->getChildren(ret);
-            for ( auto e: ret ) {
+            for ( auto e: targetValue->getSubexpressions() ) {
                 if ( e->format() == "RIP" ) {
                     ripExpr = e;
                 }
@@ -447,10 +443,7 @@ bool sliceNodeContainsRAXIn( Dyninst::Node::Ptr node )
 {
     auto insn = dynamic_cast<Dyninst::SliceNode*>(node.get())->assign()->insn();
 
-    std::vector<di::Operand> instOpr;
-    insn.getOperands( instOpr );
-
-    for ( auto op: instOpr ) {
+    for ( auto op: insn.getAllOperands() ) {
         std::set<di::RegisterAST::Ptr> regSet;
         op.getReadSet( regSet );
         for ( auto w: regSet ) {
