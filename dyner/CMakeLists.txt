@@ -6,5 +6,5 @@ find_package(TCL REQUIRED)
 
 add_executable(dyner src/dyner.C src/breakpoint.h src/dynerList.h)
 target_compile_options(dyner PRIVATE -Wall -Wextra)
-target_include_directories(dyner PRIVATE ${TCL_INCLUDE_PATH} ${DYNINST_INCLUDE_DIR})
-target_link_libraries(dyner PRIVATE dyninstAPI dynC_API ${TCL_LIBRARY})
+target_include_directories(dyner PRIVATE ${TCL_INCLUDE_PATH})
+target_link_libraries(dyner PRIVATE Dyninst::dyninstAPI Dyninst::dynC_API ${TCL_LIBRARY})
