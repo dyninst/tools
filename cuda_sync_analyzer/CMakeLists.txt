@@ -41,7 +41,6 @@ set(_private_headers
     src/InstrSyncOffset.h
     src/LaunchIdentifySync.h
     src/LocateCudaSynchronization.h
-    src/LogInfo.h
     src/SerializeTypes.h)
 
 set(_public_headers src/FindCudaSync.h)

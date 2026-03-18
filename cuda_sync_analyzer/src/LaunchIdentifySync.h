@@ -34,7 +34,6 @@
 #include "BPatch_basicBlock.h"
 #include "dynC.h"
 #include "set"
-#include "LogInfo.h"
 #include "Constants.h"
 
 using namespace Dyninst;
