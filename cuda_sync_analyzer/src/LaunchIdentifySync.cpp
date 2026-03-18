@@ -95,8 +95,14 @@ uint64_t LaunchIdentifySync::PostProcessing(std::vector<uint64_t> & allFound) {
 	uint64_t highestValue = 0;
 	uint64_t highestAddress = 0;
 	while (size > 0) {
-		fread(&id, 1, sizeof(uint64_t), fp);
-		fread(&gCount, 1, sizeof(uint64_t), fp);
+		if(fread(&id, 1, sizeof(uint64_t), fp) == 0 && ferror(fp)) {
+			perror("Failed to read ID");
+			exit(1);
+		}
+		if(fread(&gCount, 1, sizeof(uint64_t), fp) == 0 && ferror(fp)) {
+			perror("Failed to read count");
+			exit(1);
+		}
 		size -= sizeof(uint64_t) * 2;
 		std::cerr << "Location = " << std::hex << idToOffset[id]
             << std::dec << " gCount = " << gCount << std::endl;

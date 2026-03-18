@@ -9,7 +9,10 @@ uint64_t SerializeUint64(FILE * fp, uint64_t val) {
 };
 
 void ReadUint64(FILE * fp, uint64_t & val) {
-	fread(&val, 1, sizeof(uint64_t), fp);
+	if(fread(&val, 1, sizeof(uint64_t), fp) == 0 && ferror(fp)) {
+		perror("Failed to read uint64");
+		exit(1);
+	}
 	//return sizeof(uint64_t);
 };
 
@@ -27,7 +30,10 @@ void DeserializeString(FILE * fp, std::string & ret) {
 	ReadUint64(fp, size);
 	if (size > 0) {
 		std::shared_ptr<char> tmp(new char[size+1]);
-		fread(tmp.get(), sizeof(char), size, fp);
+		if(fread(tmp.get(), sizeof(char), size, fp) == 0 && ferror(fp)) {
+			perror("Failed to deserialize string");
+			exit(1);
+		}
 		ret = std::string(tmp.get(), size);
 	}
 };
@@ -41,7 +47,10 @@ uint64_t SerializeBool(FILE * fp, bool b) {
 };
 void DeserializeBool(FILE * fp, bool & b) {
 	uint8_t bt;
-	fread(&bt, 1, sizeof(uint8_t), fp);
+	if(fread(&bt, 1, sizeof(uint8_t), fp) == 0 && ferror(fp)) {
+		perror("Failed to deserialize bool");
+		exit(1);
+	}
 	if (bt == 1)
 		b = true;
 	else 
