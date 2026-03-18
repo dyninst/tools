@@ -43,7 +43,6 @@
 #include "BPatch_flowGraph.h"
 #include "dynC.h"
 #include "set"
-#include "LogInfo.h"
 #include "Constants.h"
 //#include "SymbolLookup.h"
 using namespace Dyninst;
