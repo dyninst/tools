@@ -16,6 +16,10 @@ Static analysis of libdl calls in ELF binaries.
 
 A simple command-line interface for performing Dyninst functions.
 
+### [noreturn](noreturn)
+
+Generates and checks lists of non-returning functions in a library's dependencies, for the names a tool registers with Dyninst before parsing.
+
 ### [Fleece](fleece)
 
 A fuzzing tool for comparing instruction decoders.
